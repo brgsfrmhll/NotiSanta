@@ -3058,13 +3058,13 @@ def show_approval():
 
     closed_statuses = ['aprovada', 'rejeitada', 'reprovada', 'concluida']
     closed_my_approval_notifications = [
-        n for n in all_notifications
+       n for n in all_notifications
         if n.get('status') in closed_statuses and (
-                (n.get('status') == 'aprovada' and n.get('approval', {}).get(
-                    'approved_by') == user_username_logged_in) or
-                (n.get('status') == 'reprovada' and n.get('rejection_approval', {}).get(
+                (n.get('status') == 'aprovada' and (n.get('approval') or {}).get(
+                     'approved_by') == user_username_logged_in) or
+                (n.get('status') == 'reprovada' and (n.get('rejection_approval') or {}).get(
                     'rejected_by') == user_username_logged_in)
-        )
+         )
     ]
 
     if not pending_approval and not closed_my_approval_notifications:
