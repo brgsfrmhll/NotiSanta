@@ -937,7 +937,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
                 except ValueError:
                     pass
 
-            if user_id_logged_in and action.get('executor_id') == user_id_logged_in:
+            if user_id_logged_in and action.get('executor_id') == user_id_logged_in: # Corrected here
                 st.markdown(f"""
                 <div style='background-color: #e6ffe6; padding: 10px; border-radius: 5px; border-left: 3px solid #4CAF50;'>
                     <strong>{action_type}</strong> - por <strong>VOCÊ ({action.get('executor_name', UI_TEXTS.text_na)})</strong> em {action_timestamp}
@@ -966,7 +966,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
     if notification.get('approval'):
         st.markdown("#### ✅ Aprovação Final")
         approval_info = notification['approval']
-        if user_username_logged_in and approval_info.get('approved_by') == user_username_logged_in:
+        if user_username_logged_in and (approval_info.get('approved_by') or {}) == user_username_logged_in: # Corrected here
             st.markdown(f"""
             <div style='background-color: #e6ffe6; padding: 10px; border-radius: 5px; border-left: 3px solid #4CAF50;'>
                 <strong>Decisão:</strong> {approval_info.get('decision', UI_TEXTS.text_na)}
@@ -990,7 +990,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
     if notification.get('rejection_approval'):
         st.markdown("#### ⛔ Reprovação na Aprovação")
         rej_appr = notification['rejection_approval']
-        if user_username_logged_in and rej_appr.get('rejected_by') == user_username_logged_in:
+        if user_username_logged_in and (rej_appr.get('rejected_by') or {}) == user_username_logged_in: # Corrected here
             st.markdown(f"""
             <div style='background-color: #ffe6e6; padding: 10px; border-radius: 5px; border-left: 3px solid #f44336;'>
                 <strong>Motivo:</strong> {rej_appr.get('reason', UI_TEXTS.text_na)}
@@ -1005,7 +1005,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
     if notification.get('rejection_execution_review'):
         st.markdown("#### 🔄 Execução Rejeitada (Revisão do Classificador)")
         rej_exec_review = notification['rejection_execution_review']
-        if user_username_logged_in and rej_exec_review.get('reviewed_by') == user_username_logged_in:
+        if user_username_logged_in and (rej_exec_review.get('reviewed_by') or {}) == user_username_logged_in: # Corrected here
             st.markdown(f"""
             <div style='background-color: #ffe6e6; padding: 10px; border-radius: 5px; border-left: 3px solid #f44336;'>
                 <strong>Motivo:</strong> {rej_exec_review.get('reason', UI_TEXTS.text_na)}
@@ -1456,7 +1456,7 @@ current_data['patient_outcome_obito'] in patient_outcome_obito_options else 0,
                                 if notification_data_to_save.get('immediate_actions_taken') == 'Sim':
                                     st.write(
                                         f"**Descrição Ações Imediatas:** {notification_data_to_save.get('immediate_action_description', UI_TEXTS.text_na)[:200]}..." if len(
-notification_data_to_save.get('immediate_action_description',
+                                            notification_data_to_save.get('immediate_action_description',
                                                                           '')) > 200 else notification_data_to_save.get(
                                             'immediate_action_description', UI_TEXTS.text_na))
                                 st.write(
@@ -2644,13 +2644,10 @@ def show_classification():
                     concluded_by = UI_TEXTS.text_na
                     if notification.get('conclusion') and notification['conclusion'].get('concluded_by'):
                         concluded_by = notification['conclusion']['concluded_by']
-                    # CORREÇÃO AQUI: usando (n.get('approval') or {}).get()
                     elif notification.get('approval') and (notification.get('approval') or {}).get('approved_by'):
                         concluded_by = (notification.get('approval') or {}).get('approved_by')
-                    # CORREÇÃO AQUI: usando (n.get('rejection_classification') or {}).get()
                     elif notification.get('rejection_classification') and (notification.get('rejection_classification') or {}).get('classified_by'):
                         concluded_by = (notification.get('rejection_classification') or {}).get('classified_by')
-                    # CORREÇÃO AQUI: usando (n.get('rejection_approval') or {}).get()
                     elif notification.get('rejection_approval') and (notification.get('rejection_approval') or {}).get('rejected_by'):
                         concluded_by = (notification.get('rejection_approval') or {}).get('rejected_by')
 
@@ -2757,10 +2754,10 @@ def show_execution():
                     """, unsafe_allow_html=True)
 
             executor_has_already_concluded_their_part = False
-            user_id_logged_in = st.session_state.user.get('id')
+            # user_id_logged_in = st.session_state.user.get('id') # REMOVIDO: Linha redundante, já definida no início da função
             if user_id_logged_in:
                 for action_entry in notification.get('actions', []):
-                    if action_entry.get('executor_id') == user_id_loggedin and action_entry.get(
+                    if action_entry.get('executor_id') == user_id_logged_in and action_entry.get( # CORREÇÃO AQUI: user_id_logged_in
                             'final_action_by_executor') == True:
                         executor_has_already_concluded_their_part = True
                         break
@@ -3016,13 +3013,10 @@ def show_execution():
                     concluded_by = UI_TEXTS.text_na
                     if notification.get('conclusion') and notification['conclusion'].get('concluded_by'):
                         concluded_by = notification['conclusion']['concluded_by']
-                    # CORREÇÃO AQUI: usando (n.get('approval') or {}).get()
                     elif notification.get('approval') and (notification.get('approval') or {}).get('approved_by'):
                         concluded_by = (notification.get('approval') or {}).get('approved_by')
-                    # CORREÇÃO AQUI: usando (n.get('rejection_classification') or {}).get()
                     elif notification.get('rejection_classification') and (notification.get('rejection_classification') or {}).get('classified_by'):
                         concluded_by = (notification.get('rejection_classification') or {}).get('classified_by')
-                    # CORREÇÃO AQUI: usando (n.get('rejection_approval') or {}).get()
                     elif notification.get('rejection_approval') and (notification.get('rejection_approval') or {}).get('rejected_by'):
                         concluded_by = (notification.get('rejection_approval') or {}).get('rejected_by')
 
@@ -3060,9 +3054,9 @@ def show_approval():
     closed_my_approval_notifications = [
         n for n in all_notifications
         if n.get('status') in closed_statuses and (
-                (n.get('status') == 'aprovada' and (n.get('approval') or {}).get(
+                (n.get('status') == 'aprovada' and (n.get('approval') or {}).get( # Corrected here
                     'approved_by') == user_username_logged_in) or
-                (n.get('status') == 'reprovada' and (n.get('rejection_approval') or {}).get(
+                (n.get('status') == 'reprovada' and (n.get('rejection_approval') or {}).get( # Corrected here
                     'rejected_by') == user_username_logged_in)
         )
     ]
@@ -3428,13 +3422,10 @@ def show_approval():
                     concluded_by = UI_TEXTS.text_na
                     if notification.get('conclusion') and notification['conclusion'].get('concluded_by'):
                         concluded_by = notification['conclusion']['concluded_by']
-                    # CORREÇÃO AQUI: usando (n.get('approval') or {}).get()
                     elif notification.get('approval') and (notification.get('approval') or {}).get('approved_by'):
                         concluded_by = (notification.get('approval') or {}).get('approved_by')
-                    # CORREÇÃO AQUI: usando (n.get('rejection_classification') or {}).get()
                     elif notification.get('rejection_classification') and (notification.get('rejection_classification') or {}).get('classified_by'):
                         concluded_by = (notification.get('rejection_classification') or {}).get('classified_by')
-                    # CORREÇÃO AQUI: usando (n.get('rejection_approval') or {}).get()
                     elif notification.get('rejection_approval') and (notification.get('rejection_approval') or {}).get('rejected_by'):
                         concluded_by = (notification.get('rejection_approval') or {}).get('rejected_by')
 
