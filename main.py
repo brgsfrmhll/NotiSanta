@@ -224,8 +224,7 @@ st.markdown(r"""
     .status-concluida { color: #4caf50; font-weight: bold; } /* Verde (mesmo que aprovada para simplificar) */
     .status-rejeitada { color: #f44336; font-weight: bold; } /* Vermelho (Usado para Rejeição Inicial) */
     .status-reprovada { color: #f44336; font-weight: bold; } /* Vermelho (Usado para Rejeição de Aprovação)*/
-
-    /* Estilo para o conteúdo da barra lateral */
+/* Estilo para o conteúdo da barra lateral */
     .sidebar .sidebar-content {
         background-color: #f0f2f6; /* Cinza claro */
     }
@@ -964,7 +963,6 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
         st.write(f"**Observações:** {review_exec.get('notes', UI_TEXTS.text_na)}")
         if review_exec.get('rejection_reason'):
             st.write(f"**Motivo Rejeição:** {review_exec.get('rejection_reason', UI_TEXTS.text_na)}")
-
     if notification.get('approval'):
         st.markdown("#### ✅ Aprovação Final")
         approval_info = notification['approval']
@@ -1188,7 +1186,8 @@ def show_create_notification():
             patient_involved_options = [UI_TEXTS.selectbox_default_patient_involved, "Sim", "Não"]
             current_data['patient_involved'] = st.selectbox(
                 "O evento atingiu algum paciente?*", options=patient_involved_options,
-                index=patient_involved_options.index(current_data['patient_involved']) if current_data[
+                index=patient_involved_options.index(current_data[
+                                                                                              'patient_involved']) if current_data[
                                                                                               'patient_involved'] in patient_involved_options else 0,
                 key="patient_involved_state_refactored",
                 help="Indique se o evento teve qualquer tipo de envolvimento...")
@@ -1213,7 +1212,7 @@ def show_create_notification():
                     current_data['patient_outcome_obito'] = st.selectbox(
                         "O paciente evoluiu com óbito?*", options=patient_outcome_obito_options,
                         index=patient_outcome_obito_options.index(current_data['patient_outcome_obito']) if
-                        current_data['patient_outcome_obito'] in patient_outcome_obito_options else 0,
+current_data['patient_outcome_obito'] in patient_outcome_obito_options else 0,
                         key="create_patient_outcome_obito_refactored",
                         help="Indique se o evento resultou diretamente no óbito do paciente.")
                 st.markdown("<span class='required-field'>* Campos obrigatórios</span>", unsafe_allow_html=True)
@@ -1457,7 +1456,7 @@ def show_create_notification():
                                 if notification_data_to_save.get('immediate_actions_taken') == 'Sim':
                                     st.write(
                                         f"**Descrição Ações Imediatas:** {notification_data_to_save.get('immediate_action_description', UI_TEXTS.text_na)[:200]}..." if len(
-                                            notification_data_to_save.get('immediate_action_description',
+notification_data_to_save.get('immediate_action_description',
                                                                           '')) > 200 else notification_data_to_save.get(
                                             'immediate_action_description', UI_TEXTS.text_na))
                                 st.write(
@@ -2645,14 +2644,15 @@ def show_classification():
                     concluded_by = UI_TEXTS.text_na
                     if notification.get('conclusion') and notification['conclusion'].get('concluded_by'):
                         concluded_by = notification['conclusion']['concluded_by']
-                    elif notification.get('approval') and notification['approval'].get('approved_by'):
-                        concluded_by = notification['approval']['approved_by']
-                    elif notification.get('rejection_classification') and notification['rejection_classification'].get(
-                            'classified_by'):
-                        concluded_by = notification['rejection_classification']['classified_by']
-                    elif notification.get('rejection_approval') and notification['rejection_approval'].get(
-                            'rejected_by'):
-                        concluded_by = notification['rejection_approval']['rejected_by']
+                    # CORREÇÃO AQUI: usando (n.get('approval') or {}).get()
+                    elif notification.get('approval') and (notification.get('approval') or {}).get('approved_by'):
+                        concluded_by = (notification.get('approval') or {}).get('approved_by')
+                    # CORREÇÃO AQUI: usando (n.get('rejection_classification') or {}).get()
+                    elif notification.get('rejection_classification') and (notification.get('rejection_classification') or {}).get('classified_by'):
+                        concluded_by = (notification.get('rejection_classification') or {}).get('classified_by')
+                    # CORREÇÃO AQUI: usando (n.get('rejection_approval') or {}).get()
+                    elif notification.get('rejection_approval') and (notification.get('rejection_approval') or {}).get('rejected_by'):
+                        concluded_by = (notification.get('rejection_approval') or {}).get('rejected_by')
 
                     st.markdown(f"""
                             <div class="notification-card">
@@ -2677,7 +2677,6 @@ def show_execution():
     st.markdown("<h1 class='main-header'>⚡ Execução de Notificações</h1>", unsafe_allow_html=True)
     st.info(
         "📋 Nesta página, você pode visualizar as notificações atribuídas a você, registrar as ações executadas e marcar sua parte como concluída.")
-
     all_notifications = load_notifications()
     user_id_logged_in = st.session_state.user.get('id')
     user_username_logged_in = st.session_state.user.get('username')
@@ -2761,7 +2760,7 @@ def show_execution():
             user_id_logged_in = st.session_state.user.get('id')
             if user_id_logged_in:
                 for action_entry in notification.get('actions', []):
-                    if action_entry.get('executor_id') == user_id_logged_in and action_entry.get(
+                    if action_entry.get('executor_id') == user_id_loggedin and action_entry.get(
                             'final_action_by_executor') == True:
                         executor_has_already_concluded_their_part = True
                         break
@@ -3017,14 +3016,15 @@ def show_execution():
                     concluded_by = UI_TEXTS.text_na
                     if notification.get('conclusion') and notification['conclusion'].get('concluded_by'):
                         concluded_by = notification['conclusion']['concluded_by']
-                    elif notification.get('approval') and notification['approval'].get('approved_by'):
-                        concluded_by = notification['approval']['approved_by']
-                    elif notification.get('rejection_classification') and notification['rejection_classification'].get(
-                            'classified_by'):
-                        concluded_by = notification['rejection_classification']['classified_by']
-                    elif notification.get('rejection_approval') and notification['rejection_approval'].get(
-                            'rejected_by'):
-                        concluded_by = notification['rejection_approval']['rejected_by']
+                    # CORREÇÃO AQUI: usando (n.get('approval') or {}).get()
+                    elif notification.get('approval') and (notification.get('approval') or {}).get('approved_by'):
+                        concluded_by = (notification.get('approval') or {}).get('approved_by')
+                    # CORREÇÃO AQUI: usando (n.get('rejection_classification') or {}).get()
+                    elif notification.get('rejection_classification') and (notification.get('rejection_classification') or {}).get('classified_by'):
+                        concluded_by = (notification.get('rejection_classification') or {}).get('classified_by')
+                    # CORREÇÃO AQUI: usando (n.get('rejection_approval') or {}).get()
+                    elif notification.get('rejection_approval') and (notification.get('rejection_approval') or {}).get('rejected_by'):
+                        concluded_by = (notification.get('rejection_approval') or {}).get('rejected_by')
 
                     st.markdown(f"""
                             <div class="notification-card">
@@ -3058,13 +3058,13 @@ def show_approval():
 
     closed_statuses = ['aprovada', 'rejeitada', 'reprovada', 'concluida']
     closed_my_approval_notifications = [
-       n for n in all_notifications
+        n for n in all_notifications
         if n.get('status') in closed_statuses and (
                 (n.get('status') == 'aprovada' and (n.get('approval') or {}).get(
-                     'approved_by') == user_username_logged_in) or
+                    'approved_by') == user_username_logged_in) or
                 (n.get('status') == 'reprovada' and (n.get('rejection_approval') or {}).get(
                     'rejected_by') == user_username_logged_in)
-         )
+        )
     ]
 
     if not pending_approval and not closed_my_approval_notifications:
@@ -3276,29 +3276,37 @@ def show_approval():
 
                 st.markdown("---")
 
+                # NOVO: Inicializa ou recupera o estado do formulário de aprovação para esta notificação específica
+                if notification.get('id') not in st.session_state.approval_form_state:
+                    st.session_state.approval_form_state[notification.get('id')] = {
+                        'decision': UI_TEXTS.selectbox_default_decisao_aprovacao,
+                        'notes': '',
+                    }
+                current_approval_data = st.session_state.approval_form_state[notification.get('id')]
+
                 with st.form(f"approval_form_{notification.get('id', UI_TEXTS.text_na)}_refactored",
                              clear_on_submit=False):
                     st.markdown("### 🎯 Decisão de Aprovação Final")
                     approval_decision_options = [UI_TEXTS.selectbox_default_decisao_aprovacao, "Aprovar",
                                                  "Reprovar"]
-                    current_data['decision'] = st.selectbox(
+                    current_approval_data['decision'] = st.selectbox(
                         "Decisão:*", options=approval_decision_options,
                         key=f"approval_decision_{notification.get('id', UI_TEXTS.text_na)}_refactored",
                         index=approval_decision_options.index(
-                            st.session_state.get(
-                                f"approval_decision_{notification.get('id', UI_TEXTS.text_na)}_refactored",
-                                UI_TEXTS.selectbox_default_decisao_aprovacao)),
+                            current_approval_data.get('decision', UI_TEXTS.selectbox_default_decisao_aprovacao)),
                         help="Selecione 'Aprovar' para finalizar a notificação ou 'Reprovar' para devolvê-la para revisão pelo classificador."
                     )
                     st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
 
-                    approval_notes_state = st.text_area(
+                    # Capture o valor do text_area e atribua-o ao `current_approval_data['notes']`
+                    approval_notes_input = st.text_area(
                         "Observações da Aprovação/Reprovação:*",
-                        value=st.session_state.get(
-                            f"approval_notes_{notification.get('id', UI_TEXTS.text_na)}_refactored", ""),
+                        value=current_approval_data.get('notes', ''),
                         placeholder="• Avalie a completude e eficácia das ações executadas e a revisão do classificador...\n• Indique se as ações foram satisfatórias para mitigar o risco ou resolver o evento.\n• Forneça recomendações adicionais, se necessário.\n• Em caso de reprovação, explique claramente o motivo e o que precisa ser revisado ou corrigido pelo classificador.",
                         height=120, key=f"approval_notes_{notification.get('id', UI_TEXTS.text_na)}_refactored",
                         help="Forneça sua avaliação sobre as ações executadas, a revisão do classificador, e a decisão final.").strip()
+
+                    current_approval_data['notes'] = approval_notes_input # Atualiza o estado com o valor do text_area
 
                     submit_button = st.form_submit_button("✔️ Confirmar Decisão",
                                                           use_container_width=True)
@@ -3306,11 +3314,9 @@ def show_approval():
 
                     if submit_button:
                         validation_errors = []
-                        if current_data[
-                            'decision'] == UI_TEXTS.selectbox_default_decisao_aprovacao: validation_errors.append(
+                        if current_approval_data['decision'] == UI_TEXTS.selectbox_default_decisao_aprovacao: validation_errors.append(
                             "É obrigatório selecionar a decisão (Aprovar/Reprovar).")
-                        if current_data[
-                            'decision'] == "Reprovar" and not approval_notes_state: validation_errors.append(
+                        if current_approval_data['decision'] == "Reprovar" and not current_approval_data['notes']: validation_errors.append(
                             "É obrigatório informar as observações para reprovar a notificação.")
 
                         if validation_errors:
@@ -3320,9 +3326,9 @@ def show_approval():
                         else:
                             user_name = st.session_state.user.get('name', 'Usuário')
                             user_username = st.session_state.user.get('username', UI_TEXTS.text_na)
-                            approval_notes = approval_notes_state
+                            approval_notes = current_approval_data['notes']
 
-                            if current_data['decision'] == "Aprovar":
+                            if current_approval_data['decision'] == "Aprovar":
                                 new_status = 'aprovada'
                                 updates = {
                                     'status': new_status,
@@ -3350,7 +3356,7 @@ def show_approval():
                                                           f" Obs: {approval_notes}" if approval_notes else "")))
                                 st.success(
                                     f"✅ Notificação #{notification['id']} aprovada e finalizada com sucesso! O ciclo de gestão do evento foi concluído.")
-                            elif current_data['decision'] == "Reprovar":
+                            elif current_approval_data['decision'] == "Reprovar":
                                 new_status = 'aguardando_classificador'
                                 updates = {
                                     'status': new_status,
@@ -3374,8 +3380,8 @@ def show_approval():
                                     "A notificação foi movida para o status 'aguardando classificador' para que a equipe de classificação possa revisar e redefinir o fluxo.")
 
                             update_notification(notification['id'], updates)
-                            st.session_state.review_classification_state.pop(notification['id'], None)
-                            st.session_state.pop('current_review_classification_id', None)
+                            # NOVO: Limpa o estado do formulário de aprovação para esta notificação específica
+                            st.session_state.approval_form_state.pop(notification['id'], None)
                             _clear_approval_form_state(notification['id'])
                             st.rerun()
 
@@ -3422,14 +3428,15 @@ def show_approval():
                     concluded_by = UI_TEXTS.text_na
                     if notification.get('conclusion') and notification['conclusion'].get('concluded_by'):
                         concluded_by = notification['conclusion']['concluded_by']
-                    elif notification.get('approval') and notification['approval'].get('approved_by'):
-                        concluded_by = notification['approval']['approved_by']
-                    elif notification.get('rejection_classification') and notification['rejection_classification'].get(
-                            'classified_by'):
-                        concluded_by = notification['rejection_classification']['classified_by']
-                    elif notification.get('rejection_approval') and notification['rejection_approval'].get(
-                            'rejected_by'):
-                        concluded_by = notification['rejection_approval']['rejected_by']
+                    # CORREÇÃO AQUI: usando (n.get('approval') or {}).get()
+                    elif notification.get('approval') and (notification.get('approval') or {}).get('approved_by'):
+                        concluded_by = (notification.get('approval') or {}).get('approved_by')
+                    # CORREÇÃO AQUI: usando (n.get('rejection_classification') or {}).get()
+                    elif notification.get('rejection_classification') and (notification.get('rejection_classification') or {}).get('classified_by'):
+                        concluded_by = (notification.get('rejection_classification') or {}).get('classified_by')
+                    # CORREÇÃO AQUI: usando (n.get('rejection_approval') or {}).get()
+                    elif notification.get('rejection_approval') and (notification.get('rejection_approval') or {}).get('rejected_by'):
+                        concluded_by = (notification.get('rejection_approval') or {}).get('rejected_by')
 
                     st.markdown(f"""
                             <div class="notification-card">
@@ -3774,7 +3781,7 @@ def show_admin():
                 "Selecionar notificação para análise detalhada (JSON):",
                 options=selected_notif_display_options,
                 index=selected_notif_display_options.index(st.session_state[selectbox_key_debug]) if st.session_state[
-                                                                                                         selectbox_key_debug] in selected_notif_display_options else 0,
+                    selectbox_key_debug] in selected_notif_display_options else 0,
                 key=selectbox_key_debug
             )
             if selected_notif_display != UI_TEXTS.selectbox_default_admin_debug_notif:
@@ -4099,7 +4106,7 @@ def show_dashboard():
 
     items_per_page_options = [5, 10, 20, 50]
     items_per_page_display_options = [UI_TEXTS.selectbox_items_per_page_placeholder] + [str(x) for x in
-                                                                                        items_per_page_options]
+                                                                                          items_per_page_options]
 
     if 'dashboard_items_per_page' not in st.session_state: st.session_state.dashboard_items_per_page = 10
 
@@ -4176,6 +4183,8 @@ def main():
     if 'review_classification_state' not in st.session_state: st.session_state.review_classification_state = {}
     if 'current_initial_classification_id' not in st.session_state: st.session_state.current_initial_classification_id = None
     if 'current_review_classification_id' not in st.session_state: st.session_state.current_review_classification_id = None
+    # NOVO: Adiciona o estado para o formulário de aprovação
+    if 'approval_form_state' not in st.session_state: st.session_state.approval_form_state = {}
 
     show_sidebar()
 
