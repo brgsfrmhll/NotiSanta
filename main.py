@@ -990,7 +990,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
 
     with col_det2:
         st.markdown("**⏱️ Informações de Gestão e Classificação**")
-        classif = notification.get('classification', {})
+        classif = notification.get('classification') or {}
         st.write(f"**Classificação NNC:** {classif.get('nnc', UI_TEXTS.text_na)}")
         if classif.get('nivel_dano'): st.write(f"**Nível de Dano:** {classif.get('nivel_dano', UI_TEXTS.text_na)}")
         st.write(f"**Prioridade:** {classif.get('prioridade', UI_TEXTS.text_na)}")
@@ -2442,7 +2442,7 @@ def show_classification():
                     f"### Notificação Selecionada para Revisão de Execução: #{notification_review.get('id', UI_TEXTS.text_na)}")
 
                 # Obter informações de prazo para o card
-                classif_info = notification_review.get('classification', {})
+                classif_info = notification_review.get('classification') or {}
                 deadline_date_str = classif_info.get('deadline_date')
 
                 # Acessa 'timestamp' de 'conclusion' de forma segura
@@ -2866,11 +2866,11 @@ def show_execution():
 
         for notification in user_active_notifications:
             status_class = f"status-{notification.get('status', UI_TEXTS.text_na).replace('_', '-')}"
-            classif_info = notification.get('classification', {})
+            classif_info = notification.get('classification') or {}
             prioridade_display = classif_info.get('prioridade', UI_TEXTS.text_na)
             prioridade_display = prioridade_display if prioridade_display != 'Selecionar' else f"{UI_TEXTS.text_na} (Não Classificado)"
 
-            deadline_date_str = classif_info.get('deadline_date')
+            deadline_date_str = classif_info.get('deadline_date') 
             concluded_timestamp_str = (notification.get('conclusion') or {}).get('timestamp')
 
             deadline_status = get_deadline_status(deadline_date_str, concluded_timestamp_str)
@@ -3338,7 +3338,7 @@ def show_approval():
 
         for notification in pending_approval:
             status_class = f"status-{notification.get('status', UI_TEXTS.text_na).replace('_', '-')}"
-            classif_info = notification.get('classification', {})
+            classif_info = notification.get('classification') or {}
             prioridade_display = classif_info.get('prioridade', UI_TEXTS.text_na)
             prioridade_display = prioridade_display if prioridade_display != 'Selecionar' else f"{UI_TEXTS.text_na} (Não Classificado)"
 
@@ -4438,8 +4438,8 @@ def show_dashboard():
                                                                                                                  ' ').title())
 
                 # Get deadline details for display in dashboard list
-                classif_info = notification.get('classification', {})
-                deadline_date_str = classif_info.get('deadline_date')
+                classif_info = notification.get('classification') or {}
+                deadline_date_str = classif_info.get('deadline_date') 
                 deadline_html = ""
                 if deadline_date_str:
                     deadline_date_formatted = datetime.fromisoformat(deadline_date_str).strftime('%d/%m/%Y')
