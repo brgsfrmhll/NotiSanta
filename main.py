@@ -1512,8 +1512,9 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
         deadline_date_str = classif.get('deadline_date')
         if deadline_date_str:
             deadline_date_formatted = datetime.fromisoformat(deadline_date_str).strftime('%d/%m/%Y')
-            deadline_status = get_deadline_status(deadline_date_str,
-                                                  notification.get('conclusion', {}).get('timestamp'))
+            completion_timestamp_str = (notification.get('conclusion') or {}).get('timestamp')
+            # Em seguida, passe-o para a função get_deadline_status
+            deadline_status = get_deadline_status(deadline_date_str, completion_timestamp_str)
             st.markdown(
                 f"**Prazo de Conclusão:** {deadline_date_formatted} (<span class='{deadline_status['class']}'>{deadline_status['text']}</span>)",
                 unsafe_allow_html=True)
