@@ -4432,27 +4432,29 @@ def show_admin():
                     new_email = st.text_input("Email*", placeholder="usuario@hospital.com",
                                               key="admin_new_email_form_refactored").strip()
 
-                    available_roles_options = ["classificador", "executor", "aprovador",
-                                               "admin"]
-                    instructional_roles_text = UI_TEXTS.multiselect_instruction_placeholder
-                    display_roles_options = [instructional_roles_text] + available_roles_options
+                available_roles_options = ["classificador", "executor", "aprovador", "admin"]
+                instructional_roles_text = UI_TEXTS.multiselect_instruction_placeholder # Esta linha já está correta
+                display_roles_options = [instructional_roles_text] + available_roles_options
 
-                    current_selected_roles_from_state = st.session_state.get(
-                        "admin_new_roles_form_refactored", [])
-                    if all_option_text in current_selected_roles_from_state and len(current_selected_roles_from_state) > 1:
-                        default_selection_for_display = [all_option_text]
-                    elif not current_selected_roles_from_state:
-                        default_selection_for_display = [all_option_text]
-                    else:
-                        default_selection_for_display = current_selected_roles_from_state
+                current_selected_roles_from_state = st.session_state.get(
+                    "admin_new_roles_form_refactored", []
+                )
 
-                    new_roles_raw = st.multiselect(
-                        UI_TEXTS.multiselect_user_roles_label,
-                        options=display_roles_options,
-                        default=default_selection_for_display,
-                        help="Selecione uma ou mais funções para o novo usuário.",
-                        key="admin_new_roles_form_refactored"
-                    )
+                # CORREÇÃO AQUI: Substitua 'all_option_text' por 'instructional_roles_text'
+                if instructional_roles_text in current_selected_roles_from_state and len(current_selected_roles_from_state) > 1:
+                    default_selection_for_display = [instructional_roles_text]
+                elif not current_selected_roles_from_state:
+                    default_selection_for_display = [instructional_roles_text]
+                else:
+                    default_selection_for_display = current_selected_roles_from_state
+
+                new_roles_raw = st.multiselect(
+                    UI_TEXTS.multiselect_user_roles_label,
+                    options=display_roles_options,
+                    default=default_selection_for_display,
+                    help="Selecione uma ou mais funções para o novo usuário.",
+                    key="admin_new_roles_form_refactored"
+                )
 
                 st.markdown("<span class='required-field'>* Campos obrigatórios</span>",
                             unsafe_allow_html=True)
