@@ -2098,7 +2098,7 @@ def show_classification():
         "📋 Nesta área, você pode realizar a classificação inicial de novas notificações e revisar a execução das ações concluídas pelos responsáveis.")
 
     all_notifications = load_notifications()  # Carrega do DB
-    pending_initial_classification = [n for n in all_notifications if n.get('status') == "pendente_classificacao"]
+    pending_initial_classification = [n for n n in all_notifications if n.get('status') == "pendente_classificacao"]
     pending_execution_review = [n for n in all_notifications if n.get('status') == "revisao_classificador_execucao"]
     closed_statuses = ['aprovada', 'rejeitada', 'reprovada', 'concluida']
     closed_notifications = [n for n in all_notifications if n.get('status') in closed_statuses]
@@ -2402,7 +2402,7 @@ def show_classification():
                             current_data.get('tipo_evento_principal_selecionado'), [])
 
                         if current_data.get('tipo_evento_principal_selecionado') in ["Clínico", "Não-clínico",
-                                                                                     "Ocupacional"] and sub_options:
+                                                                                    "Ocupacional"] and sub_options:
                             multiselect_display_options = [UI_TEXTS.multiselect_instruction_placeholder] + sub_options
                             default_sub_selection = current_data.get('tipo_evento_sub_selecionado', [])
 
@@ -3044,27 +3044,19 @@ def show_classification():
                 st.markdown(
                     f"### Notificação Selecionada para Revisão de Execução: #{notification_review.get('id', UI_TEXTS.text_na)}")
 
-                # =============================== INÍCIO DEBUG ===============================
-                st.write(f"DEBUG (Review Tab): Valor de 'notification_review' (completa): {notification_review}")
-                st.write(f"DEBUG (Review Tab): Tipo de 'notification_review': {type(notification_review)}")
+                # Obter informações de prazo para o card
+                raw_classification_data = notification_review.get('classification')
+                if isinstance(raw_classification_data, dict):
+                    classif_info = raw_classification_data
+                else:
+                    # Se não for um dicionário (ex: None, ou um tipo inesperado como string/lista de dados antigos),
+                    # o tratamos como um dicionário vazio para evitar o AttributeError.
+                    classif_info = {}
 
-                temp_classification_data = notification_review.get('classification')
-                st.write(f"DEBUG (Review Tab): Valor de 'notification_review.get(\'classification\')': {temp_classification_data}")
-                st.write(f"DEBUG (Review Tab): Tipo de 'notification_review.get(\'classification\')': {type(temp_classification_data)}")
-
-                classif_info = temp_classification_data or {} # Linha original: classif_info = notification_review.get('classification') or {}
-                st.write(f"DEBUG (Review Tab): Valor de 'classif_info' (APÓS 'or {{}}'): {classif_info}")
-                st.write(f"DEBUG (Review Tab): Tipo de 'classif_info' (APÓS 'or {{}}'): {type(classif_info)}")
-
-                # Esta é a linha que estava causando o erro, agora com 'classif_info' validado
                 deadline_date_str = classif_info.get('deadline_date')
 
-                st.write(f"DEBUG (Review Tab): Valor de 'deadline_date_str': {deadline_date_str}")
-                st.write(f"DEBUG (Review Tab): Tipo de 'deadline_date_str': {type(deadline_date_str)}")
-                # ================================ FIM DEBUG =================================
-
-                # Obter informações de prazo para o card
-                # classif_info = notification_review.get('classification') or {} # Comentada, pois já foi definida e depurada acima
+                # Acessa 'timestamp' de 'conclusion' de forma segura
+                concluded_timestamp_str = (notification_review.get('conclusion') or {}).get('timestamp')
 
                 # Determinar o status do prazo (cor do texto)
                 deadline_status = get_deadline_status(deadline_date_str, concluded_timestamp_str)
@@ -3104,7 +3096,7 @@ def show_classification():
 
                 with col_rev2:
                     st.markdown("**⏱️ Informações de Gestão e Classificação**")
-                    classif_review = notification_review.get('classification', {})
+                    classif_review = classif_info # Já é um dicionário seguro
                     st.write(f"**Classificação NNC:** {classif_review.get('nnc', UI_TEXTS.text_na)}")
                     if classif_review.get('nivel_dano'): st.write(
                         f"**Nível de Dano:** {classif_review.get('nivel_dano', UI_TEXTS.text_na)}")
@@ -3417,13 +3409,17 @@ def show_classification():
                         concluded_by = (notification.get('rejection_approval') or {}).get('rejected_by')
 
                     # Determinar o status do prazo para notificações encerradas
-                    classif_info = notification.get('classification', {})
-                    deadline_date_str = classif_info.get('deadline_date')
+                    raw_classification_data = notification.get('classification')
+                    if isinstance(raw_classification_data, dict):
+                        classif_info_closed = raw_classification_data
+                    else:
+                        classif_info_closed = {}
+                    deadline_date_str_closed = classif_info_closed.get('deadline_date')
 
                     # Acessa 'timestamp' de 'conclusion' de forma segura
                     concluded_timestamp_str = (notification.get('conclusion') or {}).get('timestamp')
                     # Verificar se a conclusão foi dentro ou fora do prazo
-                    deadline_status = get_deadline_status(deadline_date_str, concluded_timestamp_str)
+                    deadline_status = get_deadline_status(deadline_date_str_closed, concluded_timestamp_str)
                     card_class = ""
                     if deadline_status['class'] == "deadline-ontrack" or deadline_status['class'] == "deadline-duesoon":
                         card_class = "card-prazo-dentro"
@@ -3443,7 +3439,6 @@ def show_classification():
                             f"👁️ Visualizar Detalhes - Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
                         display_notification_full_details(notification, st.session_state.user.get('id'),
                                                           st.session_state.user.get('username'))
-
 def show_execution():
     """Renderiza a página para executores visualizarem notificações atribuídas e registrarem ações."""
     if not check_permission('executor'):
