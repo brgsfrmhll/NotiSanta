@@ -2084,7 +2084,6 @@ def show_create_notification():
                             st.error(f"❌ Ocorreu um erro ao finalizar a notificação: {e}")
                             st.warning("Por favor, revise as informações e tente enviar novamente.")
 
-
 def show_classification():
     """
     Renders the page for classifiers to perform initial classification of new notifications
@@ -2773,7 +2772,7 @@ def show_classification():
                                         "Etapa 2: Classificação NNC é obrigatória.")
                                     if current_data.get('classificacao_nnc') == "Evento com dano" and current_data.get(
                                             'nivel_dano') == UI_TEXTS.selectbox_default_nivel_dano: validation_errors.append(
-                                    "Etapa 2: Nível de dano é obrigatório para evento com dano.")
+                                        "Etapa 2: Nível de dano é obrigatório para evento com dano.")
                                     if current_data.get(
                                             'prioridade_selecionada') == UI_TEXTS.selectbox_default_prioridade_resolucao: validation_errors.append(
                                         "Etapa 2: Prioridade de Resolução é obrigatória.")
@@ -3045,12 +3044,27 @@ def show_classification():
                 st.markdown(
                     f"### Notificação Selecionada para Revisão de Execução: #{notification_review.get('id', UI_TEXTS.text_na)}")
 
-                # Obter informações de prazo para o card
-                classif_info = notification_review.get('classification') or {}
+                # =============================== INÍCIO DEBUG ===============================
+                st.write(f"DEBUG (Review Tab): Valor de 'notification_review' (completa): {notification_review}")
+                st.write(f"DEBUG (Review Tab): Tipo de 'notification_review': {type(notification_review)}")
+
+                temp_classification_data = notification_review.get('classification')
+                st.write(f"DEBUG (Review Tab): Valor de 'notification_review.get(\'classification\')': {temp_classification_data}")
+                st.write(f"DEBUG (Review Tab): Tipo de 'notification_review.get(\'classification\')': {type(temp_classification_data)}")
+
+                classif_info = temp_classification_data or {} # Linha original: classif_info = notification_review.get('classification') or {}
+                st.write(f"DEBUG (Review Tab): Valor de 'classif_info' (APÓS 'or {{}}'): {classif_info}")
+                st.write(f"DEBUG (Review Tab): Tipo de 'classif_info' (APÓS 'or {{}}'): {type(classif_info)}")
+
+                # Esta é a linha que estava causando o erro, agora com 'classif_info' validado
                 deadline_date_str = classif_info.get('deadline_date')
 
-                # Acessa 'timestamp' de 'conclusion' de forma segura
-                concluded_timestamp_str = (notification_review.get('conclusion') or {}).get('timestamp')
+                st.write(f"DEBUG (Review Tab): Valor de 'deadline_date_str': {deadline_date_str}")
+                st.write(f"DEBUG (Review Tab): Tipo de 'deadline_date_str': {type(deadline_date_str)}")
+                # ================================ FIM DEBUG =================================
+
+                # Obter informações de prazo para o card
+                # classif_info = notification_review.get('classification') or {} # Comentada, pois já foi definida e depurada acima
 
                 # Determinar o status do prazo (cor do texto)
                 deadline_status = get_deadline_status(deadline_date_str, concluded_timestamp_str)
@@ -3429,7 +3443,6 @@ def show_classification():
                             f"👁️ Visualizar Detalhes - Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
                         display_notification_full_details(notification, st.session_state.user.get('id'),
                                                           st.session_state.user.get('username'))
-
 
 def show_execution():
     """Renderiza a página para executores visualizarem notificações atribuídas e registrarem ações."""
