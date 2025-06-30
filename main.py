@@ -2098,7 +2098,7 @@ def show_classification():
         "📋 Nesta área, você pode realizar a classificação inicial de novas notificações e revisar a execução das ações concluídas pelos responsáveis.")
 
     all_notifications = load_notifications()  # Carrega do DB
-    pending_initial_classification = [n for n n in all_notifications if n.get('status') == "pendente_classificacao"]
+    pending_initial_classification = [n for n in all_notifications if n.get('status') == "pendente_classificacao"]
     pending_execution_review = [n for n in all_notifications if n.get('status') == "revisao_classificador_execucao"]
     closed_statuses = ['aprovada', 'rejeitada', 'reprovada', 'concluida']
     closed_notifications = [n for n in all_notifications if n.get('status') in closed_statuses]
