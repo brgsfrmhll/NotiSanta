@@ -1730,7 +1730,8 @@ def show_create_notification():
             with col1:
                 current_data['occurrence_date'] = st.date_input(
                     "Data da Ocorrência do Evento*", value=current_data['occurrence_date'],
-                    help="Selecione a data em que o evento ocorreu", key="create_occurrence_date_state_refactored")
+                    help="Selecione a data em que o evento ocorreu", key="create_occurrence_date_state_refactored",
+                    format="DD/MM/YYYY")
             with col2:
                 current_data['occurrence_time'] = st.time_input(
                     "Hora Aproximada do Evento", value=current_data['occurrence_time'],
