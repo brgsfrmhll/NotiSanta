@@ -1342,6 +1342,7 @@ def _reset_form_state():
 # --- Funções de Renderização da Interface (UI) ---
 
 def show_sidebar():
+    user_roles = st.session_state.user.get('roles', [])
     """Renderiza a barra lateral com navegação e informações do usuário/login."""
     with st.sidebar:
         st.image("logo.png", use_container_width=True)
@@ -1358,7 +1359,7 @@ def show_sidebar():
             </div>
             """, unsafe_allow_html=True)
             st.markdown("### 📋 Menu Principal")
-
+            
             if st.button("📝 Nova Notificação", key="nav_create_notif", use_container_width=True):
                 st.session_state.page = 'create_notification'
                 _reset_form_state()
@@ -1377,9 +1378,7 @@ def show_sidebar():
                 if st.button("📊 Dashboard de Notificações", key="nav_dashboard", use_container_width=True):
                     st.session_state.page = 'dashboard'
                     _reset_form_state()
-                    st.rerun()
-
-            user_roles = st.session_state.user.get('roles', [])
+                    st.rerun()           
 
             if 'classificador' in user_roles or 'admin' in user_roles:
                 if st.button("🔍 Classificação/Revisão", key="nav_classification",
