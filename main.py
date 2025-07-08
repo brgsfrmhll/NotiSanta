@@ -5525,6 +5525,8 @@ def show_admin():
 
 def show_dashboard():
     if not check_permission('admin') and not check_permission('classificador'):
+        st.error("❌ Acesso negado! Você não tem permissão para visualizar o dashboard.")
+        return
     """
     Renderiza um dashboard abrangente para visualização de notificações,
     incluindo métricas chave, gráficos e uma lista detalhada, filtrável,
