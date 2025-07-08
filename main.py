@@ -5518,7 +5518,7 @@ def show_admin():
         st.markdown("### ℹ️ Informações do Sistema")
         st.markdown("#### Detalhes do Portal")
         st.write(f"**Versão do Portal:** 1.1.2")
-        st.write(f"**Data da Última Atualização:** 01/07/2025")
+        st.write(f"**Data da Última Atualização:** 08/07/2025")
         st.write(f"**Desenvolvido por:** FIA Softworks")
         st.markdown("#### Contato")
         st.markdown("##### Suporte Técnico:")
