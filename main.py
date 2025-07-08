@@ -1373,10 +1373,11 @@ def show_sidebar():
                 if 'approval_form_state' in st.session_state: st.session_state.pop('approval_form_state')
                 st.rerun()
 
-            if st.button("📊 Dashboard de Notificações", key="nav_dashboard", use_container_width=True):
-                st.session_state.page = 'dashboard'
-                _reset_form_state()
-                st.rerun()
+            if 'classificador' in user_roles or 'admin' in user_roles: # Adicione esta linha de verificação
+                if st.button("📊 Dashboard de Notificações", key="nav_dashboard", use_container_width=True):
+                    st.session_state.page = 'dashboard'
+                    _reset_form_state()
+                    st.rerun()
 
             user_roles = st.session_state.user.get('roles', [])
 
