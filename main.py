@@ -11,7 +11,7 @@ import psycopg2
 from psycopg2 import sql  # Importa sql para usar na construção de queries dinâmicas
 
 # Importa experimental_fragment e o renomeia para st_fragment para uso mais limpo
-from streamlit import experimental_fragment as st_fragment
+from streamlit import st.fragment as st_fragment
 
 # --- Configuração do Banco de Dados ---
 DB_CONFIG = {
