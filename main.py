@@ -452,7 +452,6 @@ ATTACHMENTS_DIR = os.path.join(DATA_DIR, "attachments")
 
 
 # --- Funções de Persistência e Banco de Dados ---
-
 def init_database():
     """Garante que os diretórios de dados e arquivos iniciais existam e cria tabelas no DB."""
     if not os.path.exists(DATA_DIR):
@@ -524,7 +523,7 @@ def init_database():
             CREATE INDEX IF NOT EXISTS idx_notifications_search_vector ON notifications USING GIN (search_vector);
 
             -- Trigger para atualizar search_vector automaticamente
-            CREATE OR REPLACE FUNCTION update_notification_search_vector() RETURNS TRIGGER AS $
+            CREATE OR REPLACE FUNCTION update_notification_search_vector() RETURNS TRIGGER AS $$
             BEGIN
                 NEW.search_vector := to_tsvector('portuguese',
                     COALESCE(NEW.title, '') || ' ' ||
@@ -535,7 +534,7 @@ def init_database():
                 );
                 RETURN NEW;
             END;
-            $ LANGUAGE plpgsql;
+            $$ LANGUAGE plpgsql;
 
             -- Remover o trigger antigo se existir para evitar duplicação ou erros
             DROP TRIGGER IF EXISTS trg_notifications_search_vector ON notifications;
@@ -600,6 +599,7 @@ def init_database():
     finally:
         if conn:
             conn.close()
+
 
 
 def load_users() -> List[Dict]:
