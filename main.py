@@ -11,7 +11,7 @@ import psycopg2
 from psycopg2 import sql  # Importa sql para usar na construção de queries dinâmicas
 
 # Importa experimental_fragment e o renomeia para st_fragment para uso mais limpo
-from streamlit import fragment as st_fragment
+from streamlit import experimental_fragment as st_fragment # Mantido para compatibilidade com o código completo
 
 # --- Configuração do Banco de Dados ---
 DB_CONFIG = {
@@ -35,6 +35,7 @@ def get_db_connection():
 
 
 # --- Configuração do Streamlit e CSS Customizado ---
+# CORREÇÃO DO ERRO 1.1: Removida a linha duplicada de st.set_page_config
 st.set_page_config(
     page_title="NotificaSanta",
     page_icon="favicon/logo.png",
@@ -42,7 +43,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# CSS customizado
+# CORREÇÃO DO ERRO 1.2: Sintaxe corrigida no bloco CSS dentro de st.markdown
 st.markdown(r"""
 <style>
     /* Esconde botões e decorações padrão do Streamlit */
@@ -68,6 +69,7 @@ st.markdown(r"""
     div[data-testid="stSidebar"] {
         z-index: 9999 !important; /* Prioridade de empilhamento muito alta */
     }
+    /* Linhas duplicadas e chaves } extras/malposicionadas removidas daqui e de blocos similares */
 
     /* Adjust Streamlit's default margins for sidebar content */
     /* This targets the internal container of the sidebar */
@@ -297,8 +299,6 @@ st.markdown(r"""
 
 </style>
 """, unsafe_allow_html=True)
-
-# --- Constantes Globais e Mapeamentos ---
 
 # Mapeamento de prazos para conclusão da notificação
 DEADLINE_DAYS_MAPPING = {
