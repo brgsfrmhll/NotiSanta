@@ -5523,8 +5523,8 @@ def show_admin():
         st.write(f"**Email:** beborges@outlook.com.br")
         st.write(f"**Telefone:** (35) 93300-1414")
 
-@st_fragment
 def show_dashboard():
+if not check_permission('admin') and not check_permission('classificador'):
     """
     Renderiza um dashboard abrangente para visualização de notificações,
     incluindo métricas chave, gráficos e uma lista detalhada, filtrável,
