@@ -408,18 +408,22 @@ class FORM_DATA:
     ]
     tipos_evento_principal = {
         "Clínico": [
-            "Falha Terapêutica/Assistencial",
-            "Falha Diagnóstica",
-            "Reação Adversa a Medicamento",
             "Infecção Relacionada à Assistência à Saúde (IRAS)",
-            "Queda de Paciente",
-            "Lesão por Pressão",
-            "Identificação Incorreta",
-            "Procedimento Incorreto",
-            "Transfusão Incorreta",
+            "Administração de Antineoplásicos",
+            "META 1 - Identificação Incorreta do Paciente",
+            "META 2 - Falha na Comunicação entre Profissionais",
+            "META 3 - Problema com Medicamento (Segurança Medicamentosa)",
+            "META 4 - Procedimento Incorreto (Cirurgia/Parto)",
+            "META 5 - Higiene das Mãos Inadequada",
+            "META 6 - Queda de Paciente e Lesão por Pressão",
+            "Transfusão Inadequada de Sangue ou Derivados",
             "Problema com Dispositivo/Equipamento Médico",
-            "Problema com Exames/Resultados",
-            "Outros Eventos Clínicos"
+            "Evento Crítico ou Intercorrência Grave em Processo Seguro",
+            "Problema Nutricional Relacionado à Assistência",
+            "Não Conformidade com Protocolos Gerenciados",
+            "Quebra de SLA (Atraso ou Falha na Assistência)",
+            "Evento Relacionado ao Parto e Nascimento",
+            "Crise Convulsiva em Ambiente Assistencial"
         ],
         "Não-clínico": [
             "Incidente de Segurança Patrimonial",
