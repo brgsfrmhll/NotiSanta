@@ -357,6 +357,7 @@ class UI_TEXTS:
     deadline_status_duesoon = "Prazo Próximo"
     deadline_status_overdue = "Atrasada"
     deadline_days_nan = "Nenhum prazo definido"
+    selectbox_default_department_select = "Selecione o Setor..." # <-- ADICIONADO
 
     # Constantes para filtros do dashboard
     multiselect_filter_status_label = "Filtrar por Status:"
@@ -545,7 +546,7 @@ def init_database():
             CREATE INDEX IF NOT EXISTS idx_notifications_search_vector ON notifications USING GIN (search_vector);
 
             -- Trigger para atualizar search_vector automaticamente
-            CREATE OR REPLACE FUNCTION update_notification_search_vector() RETURNS TRIGGER AS $$
+            CREATE OR REPLACE FUNCTION update_notification_search_vector() RETURNS TRIGGER AS $
             BEGIN
                 NEW.search_vector := to_tsvector('portuguese',
                     COALESCE(NEW.title, '') || ' ' ||
@@ -556,7 +557,7 @@ def init_database():
                 );
                 RETURN NEW;
             END;
-            $$ LANGUAGE plpgsql;
+            $ LANGUAGE plpgsql;
 
             -- Remover o trigger antigo se existir para evitar duplicação ou erros
             DROP TRIGGER IF EXISTS trg_notifications_search_vector ON notifications;
@@ -893,7 +894,7 @@ def create_notification(data: Dict, uploaded_files: Optional[List[Any]] = None) 
         # Isso é importante porque a notificação pode ter valores padrão ou triggers que a modificam
         # (Chama load_notifications e filtra pelo ID)
         all_notifications = load_notifications()  # Recarrega tudo para garantir consistência
-        created_notification = next((n for n in all_notifications if n['id'] == notification_id), None)
+        created_notification = next((n for n n in all_notifications if n['id'] == notification_id), None)
         return created_notification
 
     except psycopg2.Error as e:
@@ -1272,15 +1273,21 @@ def format_date_time_summary(date_val: Any, time_val: Any) -> str:
             time_str_part = time_val.split('.')[0]
             try:
                 time_obj = datetime.strptime(time_str_part, '%H:%M:%S').time()
+                # CORREÇÃO: Tratar o caso de "00:00:00" para evitar que seja exibido para campos de hora vazios
+                if time_obj == datetime.strptime("00:00:00", '%H:%M:%S').time():
+                    time_part_formatted = ''
+                else:
+                    time_part_formatted = f" às {time_obj.strftime('%H:%M')}"
             except ValueError:
                 try:
-                    time_obj = datetime.strptime(time_str_part, '%H:%M').time()
+                    time_obj = datetime.strptime("00:00", '%H:%M').time()
+                    if time_obj == datetime.strptime("00:00", '%H:%M').time():
+                        time_part_formatted = ''
+                    else:
+                        time_part_formatted = f" às {time_obj.strftime('%H:%M')}"
                 except ValueError:
                     time_part_formatted = f" às {time_val}"
                     time_obj = None
-
-            if time_obj:
-                time_part_formatted = f" às {time_obj.strftime('%H:%M')}"
 
         except ValueError:
             time_part_formatted = f" às {time_val}"
@@ -1348,7 +1355,8 @@ def _reset_form_state():
     st.session_state.form_step = 1
     st.session_state.create_form_data = {
         'title': '', 'location': '', 'occurrence_date': datetime.now().date(),
-        'occurrence_time': datetime.now().time(), 'reporting_department': '',
+        'occurrence_time': datetime.now().time(),
+        'reporting_department': UI_TEXTS.selectbox_default_department_select, # <-- ALTERADO
         'reporting_department_complement': '', 'event_shift': UI_TEXTS.selectbox_default_event_shift,
         'description': '',
         'immediate_actions_taken': UI_TEXTS.selectbox_default_immediate_actions_taken,
@@ -1356,7 +1364,7 @@ def _reset_form_state():
         'patient_involved': UI_TEXTS.selectbox_default_patient_involved,
         'patient_id': '',
         'patient_outcome_obito': UI_TEXTS.selectbox_default_patient_outcome_obito,
-        'notified_department': '',
+        'notified_department': UI_TEXTS.selectbox_default_department_select, # <-- ALTERADO
         'notified_department_complement': '', 'additional_notes': '', 'attachments': []
     }
 
@@ -1765,12 +1773,15 @@ def show_create_notification():
                 current_data['occurrence_time'] = st.time_input(
                     "Hora Aproximada do Evento", value=current_data['occurrence_time'],
                     help="Hora aproximada em que o evento ocorreu.", key="create_event_time_state_refactored")
+            
+            # NOVO: Lista de opções para Setor Notificante, incluindo o placeholder
+            reporting_dept_options = [UI_TEXTS.selectbox_default_department_select] + FORM_DATA.SETORES
             current_data['reporting_department'] = st.selectbox(
                 "Setor Notificante*",
-                options=FORM_DATA.SETORES,
-                index=FORM_DATA.SETORES.index(current_data['reporting_department'])
-                if current_data['reporting_department'] in FORM_DATA.SETORES
-                else 0,
+                options=reporting_dept_options, # <-- ALTERADO
+                index=reporting_dept_options.index(current_data['reporting_department'])
+                      if current_data['reporting_department'] in reporting_dept_options
+                      else 0, # <-- O '0' agora aponta para o placeholder
                 help="Selecione o setor responsável por notificar o evento",
                 key="create_reporting_dept_state_refactored"
             )
@@ -1783,8 +1794,9 @@ def show_create_notification():
             event_shift_options = [UI_TEXTS.selectbox_default_event_shift] + FORM_DATA.turnos
             current_data['event_shift'] = st.selectbox(
                 "Turno do Evento*", options=event_shift_options,
-                index=event_shift_options.index(current_data['event_shift']) if current_data[
-                                                                                    'event_shift'] in event_shift_options else 0,
+                index=event_shift_options.index(current_data[
+                                                                                    'event_shift']) if current_data[
+                                                                                                           'event_shift'] in event_shift_options else 0,
                 help="Turno em que o evento ocorreu", key="create_event_shift_state_refactored")
 
             current_data['description'] = st.text_area(
@@ -1893,12 +1905,14 @@ def show_create_notification():
 
             col7, col8 = st.columns(2)
             with col7:
+                # NOVO: Lista de opções para Setor Notificado, incluindo o placeholder
+                notified_dept_options = [UI_TEXTS.selectbox_default_department_select] + FORM_DATA.SETORES
                 current_data['notified_department'] = st.selectbox(
                     "Setor Notificado*",
-                    options=FORM_DATA.SETORES,
-                    index=FORM_DATA.SETORES.index(current_data['notified_department'])
-                    if current_data['notified_department'] in FORM_DATA.SETORES
-                    else 0,
+                    options=notified_dept_options, # <-- ALTERADO
+                    index=notified_dept_options.index(current_data['notified_department'])
+                          if current_data['notified_department'] in notified_dept_options
+                          else 0, # <-- O '0' agora aponta para o placeholder
                     help="Selecione o setor que será notificado sobre o evento",
                     key="create_notified_dept_refactored"
                 )
@@ -1965,8 +1979,8 @@ def show_create_notification():
                     if current_data['occurrence_date'] is None or not isinstance(current_data['occurrence_date'],
                                                                                  dt_date_class): validation_errors.append(
                         'Etapa 1: Data da Ocorrência é obrigatória.')
-                    if not current_data['reporting_department'].strip(): validation_errors.append(
-                        'Etapa 1: Setor Notificante é obrigatório.')
+                    if current_data['reporting_department'] == UI_TEXTS.selectbox_default_department_select: # <-- ALTERADO
+                        validation_errors.append('Etapa 1: Setor Notificante é obrigatório.')
                     if current_data['event_shift'] == UI_TEXTS.selectbox_default_event_shift: validation_errors.append(
                         'Etapa 1: Turno do Evento é obrigatório.')
 
@@ -2014,7 +2028,8 @@ def show_create_notification():
                     if current_data['occurrence_date'] is None or not isinstance(current_data['occurrence_date'],
                                                                                  dt_date_class): validation_errors.append(
                         'Etapa 1: Data da Ocorrência é obrigatória.')
-                    if not current_data['reporting_department']:
+                    if not current_data['reporting_department'] or \
+                       current_data['reporting_department'] == UI_TEXTS.selectbox_default_department_select: # <-- ALTERADO
                         validation_errors.append("Etapa 1: Setor Notificante é obrigatório.")
                     if current_data['event_shift'] == UI_TEXTS.selectbox_default_event_shift: validation_errors.append(
                         'Etapa 1: Turno do Evento é obrigatório.')
@@ -2033,7 +2048,8 @@ def show_create_notification():
                         if current_data[
                             'patient_outcome_obito'] == UI_TEXTS.selectbox_default_patient_outcome_obito: validation_errors.append(
                             "Etapa 3: Evolução para óbito é obrigatório quando paciente é afetado.")
-                    if not current_data['notified_department']:
+                    if not current_data['notified_department'] or \
+                       current_data['notified_department'] == UI_TEXTS.selectbox_default_department_select: # <-- ALTERADO
                         validation_errors.append("Etapa 4: Setor Notificado é obrigatório.")
 
                     if validation_errors:
@@ -2062,7 +2078,7 @@ def show_create_notification():
                                 st.write(
                                     f"**Turno:** {notification_data_to_save.get('event_shift', UI_TEXTS.text_na)}")
                                 reporting_department = notification_data_to_save.get('reporting_department',
-                                                                                     UI_TEXTS.text_na)
+                                                                                    UI_TEXTS.text_na)
                                 reporting_complement = notification_data_to_save.get('reporting_department_complement')
                                 reporting_dept_display = f"{reporting_department}{f' ({reporting_complement})' if reporting_complement else ''}"
                                 st.write(f"**Setor Notificante:** {reporting_dept_display}")
@@ -2193,6 +2209,7 @@ def show_classification():
             if notification_id_initial and (
                     st.session_state.get('current_initial_classification_id') != notification_id_initial):
                 # Se uma nova notificação foi selecionada, inicializa seu estado de classificação
+                st.session_state.initial_classification_state = st.session_state.get('initial_classification_state', {})
                 st.session_state.initial_classification_state[notification_id_initial] = {
                     'step': 1,
                     'data': {
@@ -2245,7 +2262,6 @@ def show_classification():
                             notification_initial.get('occurrence_date'), notification_initial.get('occurrence_time'))
                         st.write(f"**Data/Hora:** {occurrence_datetime_summary}")
                         st.write(f"**Turno:** {notification_initial.get('event_shift', UI_TEXTS.text_na)}")
-
                         reporting_department = notification_initial.get('reporting_department', UI_TEXTS.text_na)
                         reporting_complement = notification_initial.get('reporting_department_complement')
                         reporting_dept_display = f"{reporting_department}{f' ({reporting_complement})' if reporting_complement else ''}"
@@ -2481,7 +2497,6 @@ def show_classification():
                         oms_options = FORM_DATA.classificacao_oms
                         multiselect_display_options = [UI_TEXTS.multiselect_instruction_placeholder] + oms_options
                         default_oms_selection = current_data.get('classificacao_oms_selecionada', [])
-
                         if not default_oms_selection or not any(item in oms_options for item in default_oms_selection):
                             default_oms_selection = [UI_TEXTS.multiselect_instruction_placeholder]
 
@@ -2569,11 +2584,12 @@ def show_classification():
                             initial_notified_department_complement = notification_initial.get(
                                 'notified_department_complement')
 
+                        notified_dept_options_classif = [UI_TEXTS.selectbox_default_department_select] + FORM_DATA.SETORES
                         current_data['temp_notified_department'] = st.selectbox(
                             "Setor Notificado:*",
-                            options=FORM_DATA.SETORES,
-                            index=FORM_DATA.SETORES.index(
-                                initial_notified_department) if initial_notified_department in FORM_DATA.SETORES else 0,
+                            options=notified_dept_options_classif,
+                            index=notified_dept_options_classif.index(
+                                initial_notified_department) if initial_notified_department in notified_dept_options_classif else 0,
                             key=f"classifier_notified_dept_{notification_id_initial}_refactored",
                             help="Selecione o setor que será o responsável principal por receber e gerenciar esta notificação."
                         )
@@ -2803,16 +2819,16 @@ def show_classification():
                                         "Etapa 2: Classificação NNC é obrigatória.")
                                     if current_data.get('classificacao_nnc') == "Evento com dano" and current_data.get(
                                             'nivel_dano') == UI_TEXTS.selectbox_default_nivel_dano: validation_errors.append(
-                                        "Etapa 2: Nível de dano é obrigatório para evento com dano.")
+                                    "Etapa 2: Nível de dano é obrigatório para evento com dano.")
                                     if current_data.get(
                                             'prioridade_selecionada') == UI_TEXTS.selectbox_default_prioridade_resolucao: validation_errors.append(
                                         "Etapa 2: Prioridade de Resolução é obrigatória.")
                                     if current_data.get(
                                             'never_event_selecionado') == UI_TEXTS.selectbox_default_never_event: validation_errors.append(
-                                        "Etapa 3: Never Event é obrigatório (selecione 'N/A' se não se aplica).")
+                                    "Etapa 3: Never Event é obrigatório (selecione 'N/A' se não se aplica).")
                                     if current_data.get(
                                             'evento_sentinela_sim_nao') == UI_TEXTS.selectbox_default_evento_sentinela: validation_errors.append(
-                                        "Etapa 3: Evento Sentinela é obrigatório (Sim/Não).")
+                                    "Etapa 3: Evento Sentinela é obrigatório (Sim/Não).")
                                     if current_data.get(
                                             'tipo_evento_principal_selecionado') == UI_TEXTS.selectbox_default_tipo_principal: validation_errors.append(
                                         "Etapa 4: Tipo Principal de Evento é obrigatório.")
@@ -2834,16 +2850,17 @@ def show_classification():
                                             "Etapa 4: A especificação do tipo 'Queixa técnica' é obrigatória.")
 
                                     if not current_data.get('classificacao_oms_selecionada'): validation_errors.append(
-                                        "Etapa 5: Classificação OMS é obrigatória (selecione ao menos um item).")
+                                    "Etapa 5: Classificação OMS é obrigatória (selecione ao menos um item).")
                                     # Validação do Setor Notificado Ajustado
-                                    if not current_data.get('temp_notified_department'):
+                                    if not current_data.get('temp_notified_department') or \
+                                       current_data['temp_notified_department'] == UI_TEXTS.selectbox_default_department_select:
                                         validation_errors.append("Etapa 7: É obrigatório definir o Setor Notificado.")
 
                                     if not current_data.get('executores_selecionados'): validation_errors.append(
                                         "Etapa 7: É obrigatório atribuir ao menos um Executor Responsável.")
                                     if current_data.get(
                                             'requires_approval') == UI_TEXTS.selectbox_default_requires_approval: validation_errors.append(
-                                        "Etapa 7: É obrigatório indicar se requer Aprovação Superior (Sim/Não).")
+                                    "Etapa 7: É obrigatório indicar se requer Aprovação Superior (Sim/Não).")
                                     if current_data.get('requires_approval') == "Sim" and (
                                             current_data.get('approver_selecionado') is None or current_data.get(
                                         'approver_selecionado') == UI_TEXTS.selectbox_default_approver): validation_errors.append(
@@ -3057,6 +3074,7 @@ def show_classification():
 
             if notification_id_review and (
                     st.session_state.get('current_review_classification_id') != notification_id_review):
+                st.session_state.review_classification_state = st.session_state.get('review_classification_state', {})
                 st.session_state.review_classification_state[notification_id_review] = {
                     'decision': UI_TEXTS.selectbox_default_decisao_revisao,
                     'rejection_reason_review': '',
@@ -3198,7 +3216,6 @@ def show_classification():
                                             else:
                                                 st.write(
                                                     f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
-                                st.markdown(f"""</div>""", unsafe_allow_html=True)
                         st.markdown("---")
                 else:
                     st.warning("⚠️ Nenhuma ação foi registrada pelos executores para esta notificação ainda.")
@@ -3277,7 +3294,6 @@ def show_classification():
                         value=current_review_data.get('notes', ''),
                         key=f"review_notes_{notification_id_review}_refactored",
                         help="Adicione quaisquer observações relevantes sobre a revisão da execução.").strip()
-
                     submit_button_review = st.form_submit_button("✔️ Confirmar Decisão",
                                                                  use_container_width=True)
 
@@ -3623,7 +3639,6 @@ def show_execution():
                                             else:
                                                 st.write(
                                                     f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
-                                st.markdown(f"""</div>""", unsafe_allow_html=True)
                         st.markdown("---")
             # FIM DO NOVO CARD DE HISTÓRICO DE AÇÕES
 
@@ -3753,7 +3768,7 @@ def show_execution():
                                         'evidence_description': evidence_description_state if st.session_state[
                                             action_choice_key] == "Concluir Minha Parte" else None,
                                         'evidence_attachments': saved_evidence_attachments if st.session_state[
-                                                                                                  action_choice_key] == "Concluir Minha Parte" else None
+                                            action_choice_key] == "Concluir Minha Parte" else None
                                     }
 
                                     # Adiciona a ação no banco de dados
