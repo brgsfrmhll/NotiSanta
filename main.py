@@ -894,7 +894,7 @@ def create_notification(data: Dict, uploaded_files: Optional[List[Any]] = None) 
         # Isso é importante porque a notificação pode ter valores padrão ou triggers que a modificam
         # (Chama load_notifications e filtra pelo ID)
         all_notifications = load_notifications()  # Recarrega tudo para garantir consistência
-        created_notification = next((n for n n in all_notifications if n['id'] == notification_id), None)
+        created_notification = next((n for n in all_notifications if n['id'] == notification_id), None)
         return created_notification
 
     except psycopg2.Error as e:
