@@ -2,6 +2,7 @@
 # --- sudo systemctl daemon-reload
 # --- sudo systemctl restart streamlit-app2.service
 
+
 import streamlit as st
 import json
 import hashlib
@@ -13,15 +14,18 @@ import pandas as pd
 import time as time_module
 import psycopg2
 from psycopg2 import sql  # Importa sql para usar na construção de queries dinâmicas
-from dotenv import load_dotenv
+
+# Importa experimental_fragment e o renomeia para st_fragment para uso mais limpo
 from streamlit import fragment as st_fragment  # Mantido para compatibilidade com o código completo
 
+# --- Configuração do Banco de Dados ---
 DB_CONFIG = {
-    "host": os.getenv("DB_HOST"),
-    "database": os.getenv("DB_NAME"),
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD")
+    "host": "localhost",
+    "database": "notificasanta",
+    "user": "streamlit",
+    "password": "6105/*"
 }
+
 
 def get_db_connection():
     """
