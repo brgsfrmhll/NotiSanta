@@ -2,7 +2,6 @@
 # --- sudo systemctl daemon-reload
 # --- sudo systemctl restart streamlit-app2.service
 
-
 import streamlit as st
 import json
 import hashlib
@@ -14,18 +13,15 @@ import pandas as pd
 import time as time_module
 import psycopg2
 from psycopg2 import sql  # Importa sql para usar na construção de queries dinâmicas
-
-# Importa experimental_fragment e o renomeia para st_fragment para uso mais limpo
+from dotenv import load_dotenv
 from streamlit import fragment as st_fragment  # Mantido para compatibilidade com o código completo
 
-# --- Configuração do Banco de Dados ---
 DB_CONFIG = {
-    "host": "localhost",
-    "database": "notificasanta",
-    "user": "streamlit",
-    "password": "6105/*"
+    "host": os.getenv("DB_HOST"),
+    "database": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD")
 }
-
 
 def get_db_connection():
     """
@@ -2056,7 +2052,7 @@ def show_create_notification():
                             st.success(f"✅ **Notificação #{notification['id']} criada com sucesso!**")
                             st.info(
                                 "📋 Sua notificação foi enviada para classificação e será processada pela equipe responsável.")
-                            with st.expander("�� Resumo da Notificação Enviada", expanded=False):
+                            with st.expander("   Resumo da Notificação Enviada", expanded=False):
                                 occurrence_datetime_summary = format_date_time_summary(
                                     notification_data_to_save.get('occurrence_date'),
                                     notification_data_to_save.get('occurrence_time')
