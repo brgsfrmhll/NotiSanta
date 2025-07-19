@@ -1,3 +1,8 @@
+# --- git pull https://github.com/brgsfrmhll/NotiSanta
+# --- sudo systemctl daemon-reload
+# --- sudo systemctl restart streamlit-app2.service
+
+
 import streamlit as st
 import json
 import hashlib
