@@ -14,18 +14,15 @@ import pandas as pd
 import time as time_module
 import psycopg2
 from psycopg2 import sql  # Importa sql para usar na construção de queries dinâmicas
-
-# Importa experimental_fragment e o renomeia para st_fragment para uso mais limpo
+from dotenv import load_dotenv
 from streamlit import fragment as st_fragment  # Mantido para compatibilidade com o código completo
 
-# --- Configuração do Banco de Dados ---
 DB_CONFIG = {
-    "host": "localhost",
-    "database": "notificasanta",
-    "user": "streamlit",
-    "password": "6105/*"
+    "host": os.getenv("DB_HOST"),
+    "database": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD")
 }
-
 
 def get_db_connection():
     """
