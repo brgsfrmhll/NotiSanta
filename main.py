@@ -1,7 +1,7 @@
 # --- git pull https://github.com/brgsfrmhll/NotiSanta
 # --- sudo systemctl daemon-reload
 # --- sudo systemctl restart streamlit-app2.service
-
+# --- source /home/ubuntu/NotiSanta/venv/bin/activate
 
 import streamlit as st
 import json
