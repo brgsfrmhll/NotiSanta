@@ -3044,51 +3044,53 @@ def show_classification():
                     </div>
                     """, unsafe_allow_html=True)
 
-                st.markdown("#### 📋 Detalhes para Revisão")
-                col_rev1, col_rev2 = st.columns(2)
-                with col_rev1:
-                    st.markdown("**📝 Evento Reportado Original**")
-                    st.write(f"**Título:** {notification_review.get('title', UI_TEXTS.text_na)}")
-                    st.write(f"**Local:** {notification_review.get('location', UI_TEXTS.text_na)}")
-                    occurrence_datetime_summary = format_date_time_summary(notification_review.get('occurrence_date'),
-                                                                           notification_review.get('occurrence_time'))
-                    st.write(f"**Data/Hora Ocorrência:** {occurrence_datetime_summary}")
-                    st.write(
-                        f"**Setor Notificante:** {notification_review.get('reporting_department', UI_TEXTS.text_na)}")
-                    if notification_review.get('immediate_actions_taken') and notification_review.get(
-                            'immediate_action_description'):
-                        st.write(
-                            f"**Ações Imediatas Reportadas:** {notification_review.get('immediate_action_description', UI_TEXTS.text_na)[:100]}...")
-                with col_rev2:
-                    st.markdown("**⏱️ Informações de Gestão e Classificação**")
-                    classif_review = classif_info # Já é um dicionário seguro
-                    st.write(f"**Classificação NNC:** {classif_review.get('nnc', UI_TEXTS.text_na)}")
-                    if classif_review.get('nivel_dano'): st.write(
-                        f"**Nível de Dano:** {classif_review.get('nivel_dano', UI_TEXTS.text_na)}")
-                    st.write(f"**Prioridade:** {classif_review.get('prioridade', UI_TEXTS.text_na)}")
-                    st.write(f"**Never Event:** {classif_review.get('never_event', UI_TEXTS.text_na)}")
-                    st.write(f"**Evento Sentinela:** {'Sim' if classif_review.get('is_sentinel_event') else 'Não'}")
-                    st.write(f"**Tipo Principal:** {classif_review.get('event_type_main', UI_TEXTS.text_na)}")
-                    sub_type_display_review = ''
-                    if classif_review.get('event_type_sub'):
-                        if isinstance(classif_review['event_type_sub'], list):
-                            sub_type_display_review = ', '.join(classif_review['event_type_sub'])
-                        else:
-                            sub_type_display_review = str(classif_review['event_type_sub'])
-                    if sub_type_display_review: st.write(f"**Especificação:** {sub_type_display_review}")
-                    st.write(f"**Classificação OMS:** {', '.join(classif_review.get('oms', [UI_TEXTS.text_na]))}")
-                    st.write(
-                        f"**Requer Aprovação Superior (Classif. Inicial):** {'Sim' if classif_review.get('requires_approval') else 'Não'}")
-                    st.write(f"**Classificado por:** {classif_review.get('classificador', UI_TEXTS.text_na)}")
-# Exibição do Prazo e Status na Revisão
-                    if deadline_date_str:
-                        deadline_date_formatted = datetime.fromisoformat(deadline_date_str).strftime('%d/%m/%Y')
-                        st.markdown(
-                            f"**Prazo de Conclusão:** {deadline_date_formatted} (<span class='{deadline_status['class']}'>{deadline_status['text']}</span>)",
-                            unsafe_allow_html=True)
+            st.markdown("#### 📋 Detalhes para Revisão")
+            col_rev1, col_rev2 = st.columns(2)
+            with col_rev1:
+                st.markdown("**📝 Evento Reportado Original**")
+                st.write(f"**Título:** {notification_review.get('title', UI_TEXTS.text_na)}")
+                st.write(f"**Local:** {notification_review.get('location', UI_TEXTS.text_na)}")
+                occurrence_datetime_summary = format_date_time_summary(notification_review.get('occurrence_date'),
+                                                                       notification_review.get('occurrence_time'))
+                st.write(f"**Data/Hora Ocorrência:** {occurrence_datetime_summary}")
+                st.write(
+                    f"**Setor Notificante:** {notification_review.get('reporting_department', UI_TEXTS.text_na)}")
+
+                # ALTERAÇÃO AQUI: Exibe a descrição completa em um bloco st.info
+                if notification_review.get('immediate_actions_taken') and notification_review.get('immediate_action_description'):
+                    st.markdown("---") # Adiciona um separador visual
+                    st.markdown("⚡ **Ações Imediatas Reportadas:**")
+                    st.info(notification_review.get('immediate_action_description', UI_TEXTS.text_na))
+
+            with col_rev2:
+                st.markdown("**⏱️ Informações de Gestão e Classificação**")
+                classif_review = classif_info # Já é um dicionário seguro
+                st.write(f"**Classificação NNC:** {classif_review.get('nnc', UI_TEXTS.text_na)}")
+                if classif_review.get('nivel_dano'): st.write(
+                    f"**Nível de Dano:** {classif_review.get('nivel_dano', UI_TEXTS.text_na)}")
+                st.write(f"**Prioridade:** {classif_review.get('prioridade', UI_TEXTS.text_na)}")
+                st.write(f"**Never Event:** {classif_review.get('never_event', UI_TEXTS.text_na)}")
+                st.write(f"**Evento Sentinela:** {'Sim' if classif_review.get('is_sentinel_event') else 'Não'}")
+                st.write(f"**Tipo Principal:** {classif_review.get('event_type_main', UI_TEXTS.text_na)}")
+                sub_type_display_review = ''
+                if classif_review.get('event_type_sub'):
+                    if isinstance(classif_review['event_type_sub'], list):
+                        sub_type_display_review = ', '.join(classif_review['event_type_sub'])
                     else:
-                        st.write(f"**Prazo de Conclusão:** {UI_TEXTS.deadline_days_nan}")
-                st.markdown("---")
+                        sub_type_display_review = str(classif_review['event_type_sub'])
+                if sub_type_display_review: st.write(f"**Especificação:** {sub_type_display_review}")
+                st.write(f"**Classificação OMS:** {', '.join(classif_review.get('oms', [UI_TEXTS.text_na]))}")
+                st.write(
+                    f"**Requer Aprovação Superior (Classif. Inicial):** {'Sim' if classif_review.get('requires_approval') else 'Não'}")
+                st.write(f"**Classificado por:** {classif_review.get('classificador', UI_TEXTS.text_na)}")
+                if deadline_date_str:
+                    deadline_date_formatted = datetime.fromisoformat(deadline_date_str).strftime('%d/%m/%Y')
+                    st.markdown(
+                        f"**Prazo de Conclusão:** {deadline_date_formatted} (<span class='{deadline_status['class']}'>{deadline_status['text']}</span>)",
+                        unsafe_allow_html=True)
+                else:
+                    st.write(f"**Prazo de Conclusão:** {UI_TEXTS.deadline_days_nan}")
+            st.markdown("---")
                 st.markdown("#### ⚡ Ações Executadas pelos Responsáveis")
                 if notification.get('actions'):
                     for action in sorted(notification['actions'], key=lambda x: x.get('timestamp', '')):
