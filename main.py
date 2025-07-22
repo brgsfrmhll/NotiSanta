@@ -5158,12 +5158,15 @@ def show_dashboard():
             )
 
         with col_filters3:
-            st.session_state.dashboard_search_query = st.text_input(
+            search_input = st.text_input(
                 "Buscar (Título, Descrição, ID):",
-                value=st.session_state.dashboard_search_query,
+                value=st.session_state.get("dashboard_search_query", ""),
                 key="dashboard_search_query_input"
             ).lower()
-
+        
+            if search_input != st.session_state.get("dashboard_search_query", ""):
+                st.session_state.dashboard_search_query = search_input
+        
             sort_options_map = {
                 'ID': 'id',
                 'Data de Criação': 'created_at',
@@ -5171,6 +5174,7 @@ def show_dashboard():
                 'Local': 'location',
                 'Prioridade': 'classification.prioridade',
             }
+
             sort_options_display = [UI_TEXTS.selectbox_sort_by_placeholder] + list(
                 sort_options_map.keys())
             selected_sort_option_display = st.selectbox(
