@@ -3048,24 +3048,24 @@ def show_classification():
             col_rev1, col_rev2 = st.columns(2)
             with col_rev1:
                 st.markdown("**📝 Evento Reportado Original**")
-                 # --- INÍCIO DO CÓDIGO DE DEBUG (ESCREVENDO EM ARQUIVO) ---
-                    debug_file_path = "/tmp/streamlit_notification_debug.log" # Caminho para o arquivo de log
-                    try:
-                        # Abre o arquivo em modo de adição ('a') para não sobrescrever a cada execução
-                        with open(debug_file_path, "a") as f:
-                            f.write(f"--- Debug Log Entry ({datetime.now()}) ---\n")
-                            f.write(f"Valor de notification_review: {notification_review}\n")
-                            f.write(f"Tipo de notification_review: {type(notification_review)}\n")
-                            if notification_review is not None:
-                                f.write(f"ID da notificação (se houver): {notification_review.get('id')}\n")
-                                f.write(f"Título da notificação (se houver): {notification_review.get('title')}\n")
-                            else:
-                                f.write("notification_review é None, como esperado pelo erro.\n")
-                            f.write("----------------------------------------\n\n")
-                    except Exception as e:
-                        # Em caso de erro ao escrever no arquivo (permissões, etc.)
-                        print(f"ERRO AO ESCREVER ARQUIVO DE DEBUG: {e}", flush=True)
-                    # --- FIM DO CÓDIGO DE DEBUG ---
+                # --- INÍCIO DO CÓDIGO DE DEBUG (ESCREVENDO EM ARQUIVO) ---
+                debug_file_path = "/tmp/streamlit_notification_debug.log" # Caminho para o arquivo de log
+                try:
+                    # Abre o arquivo em modo de adição ('a') para não sobrescrever a cada execução
+                    with open(debug_file_path, "a") as f:
+                        f.write(f"--- Debug Log Entry ({datetime.now()}) ---\n")
+                        f.write(f"Valor de notification_review: {notification_review}\n")
+                        f.write(f"Tipo de notification_review: {type(notification_review)}\n")
+                        if notification_review is not None:
+                            f.write(f"ID da notificação (se houver): {notification_review.get('id')}\n")
+                            f.write(f"Título da notificação (se houver): {notification_review.get('title')}\n")
+                        else:
+                            f.write("notification_review é None, como esperado pelo erro.\n")
+                        f.write("----------------------------------------\n\n")
+                except Exception as e:
+                    # Em caso de erro ao escrever no arquivo (permissões, etc.)
+                    print(f"ERRO AO ESCREVER ARQUIVO DE DEBUG: {e}", flush=True)
+                # --- FIM DO CÓDIGO DE DEBUG ---
                 st.write(f"**Título:** {notification_review.get('title', UI_TEXTS.text_na)}")
                 st.write(f"**Local:** {notification_review.get('location', UI_TEXTS.text_na)}")
                 occurrence_datetime_summary = format_date_time_summary(notification_review.get('occurrence_date'),
