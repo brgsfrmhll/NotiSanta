@@ -3090,10 +3090,11 @@ def show_classification():
                         unsafe_allow_html=True)
                 else:
                     st.write(f"**Prazo de Conclusão:** {UI_TEXTS.deadline_days_nan}")
-            st.markdown("---")
+                st.markdown("---")
+
                 st.markdown("#### ⚡ Ações Executadas pelos Responsáveis")
                 if notification.get('actions'):
-                    for action in sorted(notification['actions'], key=lambda x: x.get('timestamp', '')):
+                     for action in sorted(notification['actions'], key=lambda x: x.get('timestamp', '')):
                         action_type = "🏁 CONCLUSÃO (Executor)" if action.get(
                             'final_action_by_executor') else "📝 AÇÃO Registrada"
                         action_timestamp = action.get('timestamp', UI_TEXTS.text_na)
