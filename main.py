@@ -4912,6 +4912,10 @@ def show_admin():
 
 @st_fragment
 def show_dashboard():
+    # A função force_rerun_dashboard_search não é mais necessária aqui
+    # def force_rerun_dashboard_search():
+    #     st.rerun()
+
     if not check_permission('admin') and not check_permission('classificador'):
         st.error("❌ Acesso negado! Você não tem permissão para visualizar o dashboard.")
         return
@@ -4920,11 +4924,6 @@ def show_dashboard():
     incluindo métricas chave, gráficos e uma lista detalhada, filtrável,
     pesquisável e paginada de notificações.
     """
-    # Define a função de callback dentro da função principal
-    
-    def force_rerun_dashboard_search():
-        st.rerun()
-        
     st.markdown("<h1 class='main-header'>   Dashboard de Notificações</h1>",
                 unsafe_allow_html=True)
 
@@ -5058,7 +5057,14 @@ def show_dashboard():
             all_option_text]
         if 'dashboard_filter_date_start' not in st.session_state: st.session_state.dashboard_filter_date_start = None
         if 'dashboard_filter_date_end' not in st.session_state: st.session_state.dashboard_filter_date_end = None
-        if 'dashboard_search_query' not in st.session_state: st.session_state.dashboard_search_query = ""
+        
+        # Inicializa dashboard_search_query_input para evitar KeyError
+        if 'dashboard_search_query_input' not in st.session_state:
+            st.session_state.dashboard_search_query_input = ""
+            
+        # Não é mais necessário inicializar dashboard_search_query aqui, pois será derivado de dashboard_search_query_input
+        # if 'dashboard_search_query' not in st.session_state: st.session_state.dashboard_search_query = ""
+            
         if 'dashboard_sort_column' not in st.session_state: st.session_state.dashboard_sort_column = 'created_at'
         if 'dashboard_sort_ascending' not in st.session_state: st.session_state.dashboard_sort_ascending = False
 
@@ -5163,15 +5169,19 @@ def show_dashboard():
             )
 
         with col_filters3:
-            search_input = st.text_input(
+            # O st.text_input armazena seu valor diretamente em st.session_state.dashboard_search_query_input
+            # O parâmetro 'value' serve para definir o valor inicial, que será o que está no session_state (ou vazio)
+            st.text_input(
                 "Buscar (Título, Descrição, ID):",
-                value=st.session_state.get("dashboard_search_query", ""),
-                key="dashboard_search_query_input",
-                on_change=force_rerun_dashboard_search
-            ).lower()
+                value=st.session_state.dashboard_search_query_input, # Usa o valor que está no session_state para persistência
+                key="dashboard_search_query_input", # A chave onde o valor atual do widget é armazenado
+                # on_change=force_rerun_dashboard_search # Removido para evitar o problema de "voltar"
+            )
+            # A variável usada para a lógica de filtragem é atualizada APÓS o text_input ter seu valor persistido.
+            # Essa linha será executada em cada rerun (seja por Enter, blur ou outro widget).
+            st.session_state.dashboard_search_query = st.session_state.dashboard_search_query_input.lower()
 
-            st.session_state.dashboard_search_query = search_input
-        
+
             sort_options_map = {
                 'ID': 'id',
                 'Data de Criação': 'created_at',
@@ -5179,7 +5189,6 @@ def show_dashboard():
                 'Local': 'location',
                 'Prioridade': 'classification.prioridade',
             }
-
             sort_options_display = [UI_TEXTS.selectbox_sort_by_placeholder] + list(
                 sort_options_map.keys())
             selected_sort_option_display = st.selectbox(
@@ -5221,6 +5230,7 @@ def show_dashboard():
                         st.session_state.dashboard_filter_date_start <= created_at_date <= st.session_state.dashboard_filter_date_end):
                     match = False
 
+            # Usa st.session_state.dashboard_search_query, que é sempre o valor atualizado e em minúsculas
             if match and st.session_state.dashboard_search_query:
                 query = st.session_state.dashboard_search_query
                 search_fields = [
