@@ -4920,6 +4920,11 @@ def show_dashboard():
     incluindo métricas chave, gráficos e uma lista detalhada, filtrável,
     pesquisável e paginada de notificações.
     """
+    # Define a função de callback dentro da função principal
+    
+    def force_rerun_dashboard_search():
+        st.rerun()
+        
     st.markdown("<h1 class='main-header'>   Dashboard de Notificações</h1>",
                 unsafe_allow_html=True)
 
@@ -5161,11 +5166,11 @@ def show_dashboard():
             search_input = st.text_input(
                 "Buscar (Título, Descrição, ID):",
                 value=st.session_state.get("dashboard_search_query", ""),
-                key="dashboard_search_query_input"
+                key="dashboard_search_query_input",
+                on_change=force_rerun_dashboard_search
             ).lower()
-        
-            if search_input != st.session_state.get("dashboard_search_query", ""):
-                st.session_state.dashboard_search_query = search_input
+
+            st.session_state.dashboard_search_query = search_input
         
             sort_options_map = {
                 'ID': 'id',
