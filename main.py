@@ -3213,105 +3213,107 @@ def show_classification():
                                                                  use_container_width=True)
 
                     if submit_button_review:
-                        review_decision_state = current_review_data.get('decision',
-                                                                        UI_TEXTS.selectbox_default_decisao_revisao)
-                        validation_errors = []
-                        if review_decision_state == UI_TEXTS.selectbox_default_decisao_revisao: validation_errors.append(
-                            "É obrigatório selecionar a decisão da revisão (Aceitar/Rejeitar).")
-                        if review_decision_state == "Rejeitar Conclusão" and not current_review_data.get(
-                                'rejection_reason_review'): validation_errors.append(
-                            "Justificativa para Rejeição da Conclusão é obrigatória.")
-                        if validation_errors:
-                            st.error("⚠️ **Por favor, corrija os seguintes erros:**")
-                            for error in validation_errors: st.warning(error)
-                            st.stop()
-                        else:
-                            user_name = st.session_state.user.get('name', 'Usuário')
-                            user_username = st.session_state.user.get('username', UI_TEXTS.text_na)
-                            review_notes = current_review_data.get('notes')
-                            review_details_to_save = {
-                                'decision': review_decision_state.replace(' Conclusão', ''),
-                                'reviewed_by': user_username,
-                                'timestamp': datetime.now().isoformat(),
-                                'notes': review_notes or None
-                            }
-                            if review_decision_state == "Rejeitar Conclusão":
-                                review_details_to_save['rejection_reason'] = current_review_data.get(
-                                    'rejection_reason_review')
-                            if review_decision_state == "Aceitar Conclusão":
-                                original_classification = notification_review.get('classification', {})
-                                requires_approval_after_execution = original_classification.get('requires_approval')
-                                if requires_approval_after_execution is True:
-                                    new_status = 'aguardando_aprovacao'
-                                    updates = {
-                                        'status': new_status,
-                                        'review_execution': review_details_to_save
-                                    }
-                                    add_history_entry(
-                                        notification_id_review, "Revisão de Execução: Conclusão Aceita",
-                                        user_name,
-                                        f"Execução aceita pelo classificador. Encaminhada para aprovação superior." + (
-                                            f" Obs: {review_notes}" if review_notes else ""))
-                                    st.success(
-                                        f"✅ Execução da Notificação #{notification_id_review} aceita! Encaminhada para aprovação superior.")
+                                review_decision_state = current_review_data.get('decision',
+                                                                                UI_TEXTS.selectbox_default_decisao_revisao)
+                                validation_errors = []
+                                if review_decision_state == UI_TEXTS.selectbox_default_decisao_revisao: validation_errors.append(
+                                    "É obrigatório selecionar a decisão da revisão (Aceitar/Rejeitar).")
+                                if review_decision_state == "Rejeitar Conclusão" and not current_review_data.get(
+                                        'rejection_reason_review'): validation_errors.append(
+                                    "Justificativa para Rejeição da Conclusão é obrigatória.")
+                                if validation_errors:
+                                    st.error("⚠️ **Por favor, corrija os seguintes erros:**")
+                                    for error in validation_errors: st.warning(error)
+                                    st.stop()
                                 else:
-                                    new_status = 'aprovada'
-                                    updates = {
-                                        'status': new_status,
-                                        'review_execution': review_details_to_save,
-                                        'conclusion': {  # Conclui direto se não precisa de aprovação
-                                            'concluded_by': user_username,
-                                            'notes': review_notes or "Execução revisada e aceita pelo classificador.",
-                                            'timestamp': datetime.now().isoformat(),
-                                            'status_final': 'aprovada'
-                                        },
-                                        'approver': None  # Remove aprovador se não precisa de aprovação
-                                    }
-                                    add_history_entry(
-                                        notification_id_review, "Revisão de Execução: Conclusão Aceita e Finalizada",
-                                        user_name,
-                                        f"Execução revisada e aceita pelo classificador. Ciclo de gestão do evento concluído (não requeria aprovação superior)." + (
-                                            f" Obs: {review_notes}" if review_notes else ""))
-                                    st.success(
-                                        f"✅ Execução da Notificação #{notification_id_review} revisada e aceita. Notificação concluída!")
-                            elif review_decision_state == "Rejeitar Conclusão":
-                                new_status = 'pendente_classificacao'  # Retorna para classif. inicial
-                                updates = {
-                                    'status': new_status,
-                                    'approver': None,
-                                    'executors': [],
-                                    'classification': None,
-                                    'review_execution': None,  # Limpa revisão
-                                    'approval': None,
-                                    'conclusion': None,
-                                    'rejection_execution_review': {  # Adiciona o motivo da rejeição da execução
-                                        'reason': current_review_data.get('rejection_reason_review'),
+                                    user_name = st.session_state.user.get('name', 'Usuário')
+                                    user_username = st.session_state.user.get('username', UI_TEXTS.text_na)
+                                    review_notes = current_review_data.get('notes')
+                                    review_details_to_save = {
+                                        'decision': review_decision_state.replace(' Conclusão', ''),
                                         'reviewed_by': user_username,
-                                        'timestamp': datetime.now().isoformat()
+                                        'timestamp': datetime.now().isoformat(),
+                                        'notes': review_notes or None
                                     }
-                                }
-                                add_history_entry(
-                                    notification_id_review,
-                                    "Revisão de Execução: Conclusão Rejeitada e Reclassificação Necessária",
-                                    user_name,
-                                    f"Execução rejeitada. Notificação movida para classificação inicial para reanálise e reatribuição. Motivo: {current_review_data.get('rejection_reason_review', '')[:150]}..." if len(
-                                        current_review_data.get('rejection_reason_review',
-                                                                '')) > 150 else f"Execução rejeitada. Notificação movida para classificação inicial para reanálise e reatribuição. Motivo: {current_review_data.get('rejection_reason_review', '')}" + (
-                                        f" Obs: {review_notes}" if review_notes else ""))
-                                st.warning(
-                                    f"⚠️ Execução da Notificação #{notification_id_review} rejeitada! Devolvida para classificação inicial para reanálise e reatribuição.")
-                                st.info(
-                                    "A notificação foi movida para o status 'pendente_classificacao' e aparecerá na aba 'Pendentes Classificação Inicial' para que a equipe de classificação possa reclassificá-la e redefinir o fluxo.")
-                            update_notification(notification_id_review, updates)  # Atualiza no DB
-                            st.session_state.review_classification_state.pop(notification_id_review, None)
-                            st.session_state.pop('current_review_classification_id', None)
-                            st.rerun() # CORREÇÃO: Força o re-render
-            else:
-                if pending_execution_review:
-                    st.info(f"👆 Selecione uma notificação da lista acima para revisar a execução concluída.")
+
+                                    # *** INÍCIO DA CORREÇÃO: Estrutura IF/ELIF consolidada ***
+                                    if review_decision_state == "Rejeitar Conclusão":
+                                        review_details_to_save['rejection_reason'] = current_review_data.get(
+                                            'rejection_reason_review')
+                                        new_status = 'pendente_classificacao'  # Retorna para classif. inicial
+                                        updates = {
+                                            'status': new_status,
+                                            'approver': None,
+                                            'executors': [],
+                                            'classification': None,
+                                            'review_execution': None,  # Limpa revisão
+                                            'approval': None,
+                                            'conclusion': None,
+                                            'rejection_execution_review': {  # Adiciona o motivo da rejeição da execução
+                                                'reason': current_review_data.get('rejection_reason_review'),
+                                                'reviewed_by': user_username,
+                                                'timestamp': datetime.now().isoformat()
+                                            }
+                                        }
+                                        add_history_entry(
+                                            notification_id_review,
+                                            "Revisão de Execução: Conclusão Rejeitada e Reclassificação Necessária",
+                                            user_name,
+                                            f"Execução rejeitada. Notificação movida para classificação inicial para reanálise e reatribuição. Motivo: {current_review_data.get('rejection_reason_review', '')[:150]}..." if len(
+                                                current_review_data.get('rejection_reason_review',
+                                                                        '')) > 150 else f"Execução rejeitada. Notificação movida para classificação inicial para reanálise e reatribuição. Motivo: {current_review_data.get('rejection_reason_review', '')}" + (
+                                                f" Obs: {review_notes}" if review_notes else ""))
+                                        st.warning(
+                                            f"⚠️ Execução da Notificação #{notification_id_review} rejeitada! Devolvida para classificação inicial para reanálise e reatribuição.")
+                                        st.info(
+                                            "A notificação foi movida para o status 'pendente_classificacao' e aparecerá na aba 'Pendentes Classificação Inicial' para que a equipe de classificação possa reclassificá-la e redefinir o fluxo.")
+                                    elif review_decision_state == "Aceitar Conclusão": # <-- Agora é um 'elif'
+                                        original_classification = notification_review.get('classification', {})
+                                        requires_approval_after_execution = original_classification.get('requires_approval')
+                                        if requires_approval_after_execution is True:
+                                            new_status = 'aguardando_aprovacao'
+                                            updates = {
+                                                'status': new_status,
+                                                'review_execution': review_details_to_save
+                                            }
+                                            add_history_entry(
+                                                notification_id_review, "Revisão de Execução: Conclusão Aceita",
+                                                user_name,
+                                                f"Execução aceita pelo classificador. Encaminhada para aprovação superior." + (
+                                                    f" Obs: {review_notes}" if review_notes else ""))
+                                            st.success(
+                                                f"✅ Execução da Notificação #{notification_id_review} aceita! Encaminhada para aprovação superior.")
+                                        else:
+                                            new_status = 'aprovada'
+                                            updates = {
+                                                'status': new_status,
+                                                'review_execution': review_details_to_save,
+                                                'conclusion': {  # Conclui direto se não precisa de aprovação
+                                                    'concluded_by': user_username,
+                                                    'notes': review_notes or "Execução revisada e aceita pelo classificador.",
+                                                    'timestamp': datetime.now().isoformat(),
+                                                    'status_final': 'aprovada'
+                                                },
+                                                'approver': None  # Remove aprovador se não precisa de aprovação
+                                            }
+                                            add_history_entry(
+                                                notification_id_review, "Revisão de Execução: Conclusão Aceita e Finalizada",
+                                                user_name,
+                                                f"Execução revisada e aceita pelo classificador. Ciclo de gestão do evento concluído (não requeria aprovação superior)." + (
+                                                    f" Obs: {review_notes}" if review_notes else ""))
+                                            st.success(
+                                                f"✅ Execução da Notificação #{notification_id_review} revisada e aceita. Notificação concluída!")
+                                    # *** FIM DA CORREÇÃO ***
+
+                                    update_notification(notification_id_review, updates)  # Atualiza no DB
+                                    st.session_state.review_classification_state.pop(notification_id_review, None)
+                                    st.session_state.pop('current_review_classification_id', None)
+                                    st.rerun() # CORREÇÃO: Força o re-render
+                    else:
+                      if pending_execution_review:
+                        st.info(f"👆 Selecione uma notificação da lista acima para revisar a execução concluída.")
     with tab_closed_notifs:
         st.markdown("### Notificações Encerradas")
-
         if not closed_notifications:
             st.info("✅ Não há notificações encerradas no momento.")
         else:
