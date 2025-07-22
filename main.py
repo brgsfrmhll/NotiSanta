@@ -3048,6 +3048,7 @@ def show_classification():
             col_rev1, col_rev2 = st.columns(2)
             with col_rev1:
                 st.markdown("**📝 Evento Reportado Original**")
+                print(f"DEBUG: Valor de notification_review antes de tentar usar .get(): {notification_review}") # Adicione esta linha
                 st.write(f"**Título:** {notification_review.get('title', UI_TEXTS.text_na)}")
                 st.write(f"**Local:** {notification_review.get('location', UI_TEXTS.text_na)}")
                 occurrence_datetime_summary = format_date_time_summary(notification_review.get('occurrence_date'),
