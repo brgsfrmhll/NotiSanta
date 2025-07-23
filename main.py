@@ -1530,7 +1530,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
         st.write(f"**Setor Notificante:** {notification.get('reporting_department', UI_TEXTS.text_na)}")
         if notification.get('immediate_actions_taken') and notification.get('immediate_action_description'):
             st.write(
-                f"**Ações Imediatas Reportadas:** {notification.get('immediate_action_description', UI_TEXTS.text_na)[:100]}...")
+                f"**Ações Imediatas Reportadas:** {notification.get('immediate_action_description', UI_TEXTS.text_na)[:300]}...")
 
     with col_det2:
         st.markdown("**⏱️ Informações de Gestão e Classificação**")
