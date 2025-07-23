@@ -1529,7 +1529,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
         st.write(f"**Data/Hora Ocorrência:** {occurrence_datetime_summary}")
         st.write(f"**Setor Notificante:** {notification.get('reporting_department', UI_TEXTS.text_na)}")
         if notification.get('immediate_actions_taken') and notification.get('immediate_action_description'):
-            st.write(
+            st.info(
                 f"**Ações Imediatas Reportadas:** {notification.get('immediate_action_description', UI_TEXTS.text_na)[:300]}...")
 
     with col_det2:
@@ -2251,7 +2251,7 @@ def show_classification():
                         # --- FIM DA ADIÇÃO: Setor Notificado na visualização original ---
                         if notification_initial.get('immediate_actions_taken') and notification_initial.get(
                                 'immediate_action_description'):
-                            st.write(
+                            st.info(
                                 f"**Ações Imediatas Reportadas:** {notification_initial.get('immediate_action_description', UI_TEXTS.text_na)[:300]}...")
                     with col2:
                         st.markdown("**📊 Detalhes de Paciente e Observações Iniciais**")
@@ -3057,7 +3057,7 @@ def show_classification():
                         f"**Setor Notificante:** {notification_review.get('reporting_department', UI_TEXTS.text_na)}")
                     if notification_review.get('immediate_actions_taken') and notification_review.get(
                             'immediate_action_description'):
-                        st.write(
+                        st.info(
                             f"**Ações Imediatas Reportadas:** {notification_review.get('immediate_action_description', UI_TEXTS.text_na)[:300]}...")
                 with col_rev2:
                     st.markdown("**⏱️ Informações de Gestão e Classificação**")
@@ -3924,7 +3924,7 @@ def show_approval():
                     st.write(f"**Setor Notificante:** {notification.get('reporting_department', UI_TEXTS.text_na)}")
                     if notification.get('immediate_actions_taken') and notification.get(
                             'immediate_action_description'):
-                        st.write(
+                        st.info(
                             f"**Ações Imediatas Reportadas:** {notification.get('immediate_action_description', UI_TEXTS.text_na)[:300]}...")
                 with col2:
                     st.markdown("**⏱️ Informações de Gestão e Classificação**")
