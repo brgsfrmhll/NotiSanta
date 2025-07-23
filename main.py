@@ -2252,7 +2252,7 @@ def show_classification():
                         if notification_initial.get('immediate_actions_taken') and notification_initial.get(
                                 'immediate_action_description'):
                             st.write(
-                                f"**Ações Imediatas Reportadas:** {notification_initial.get('immediate_action_description', UI_TEXTS.text_na)[:100]}...")
+                                f"**Ações Imediatas Reportadas:** {notification_initial.get('immediate_action_description', UI_TEXTS.text_na)[:300]}...")
                     with col2:
                         st.markdown("**📊 Detalhes de Paciente e Observações Iniciais**")
                         st.write(
@@ -3058,7 +3058,7 @@ def show_classification():
                     if notification_review.get('immediate_actions_taken') and notification_review.get(
                             'immediate_action_description'):
                         st.write(
-                            f"**Ações Imediatas Reportadas:** {notification_review.get('immediate_action_description', UI_TEXTS.text_na)[:100]}...")
+                            f"**Ações Imediatas Reportadas:** {notification_review.get('immediate_action_description', UI_TEXTS.text_na)[:300]}...")
                 with col_rev2:
                     st.markdown("**⏱️ Informações de Gestão e Classificação**")
                     classif_review = classif_info # Já é um dicionário seguro
@@ -3925,7 +3925,7 @@ def show_approval():
                     if notification.get('immediate_actions_taken') and notification.get(
                             'immediate_action_description'):
                         st.write(
-                            f"**Ações Imediatas Reportadas:** {notification.get('immediate_action_description', UI_TEXTS.text_na)[:100]}...")
+                            f"**Ações Imediatas Reportadas:** {notification.get('immediate_action_description', UI_TEXTS.text_na)[:300]}...")
                 with col2:
                     st.markdown("**⏱️ Informações de Gestão e Classificação**")
                     classif = notification.get('classification', {})
