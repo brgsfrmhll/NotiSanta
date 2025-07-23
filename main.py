@@ -2217,7 +2217,7 @@ def show_classification():
                 st.session_state.current_initial_classification_id = notification_id_initial
                 if 'current_review_classification_id' in st.session_state: st.session_state.pop(
                     'current_review_classification_id')
-                st.rerun()
+                st.rerun() # CORREÇÃO: Força o re-render
 
             current_classification_state = st.session_state.initial_classification_state.get(notification_id_initial,
                                                                                              {})
@@ -2243,10 +2243,12 @@ def show_classification():
                         reporting_complement = notification_initial.get('reporting_department_complement')
                         reporting_dept_display = f"{reporting_department}{f' ({reporting_complement})' if reporting_complement else ''}"
                         st.write(f"**Setor Notificante:** {reporting_dept_display}")
+                        # --- Setor Notificado na visualização original ---
                         notified_department = notification_initial.get('notified_department', UI_TEXTS.text_na)
                         notified_complement = notification_initial.get('notified_department_complement')
                         notified_dept_display = f"{notified_department}{f' ({notified_complement})' if notified_complement else ''}"
                         st.write(f"**Setor Notificado:** {notified_dept_display}")
+                        # --- FIM DA ADIÇÃO: Setor Notificado na visualização original ---
                         if notification_initial.get('immediate_actions_taken') and notification_initial.get(
                                 'immediate_action_description'):
                             st.write(
@@ -2294,7 +2296,7 @@ def show_classification():
                                 else:
                                     st.write(f"Anexo: {original_name_to_use} (arquivo não encontrado ou corrompido)")
                 st.markdown("---")
-                # --- Renderiza a etapa atual do formulário de classificação inicial ---
+# --- Renderiza a etapa atual do formulário de classificação inicial ---
                 if current_step == 1:
                     with st.container():
                         st.markdown("""
@@ -2415,7 +2417,7 @@ def show_classification():
                         sub_options = FORM_DATA.tipos_evento_principal.get(
                             current_data.get('tipo_evento_principal_selecionado'), [])
                         if current_data.get('tipo_evento_principal_selecionado') in ["Clínico", "Não-clínico",
-                            "Ocupacional"] and sub_options:
+                                                                                     "Ocupacional"] and sub_options:
                             multiselect_display_options = [UI_TEXTS.multiselect_instruction_placeholder] + sub_options
                             default_sub_selection = current_data.get('tipo_evento_sub_selecionado', [])
 
@@ -2495,7 +2497,7 @@ def show_classification():
                                  <p>Defina quem será responsável pela execução das ações e se aprovação superior é necessária.</p>
                              </div>
                              """, unsafe_allow_html=True)
-                        # --- Resumo da Notificação Original ---
+# --- Resumo da Notificação Original ---
                         st.markdown("#### 📝 Resumo da Notificação Original")
                         st.write(f"**Título Original:** {notification_initial.get('title', UI_TEXTS.text_na)}")
                         st.write(f"**Local Original:** {notification_initial.get('location', UI_TEXTS.text_na)}")
@@ -2515,7 +2517,7 @@ def show_classification():
                         if notification_initial.get('patient_involved'):
                             patient_id_display = notification_initial.get('patient_id', UI_TEXTS.text_na)
                             patient_outcome_obito_display = "Sim" if notification_initial.get(
-                                'patient_outcome_obito') is True else 'Não' if notification_initial.get(
+                                'patient_outcome_obito') is True else "Não" if notification_initial.get(
                                 'patient_outcome_obito') is False else UI_TEXTS.text_na
                             st.write(
                                 f"**Paciente Envolvido Original:** {patient_involved_display} (ID: {patient_id_display}, Óbito: {patient_outcome_obito_display})")
@@ -2524,7 +2526,7 @@ def show_classification():
                         st.write(
                             f"**Descrição Original:** {notification_initial.get('description', UI_TEXTS.text_na)[:200]}...")  # Trunca para um resumo conciso
                         st.markdown("---")
-                        # --- Edição do Setor Notificado ---
+# --- Edição do Setor Notificado ---
                         st.markdown("#### 🏢 Ajustar Setor Notificado")
                         st.info(
                             "Você pode ajustar o setor que receberá esta notificação e seu complemento, se necessário.")
@@ -2665,7 +2667,7 @@ def show_classification():
                             current_classification_state['step'] -= 1
                             st.session_state.initial_classification_state[
                                 notification_id_initial] = current_classification_state
-                            st.rerun()
+                            st.rerun() # CORREÇÃO: Força o re-render
                 with col_cancel_initial:
                     if current_step <= 7:
                         if st.button("🚫 Cancelar Classificação", use_container_width=True,
@@ -2674,7 +2676,7 @@ def show_classification():
                                                                               None)
                             st.session_state.pop('current_initial_classification_id', None)
                             st.info(f"A classificação inicial da notificação #{notification_id_initial} foi cancelada.")
-                            st.rerun()
+                            st.rerun() # CORREÇÃO: Força o re-render
                 with col_next_submit_initial:
                     if current_step < 7 and current_data.get('procede') != 'Não':
                         if st.button(f"➡️ Próximo",
@@ -2701,10 +2703,12 @@ def show_classification():
                                 if current_data.get(
                                         'evento_sentinela_sim_nao') == UI_TEXTS.selectbox_default_evento_sentinela: validation_errors.append(
                                     "Etapa 3: Evento Sentinela é obrigatório (Sim/Não).")
+                            ### INÍCIO DA CORREÇÃO: Lógica de validação da Etapa 4
                             elif current_step == 4:
                                 if current_data.get(
                                         'tipo_evento_principal_selecionado') == UI_TEXTS.selectbox_default_tipo_principal:
                                     validation_errors.append("Etapa 4: Tipo Principal de Evento é obrigatório.")
+                                # MODIFICAÇÃO AQUI: Verifica se o tipo principal requer sub-especificação e se nenhuma foi selecionada.
                                 elif current_data.get('tipo_evento_principal_selecionado') in ["Clínico", "Não-clínico",
                                                                                                "Ocupacional"] and not current_data.get(
                                     'tipo_evento_sub_selecionado'):
@@ -2719,6 +2723,7 @@ def show_classification():
                                     'tipo_evento_sub_texto_livre'):
                                     validation_errors.append(
                                         "Etapa 4: A especificação do tipo 'Queixa técnica' é obrigatória.")
+                            ### FIM DA CORREÇÃO
                             elif current_step == 5:
                                 if not current_data.get('classificacao_oms_selecionada'): validation_errors.append(
                                     "Etapa 5: Classificação OMS é obrigatória (selecione ao menos um item).")
@@ -2730,7 +2735,7 @@ def show_classification():
                                 current_classification_state['step'] += 1
                                 st.session_state.initial_classification_state[
                                     notification_id_initial] = current_classification_state
-                                st.rerun()
+                                st.rerun() # CORREÇÃO: Força o re-render
                     is_final_classification_submit_step_initial = current_step == 7 and current_data.get(
                         'procede') == 'Sim'
                     is_rejection_submit_step_initial = current_step == 1 and current_data.get('procede') == 'Não'
@@ -2753,22 +2758,22 @@ def show_classification():
                                         'Erro interno: Status "procede" inválido para finalização.')
                                     if current_data.get(
                                             'classificacao_nnc') == UI_TEXTS.selectbox_default_classificacao_nnc: validation_errors.append(
-                                    "Etapa 2: Classificação NNC é obrigatória.")
+                                        "Etapa 2: Classificação NNC é obrigatória.")
                                     if current_data.get('classificacao_nnc') == "Evento com dano" and current_data.get(
                                             'nivel_dano') == UI_TEXTS.selectbox_default_nivel_dano: validation_errors.append(
-                                    "Etapa 2: Nível de dano é obrigatório para evento com dano.")
+                                        "Etapa 2: Nível de dano é obrigatório para evento com dano.")
                                     if current_data.get(
                                             'prioridade_selecionada') == UI_TEXTS.selectbox_default_prioridade_resolucao: validation_errors.append(
-                                    "Etapa 2: Prioridade de Resolução é obrigatória.")
+                                        "Etapa 2: Prioridade de Resolução é obrigatória.")
                                     if current_data.get(
                                             'never_event_selecionado') == UI_TEXTS.selectbox_default_never_event: validation_errors.append(
-                                    "Etapa 3: Never Event é obrigatório (selecione 'N/A' se não se aplica).")
+                                        "Etapa 3: Never Event é obrigatório (selecione 'N/A' se não se aplica).")
                                     if current_data.get(
                                             'evento_sentinela_sim_nao') == UI_TEXTS.selectbox_default_evento_sentinela: validation_errors.append(
-                                    "Etapa 3: Evento Sentinela é obrigatório (Sim/Não).")
+                                        "Etapa 3: Evento Sentinela é obrigatório (Sim/Não).")
                                     if current_data.get(
                                             'tipo_evento_principal_selecionado') == UI_TEXTS.selectbox_default_tipo_principal: validation_errors.append(
-                                    "Etapa 4: Tipo Principal de Evento é obrigatório.")
+                                        "Etapa 4: Tipo Principal de Evento é obrigatório.")
                                     if current_data.get('tipo_evento_principal_selecionado') in ["Clínico",
                                                                                                  "Não-clínico",
                                                                                                  "Ocupacional"] and not current_data.get(
@@ -2786,20 +2791,20 @@ def show_classification():
                                         validation_errors.append(
                                             "Etapa 4: A especificação do tipo 'Queixa técnica' é obrigatória.")
                                     if not current_data.get('classificacao_oms_selecionada'): validation_errors.append(
-                                    "Etapa 5: Classificação OMS é obrigatória (selecione ao menos um item).")
+                                        "Etapa 5: Classificação OMS é obrigatória (selecione ao menos um item).")
                                     # Validação do Setor Notificado Ajustado
                                     if not current_data.get('temp_notified_department') or \
                                        current_data['temp_notified_department'] == UI_TEXTS.selectbox_default_department_select:
                                         validation_errors.append("Etapa 7: É obrigatório definir o Setor Notificado.")
                                     if not current_data.get('executores_selecionados'): validation_errors.append(
-                                    "Etapa 7: É obrigatório atribuir ao menos um Executor Responsável.")
+                                        "Etapa 7: É obrigatório atribuir ao menos um Executor Responsável.")
                                     if current_data.get(
                                             'requires_approval') == UI_TEXTS.selectbox_default_requires_approval: validation_errors.append(
-                                    "Etapa 7: É obrigatório indicar se requer Aprovação Superior (Sim/Não).")
+                                        "Etapa 7: É obrigatório indicar se requer Aprovação Superior (Sim/Não).")
                                     if current_data.get('requires_approval') == "Sim" and (
                                             current_data.get('approver_selecionado') is None or current_data.get(
                                         'approver_selecionado') == UI_TEXTS.selectbox_default_approver): validation_errors.append(
-                                    "Etapa 7: É obrigatório selecionar o Aprovador Responsável quando requer aprovação.")
+                                        "Etapa 7: É obrigatório selecionar o Aprovador Responsável quando requer aprovação.")
                                 if validation_errors:
                                     st.error("⚠️ **Por favor, corrija os seguintes erros antes de enviar:**")
                                     for error in validation_errors: st.warning(error)
@@ -2880,7 +2885,7 @@ def show_classification():
                                             "requires_approval": True if current_data.get(
                                                 'requires_approval') == "Sim" else False if current_data.get(
                                                 'requires_approval') == "Não" else None,
-                                            "deadline_date": deadline_date_calculated
+                                            "deadline_date": deadline_date_calculated  # ADDED DEADLINE DATE
                                         }
                                         updates = {
                                             "status": "classificada",
@@ -2889,6 +2894,7 @@ def show_classification():
                                             "executors": selected_executor_ids_for_db,
                                             "approver": current_data.get('approver_selecionado') if current_data.get(
                                                 'requires_approval') == 'Sim' else None,
+                                            # Adicionado para salvar o setor notificado ajustado
                                             "notified_department": current_data.get('temp_notified_department'),
                                             "notified_department_complement": current_data.get(
                                                 'temp_notified_department_complement')
@@ -2941,7 +2947,7 @@ def show_classification():
                                     st.session_state.initial_classification_state.pop(notification_id_initial,
                                                                                       None)
                                     st.session_state.pop('current_initial_classification_id', None)
-                                    st.rerun()
+                                    st.rerun() # CORREÇÃO: Força o re-render
 
             else:
                 if pending_initial_classification:
@@ -3001,11 +3007,9 @@ def show_classification():
                 if 'current_initial_classification_id' in st.session_state: st.session_state.pop(
                     'current_initial_classification_id')
 
-                st.rerun()
+                st.rerun() # CORREÇÃO: Força o re-render
 
             current_review_data = st.session_state.review_classification_state.get(notification_id_review or 0, {})
-
-            # ESTE É O BLOCO DE PROTEÇÃO CHAVE: APENAS RENDERIZA DETALHES SE notification_review NÃO FOR None
             if notification_review is not None:
                 st.markdown(
                     f"### Notificação Selecionada para Revisão de Execução: #{notification_review.get('id', UI_TEXTS.text_na)}")
@@ -3015,16 +3019,23 @@ def show_classification():
                 if isinstance(raw_classification_data, dict):
                     classif_info = raw_classification_data
                 else:
+                    # Se não for um dicionário (ex: None, ou um tipo inesperado como string/lista de dados antigos),
+                    # o tratamos como um dicionário vazio para evitar o AttributeError.
                     classif_info = {}
 
                 deadline_date_str = classif_info.get('deadline_date')
+
+                # Acessa 'timestamp' de 'conclusion' de forma segura
                 concluded_timestamp_str = (notification_review.get('conclusion') or {}).get('timestamp')
+# Determinar o status do prazo (cor do texto)
                 deadline_status = get_deadline_status(deadline_date_str, concluded_timestamp_str)
+                # Determinar a classe do cartão (fundo) com APENAS DOIS STATUS
                 card_class = ""
                 if deadline_status['class'] == "deadline-ontrack" or deadline_status['class'] == "deadline-duesoon":
-                    card_class = "card-prazo-dentro"
+                    card_class = "card-prazo-dentro"  # Será verde para "No Prazo" e "Prazo Próximo"
                 elif deadline_status['class'] == "deadline-overdue":
-                    card_class = "card-prazo-fora"
+                    card_class = "card-prazo-fora"  # Será vermelho para "Atrasada"
+# Renderizar o card com o estilo apropriado
                 st.markdown(f"""
                     <div class="notification-card {card_class}">
                         <h4>#{notification_review.get('id', UI_TEXTS.text_na)} - {notification_review.get('title', UI_TEXTS.text_na)}</h4>
@@ -3044,16 +3055,13 @@ def show_classification():
                     st.write(f"**Data/Hora Ocorrência:** {occurrence_datetime_summary}")
                     st.write(
                         f"**Setor Notificante:** {notification_review.get('reporting_department', UI_TEXTS.text_na)}")
-
                     if notification_review.get('immediate_actions_taken') and notification_review.get(
                             'immediate_action_description'):
-                        st.markdown("---")
-                        st.markdown("⚡ **Ações Imediatas Reportadas:**")
-                        st.info(notification_review.get('immediate_action_description', UI_TEXTS.text_na))
-
+                        st.write(
+                            f"**Ações Imediatas Reportadas:** {notification_review.get('immediate_action_description', UI_TEXTS.text_na)[:100]}...")
                 with col_rev2:
                     st.markdown("**⏱️ Informações de Gestão e Classificação**")
-                    classif_review = classif_info
+                    classif_review = classif_info # Já é um dicionário seguro
                     st.write(f"**Classificação NNC:** {classif_review.get('nnc', UI_TEXTS.text_na)}")
                     if classif_review.get('nivel_dano'): st.write(
                         f"**Nível de Dano:** {classif_review.get('nivel_dano', UI_TEXTS.text_na)}")
@@ -3072,6 +3080,7 @@ def show_classification():
                     st.write(
                         f"**Requer Aprovação Superior (Classif. Inicial):** {'Sim' if classif_review.get('requires_approval') else 'Não'}")
                     st.write(f"**Classificado por:** {classif_review.get('classificador', UI_TEXTS.text_na)}")
+# Exibição do Prazo e Status na Revisão
                     if deadline_date_str:
                         deadline_date_formatted = datetime.fromisoformat(deadline_date_str).strftime('%d/%m/%Y')
                         st.markdown(
@@ -3079,12 +3088,10 @@ def show_classification():
                             unsafe_allow_html=True)
                     else:
                         st.write(f"**Prazo de Conclusão:** {UI_TEXTS.deadline_days_nan}")
-                    st.markdown("---")
-
+                st.markdown("---")
                 st.markdown("#### ⚡ Ações Executadas pelos Responsáveis")
-                # CORREÇÃO AQUI: Usando notification_review.get('actions')
-                if notification_review.get('actions'):
-                    for action in sorted(notification_review['actions'], key=lambda x: x.get('timestamp', '')):
+                if notification.get('actions'):
+                    for action in sorted(notification['actions'], key=lambda x: x.get('timestamp', '')):
                         action_type = "🏁 CONCLUSÃO (Executor)" if action.get(
                             'final_action_by_executor') else "📝 AÇÃO Registrada"
                         action_timestamp = action.get('timestamp', UI_TEXTS.text_na)
@@ -3228,34 +3235,7 @@ def show_classification():
                             if review_decision_state == "Rejeitar Conclusão":
                                 review_details_to_save['rejection_reason'] = current_review_data.get(
                                     'rejection_reason_review')
-                                new_status = 'pendente_classificacao'
-                                updates = {
-                                    'status': new_status,
-                                    'approver': None,
-                                    'executors': [],
-                                    'classification': None,
-                                    'review_execution': None,
-                                    'approval': None,
-                                    'conclusion': None,
-                                    'rejection_execution_review': {
-                                        'reason': current_review_data.get('rejection_reason_review'),
-                                        'reviewed_by': user_username,
-                                        'timestamp': datetime.now().isoformat()
-                                    }
-                                }
-                                add_history_entry(
-                                    notification_id_review,
-                                    "Revisão de Execução: Conclusão Rejeitada e Reclassificação Necessária",
-                                    user_name,
-                                    f"Execução rejeitada. Notificação movida para classificação inicial para reanálise e reatribuição. Motivo: {current_review_data.get('rejection_reason_review', '')[:150]}..." if len(
-                                        current_review_data.get('rejection_reason_review',
-                                                                '')) > 150 else f"Execução rejeitada. Notificação movida para classificação inicial para reanálise e reatribuição. Motivo: {current_review_data.get('rejection_reason_review', '')}" + (
-                                        f" Obs: {review_notes}" if review_notes else ""))
-                                st.warning(
-                                    f"⚠️ Execução da Notificação #{notification_id_review} rejeitada! Devolvida para classificação inicial para reanálise e reatribuição.")
-                                st.info(
-                                    "A notificação foi movida para o status 'pendente_classificacao' e aparecerá na aba 'Pendentes Classificação Inicial' para que a equipe de classificação possa reclassificá-la e redefinir o fluxo.")
-                            elif review_decision_state == "Aceitar Conclusão":
+                            if review_decision_state == "Aceitar Conclusão":
                                 original_classification = notification_review.get('classification', {})
                                 requires_approval_after_execution = original_classification.get('requires_approval')
                                 if requires_approval_after_execution is True:
@@ -3276,13 +3256,13 @@ def show_classification():
                                     updates = {
                                         'status': new_status,
                                         'review_execution': review_details_to_save,
-                                        'conclusion': {
+                                        'conclusion': {  # Conclui direto se não precisa de aprovação
                                             'concluded_by': user_username,
                                             'notes': review_notes or "Execução revisada e aceita pelo classificador.",
                                             'timestamp': datetime.now().isoformat(),
                                             'status_final': 'aprovada'
                                         },
-                                        'approver': None
+                                        'approver': None  # Remove aprovador se não precisa de aprovação
                                     }
                                     add_history_entry(
                                         notification_id_review, "Revisão de Execução: Conclusão Aceita e Finalizada",
@@ -3291,14 +3271,41 @@ def show_classification():
                                             f" Obs: {review_notes}" if review_notes else ""))
                                     st.success(
                                         f"✅ Execução da Notificação #{notification_id_review} revisada e aceita. Notificação concluída!")
-                            update_notification(notification_id_review, updates)
+                            elif review_decision_state == "Rejeitar Conclusão":
+                                new_status = 'pendente_classificacao'  # Retorna para classif. inicial
+                                updates = {
+                                    'status': new_status,
+                                    'approver': None,
+                                    'executors': [],
+                                    'classification': None,
+                                    'review_execution': None,  # Limpa revisão
+                                    'approval': None,
+                                    'conclusion': None,
+                                    'rejection_execution_review': {  # Adiciona o motivo da rejeição da execução
+                                        'reason': current_review_data.get('rejection_reason_review'),
+                                        'reviewed_by': user_username,
+                                        'timestamp': datetime.now().isoformat()
+                                    }
+                                }
+                                add_history_entry(
+                                    notification_id_review,
+                                    "Revisão de Execução: Conclusão Rejeitada e Reclassificação Necessária",
+                                    user_name,
+                                    f"Execução rejeitada. Notificação movida para classificação inicial para reanálise e reatribuição. Motivo: {current_review_data.get('rejection_reason_review', '')[:150]}..." if len(
+                                        current_review_data.get('rejection_reason_review',
+                                                                '')) > 150 else f"Execução rejeitada. Notificação movida para classificação inicial para reanálise e reatribuição. Motivo: {current_review_data.get('rejection_reason_review', '')}" + (
+                                        f" Obs: {review_notes}" if review_notes else ""))
+                                st.warning(
+                                    f"⚠️ Execução da Notificação #{notification_id_review} rejeitada! Devolvida para classificação inicial para reanálise e reatribuição.")
+                                st.info(
+                                    "A notificação foi movida para o status 'pendente_classificacao' e aparecerá na aba 'Pendentes Classificação Inicial' para que a equipe de classificação possa reclassificá-la e redefinir o fluxo.")
+                            update_notification(notification_id_review, updates)  # Atualiza no DB
                             st.session_state.review_classification_state.pop(notification_id_review, None)
                             st.session_state.pop('current_review_classification_id', None)
-                            st.rerun()
-            else: # Este else corresponde ao 'if notification_review is not None:' principal
+                            st.rerun() # CORREÇÃO: Força o re-render
+            else:
                 if pending_execution_review:
                     st.info(f"👆 Selecione uma notificação da lista acima para revisar a execução concluída.")
-
     with tab_closed_notifs:
         st.markdown("### Notificações Encerradas")
 
@@ -3348,8 +3355,16 @@ def show_classification():
                     elif notification.get('rejection_approval') and (notification.get('rejection_approval') or {}).get(
                             'rejected_by'):
                         concluded_by = (notification.get('rejection_approval') or {}).get('rejected_by')
-                    deadline_date_str_closed = notification.get('classification', {}).get('deadline_date')
+# Determinar o status do prazo para notificações encerradas
+                    raw_classification_data = notification.get('classification')
+                    if isinstance(raw_classification_data, dict):
+                        classif_info_closed = raw_classification_data
+                    else:
+                        classif_info_closed = {}
+                    deadline_date_str_closed = classif_info_closed.get('deadline_date')
+# Acessa 'timestamp' de 'conclusion' de forma segura
                     concluded_timestamp_str = (notification.get('conclusion') or {}).get('timestamp')
+                    # Verificar se a conclusão foi dentro ou fora do prazo
                     deadline_status = get_deadline_status(deadline_date_str_closed, concluded_timestamp_str)
                     card_class = ""
                     if deadline_status['class'] == "deadline-ontrack" or deadline_status['class'] == "deadline-duesoon":
