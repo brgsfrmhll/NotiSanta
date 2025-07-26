@@ -56,6 +56,10 @@ st.markdown(r"""
     .stAppDeployButton {
         display: none !important;
     }
+#stDecoration,
+    .stAppDeployButton {
+        display: none !important;
+    }
 
     /* Ajuste de margem superior para o container principal do Streamlit */
     .reportview-container {
@@ -78,6 +82,8 @@ st.markdown(r"""
     [data-testid="stSidebarContent"] {
         padding-top: 10px; /* Reduced from default to move content higher */
     }
+padding-top: 10px; /* Reduced from default to move content higher */
+    }
 
     /* Logo - Reduced size and moved up */
     div[data-testid="stSidebar"] img {
@@ -99,6 +105,7 @@ st.markdown(r"""
     [data-testid="stSidebarContent"] .sidebar-main-title {
         text-align: center !important; /* Centraliza o texto */
         color: #00008B !important; /* Cor azul escuro para o título principal */
+color: #00008B !important; /* Cor azul escuro para o título principal */
         font-size: 1.76em !important; /* 2.2em * 0.8 = 1.76em */
         font-weight: 700 !important; /* Negrito forte para o título */
         text-transform: uppercase !important; /* Transforma todo o texto em maiúsculas */
@@ -112,12 +119,13 @@ st.markdown(r"""
     [data-testid="stSidebarContent"] .sidebar-subtitle {
         text-align: center !important; /* Centraliza o texto */
         color: #333 !important; /* Cor mais suave para o subtítulo */
+color: #333 !important; /* Cor mais suave para o subtítulo */
         font-size: 0.72em !important; /* 0.9em * 0.8 = 0.72em */
         font-weight: 400 !important; /* Peso de fonte médio */
         text-transform: uppercase !important; /* Transforma todo o texto em maiúsculas, mantendo a consistência */
         letter-spacing: 1.5px !important; /* Espaçamento entre letras para alinhamento visual */
         margin-top: -30px !important; /* Pull closer to main title */
-        margin-bottom: 5px !important; /* Reduce margin below subtitle */
+        margin-bottom: 5px !important; /* Reduce space below subtitle */
     }
 
     /* Estilo geral para cartões de notificação */
@@ -131,6 +139,9 @@ st.markdown(r"""
     }
 
     /* Cores e destaque para diferentes status de notificação */
+}
+
+    /* Cores e destaque para diferentes status de notificação */
     .status-pendente_classificacao { color: #ff9800; font-weight: bold; } /* Laranja */
     .status-classificada { color: #2196f3; font-weight: bold; } /* Azul */
     .status-em_execucao { color: #9c27b0; font-weight: bold; } /* Roxo */
@@ -140,7 +151,7 @@ st.markdown(r"""
     .status-aprovada { color: #4caf50; font-weight: bold; } /* Verde */
     .status-concluida { color: #4caf50; font-weight: bold; } /* Verde (mesmo que aprovada para simplificar) */
     .status-rejeitada { color: #f44336; font-weight: bold; } /* Vermelho (Usado para Rejeição Inicial) */
-    .status-reprovada { color: #f44336; font-weight: bold; } /* Vermelho (Usado para Rejeição de Aprovação)*/
+.status-reprovada { color: #f44336; font-weight: bold; } /* Vermelho (Usado para Rejeição de Aprovação)*/
     /* Estilo para o conteúdo da barra lateral */
     .sidebar .sidebar-content {
         background-color: #f0f2f6; /* Cinza claro */
@@ -168,6 +179,8 @@ st.markdown(r"""
         background-color: #fff3cd; /* Amarelo claro */
         padding: 10px;
         border-radius: 5px;
+padding: 10px;
+        border-radius: 5px;
         border-left: 3px solid #ffc107; /* Barra lateral amarela */
         margin: 10px 0;
     }
@@ -192,6 +205,10 @@ st.markdown(r"""
     div[data-testid="stHorizontalBlock"] div[data-testid^="st"] label p {
         font-weight: bold;
     }
+
+    /* Estilo para cartões de métricas no dashboard */
+    .metric-card {
+}
 
     /* Estilo para cartões de métricas no dashboard */
     .metric-card {
@@ -227,6 +244,7 @@ st.markdown(r"""
 
     /* Remove padding do container principal, pois o rodapé fixo foi removido */
     div[data-testid="stAppViewContainer"] {
+div[data-testid="stAppViewContainer"] {
         padding-bottom: 0px; /* Não é mais necessário padding na parte inferior */
     }
 
@@ -249,6 +267,7 @@ st.markdown(r"""
     .action-entry-card {
         border: 1px solid #cceeff; /* Azul claro */
         border-left: 5px solid #2E86AB; /* Azul mais escuro para destaque */
+border-left: 5px solid #2E86AB; /* Azul mais escuro para destaque */
         border-radius: 8px;
         padding: 12px;
         margin-top: 10px;
@@ -276,6 +295,11 @@ st.markdown(r"""
         background-color: #eaf7ed; /* Fundo verde muito claro */
         box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Sombra suave */
     }
+
+    .my-action-entry-card strong {
+        color: #28a745;
+    }
+}
 
     .my-action-entry-card strong {
         color: #28a745;
@@ -370,7 +394,7 @@ class UI_TEXTS:
 class FORM_DATA:
     turnos = ["Diurno", "Noturno", "Não sei informar"]
     classificacao_nnc = ["Não conformidade", "Circunstância de Risco", "Near Miss", "Evento sem dano",
-                         "Evento com dano"]
+"Evento com dano"]
     niveis_dano = ["Dano leve", "Dano moderado", "Dano grave", "Óbito"]
     prioridades = ["Baixa", "Média", "Alta", "Crítica"]
 
@@ -892,7 +916,7 @@ def create_notification(data: Dict, uploaded_files: Optional[List[Any]] = None) 
             f"Notificação enviada para classificação. Título: {data.get('title', 'Sem título')[:100]}..." if len(
                 data.get('title',
                          '')) > 100 else f"Notificação enviada para classificação. Título: {data.get('title', 'Sem título')}",
-            conn=conn,  # Passa a conexão para a função de histórico usar a mesma transação
+conn=conn,  # Passa a conexão para a função de histórico usar a mesma transação
             cursor=cur  # Passa o cursor
         )
 
@@ -1525,7 +1549,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
         st.write(f"**Título:** {notification.get('title', UI_TEXTS.text_na)}")
         st.write(f"**Local:** {notification.get('location', UI_TEXTS.text_na)}")
         occurrence_datetime_summary = format_date_time_summary(notification.get('occurrence_date'),
-                                                               notification.get('occurrence_time'))
+notification.get('occurrence_time'))
         st.write(f"**Data/Hora Ocorrência:** {occurrence_datetime_summary}")
         st.write(f"**Setor Notificante:** {notification.get('reporting_department', UI_TEXTS.text_na)}")
         if notification.get('immediate_actions_taken') and notification.get('immediate_action_description'):
@@ -1772,7 +1796,7 @@ def show_create_notification():
                 current_data['occurrence_date'] = st.date_input(
                     "Data da Ocorrência do Evento*", value=current_data['occurrence_date'],
                     help="Selecione a data em que o evento ocorreu", key="create_occurrence_date_state_refactored",
-                    format="DD/MM/YYYY")
+format="DD/MM/YYYY")
             with col2:
                 current_data['occurrence_time'] = st.time_input(
                     "Hora Aproximada do Evento", value=current_data['occurrence_time'],
@@ -1836,7 +1860,7 @@ def show_create_notification():
                 """, unsafe_allow_html=True)
                 current_data['immediate_action_description'] = st.text_area(
                     "Descrição detalhada da ação realizada*", value=current_data['immediate_action_description'],
-                    placeholder="Descreva:\n• Quais ações foram tomadas?\n• Por quem foram executadas?\n• Quando foram realizadas?\n• Resultados obtidos",
+placeholder="Descreva:\n• Quais ações foram tomadas?\n• Por quem foram executadas?\n• Quando foram realizadas?\n• Resultados obtidos",
                     height=150,
                     key="create_immediate_action_desc_state_refactored",
                     help="Forneça um relato completo...")
@@ -1919,7 +1943,7 @@ def show_create_notification():
                     key="create_notified_dept_comp_refactored"
                 )
             st.markdown("<span class='required-field'>* Campo obrigatório (Setor Notificado)</span>",
-                        unsafe_allow_html=True)
+unsafe_allow_html=True)
             current_data['additional_notes'] = st.text_area(
                 "Observações Adicionais", value=current_data['additional_notes'],
                 placeholder="Qualquer outra informação que considere relevante.",
@@ -2417,7 +2441,7 @@ def show_classification():
                         sub_options = FORM_DATA.tipos_evento_principal.get(
                             current_data.get('tipo_evento_principal_selecionado'), [])
                         if current_data.get('tipo_evento_principal_selecionado') in ["Clínico", "Não-clínico",
-                                                                                     "Ocupacional"] and sub_options:
+"Ocupacional"] and sub_options:
                             multiselect_display_options = [UI_TEXTS.multiselect_instruction_placeholder] + sub_options
                             default_sub_selection = current_data.get('tipo_evento_sub_selecionado', [])
 
@@ -2447,7 +2471,7 @@ def show_classification():
                             if current_data.get('tipo_evento_principal_selecionado') == "Outros":
                                 st.markdown(
                                     "<span class='required-field'>* Campo obrigatório quando Tipo Principal é 'Outros'</span>",
-                                    unsafe_allow_html=True)
+unsafe_allow_html=True)
                         else:
                             current_data['tipo_evento_sub_selecionado'] = []
                             current_data['tipo_evento_sub_texto_livre'] = ""
@@ -3039,10 +3063,11 @@ def show_classification():
                 st.markdown(f"""
                     <div class="notification-card {card_class}">
                         <h4>#{notification_review.get('id', UI_TEXTS.text_na)} - {notification_review.get('title', UI_TEXTS.text_na)}</h4>
-                        <p><strong>Status:</strong> <span class="status-{notification_review.get('status', UI_TEXTS.text_na).replace('_', '-')}">{notification_review.get('status', UI_TEXTS.text_na).replace('_', ' ').title()}</span></p>
+                        <p><strong>Status:</strong> <span class="status-{notification_review.get('status', UI_TEXTS.text_na).replace('_', '-')}"">{notification_review.get('status', UI_TEXTS.text_na).replace('_', ' ').title()}</span></p>
                         <p><strong>Prazo:</strong> {deadline_status['text']}</p>
                     </div>
                     """, unsafe_allow_html=True)
+
                 st.markdown("#### 📋 Detalhes para Revisão")
                 col_rev1, col_rev2 = st.columns(2)
                 with col_rev1:
@@ -3089,7 +3114,6 @@ def show_classification():
                         st.write(f"**Prazo de Conclusão:** {UI_TEXTS.deadline_days_nan}")
                 st.markdown("---")
                 st.markdown("#### ⚡ Ações Executadas pelos Responsáveis")
-                # CORREÇÃO: Substituído 'notification' por 'notification_review'
                 if notification_review.get('actions'):
                     for action in sorted(notification_review['actions'], key=lambda x: x.get('timestamp', '')):
                         action_type = "🏁 CONCLUSÃO (Executor)" if action.get(
@@ -3145,13 +3169,13 @@ def show_classification():
                 # Pega os nomes de exibição dos executores atribuídos
                 executor_names_review = [
                     name for name, uid in executor_name_to_id_map_review.items()
-                    if uid in notification_review.get('executors', []) # CORREÇÃO: Usado notification_review
+                    if uid in notification_review.get('executors', [])
                 ]
                 st.markdown(
                     f"**👥 Executores Atribuídos Originalmente:** {', '.join(executor_names_review) or 'Nenhum'}")
-                if notification_review.get('attachments'): # CORREÇÃO: Usado notification_review
+                if notification_review.get('attachments'):
                     st.markdown("#### 📎 Anexos")
-                    for attach_info in notification_review['attachments']: # CORREÇÃO: Usado notification_review
+                    for attach_info in notification_review['attachments']:
                         unique_name_to_use = None
                         original_name_to_use = None
                         if isinstance(attach_info,
@@ -3236,7 +3260,7 @@ def show_classification():
                                 review_details_to_save['rejection_reason'] = current_review_data.get(
                                     'rejection_reason_review')
                             if review_decision_state == "Aceitar Conclusão":
-                                original_classification = notification_review.get('classification', {}) # CORREÇÃO: Usado notification_review
+                                original_classification = notification_review.get('classification', {})
                                 requires_approval_after_execution = original_classification.get('requires_approval')
                                 if requires_approval_after_execution is True:
                                     new_status = 'aguardando_aprovacao'
@@ -3305,9 +3329,9 @@ def show_classification():
                             st.rerun() # CORREÇÃO: Força o re-render
             else:
                 if pending_execution_review:
-                    st.info(f"👆 Selecione uma notificação da lista acima para revisar a execução concluída.")         
-                    with tab_closed_notifs:
-                        st.markdown("### Notificações Encerradas")
+                    st.info(f"👆 Selecione uma notificação da lista acima para revisar a execução concluída.")
+    with tab_closed_notifs:
+        st.markdown("### Notificações Encerradas")
 
         if not closed_notifications:
             st.info("✅ Não há notificações encerradas no momento.")
@@ -3466,7 +3490,7 @@ def show_execution():
                         <p><strong>Local do Evento:</strong> {notification.get('location', UI_TEXTS.text_na)} | <strong>Prioridade:</strong> {prioridade_display} <strong class='{deadline_status['class']}'>Prazo: {deadline_status['text']}</strong></p>
                     </div>
                     """, unsafe_allow_html=True)
-# --- NOVO CARD EXPANSÍVEL: Detalhes Completos da Notificação e Classificação ---
+            # --- NOVO CARD EXPANSÍVEL: Detalhes Completos da Notificação e Classificação ---
             with st.expander(
                     f"✨ Ver Detalhes Completos e Classificação - Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
                 display_notification_full_details(notification, user_id_logged_in, user_username_logged_in)
@@ -3567,7 +3591,7 @@ def show_execution():
                         "Descrição detalhada da ação realizada*",
                         value=st.session_state.get(
                             f"exec_action_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored", ""),
-                        placeholder="Descreva:\n• O QUÊ foi feito?\n• POR QUÊ foi feito (qual o objetivo)?\n• ONDE foi realizado?\n• QUANDO foi realizado (data/hora)?\n• QUEM executou (se aplicável)?\n• COMO foi executado (passos, métodos)?\n• QUANTO CUSTOU (recursos, tempo)?\n• QUÃO FREQUENTE (se for uma ação contínua)?",
+placeholder="Descreva:\n• O QUÊ foi feito?\n• POR QUÊ foi feito (qual o objetivo)?\n• ONDE foi realizado?\n• QUANDO foi realizado (data/hora)?\n• QUEM executou (se aplicável)?\n• COMO foi executado (passos, métodos)?\n• QUANTO CUSTOU (recursos, tempo)?\n• QUÃO FREQUENTE (se for uma ação contínua)?",
                         height=180,
                         key=f"exec_action_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored",
                         help="Forneça um relato completo e estruturado da ação executada ou da conclusão da sua parte, utilizando os pontos do 5W3H como guia."
@@ -3688,7 +3712,6 @@ def show_execution():
                                             user_username_logged_in,
                                             history_details
                                         )
-# Atualiza apenas o status se necessário
                                         if updates_to_status:
                                             update_notification(notification['id'], updates_to_status)
                                         st.success(
@@ -3793,7 +3816,6 @@ def show_execution():
                     "⚠️ Nenhuma notificação encontrada com os critérios de busca especificados em suas ações encerradas.")
             else:
                 filtered_closed_my_exec_notifications.sort(key=lambda x: x.get('created_at', ''), reverse=True)
-
                 st.markdown(f"**Notificações Encontradas ({len(filtered_closed_my_exec_notifications)})**:")
                 for notification in filtered_closed_my_exec_notifications:
                     status_class = f"status-{notification.get('status', UI_TEXTS.text_na).replace('_', '-')}"
@@ -4111,10 +4133,9 @@ def show_approval():
                         key=f"approval_decision_{notification.get('id', UI_TEXTS.text_na)}_refactored",
                         index=approval_decision_options.index(
                             current_approval_data.get('decision', UI_TEXTS.selectbox_default_decisao_aprovacao)),
-                        help="Selecione 'Aprovar' para finalizar a notificação ou 'Reprovar' para devolvê-la para revisão pelo classificador."
-                    )
+                        help="Selecione 'Aprovar' para finalizar a notificação ou 'Reprovar' para devolvê-la para revisão pelo classificador.")
                     st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
-                    # Capture o valor do text_area e atribua-o ao `current_approval_data['notes']`
+# Capture o valor do text_area e atribua-o ao `current_approval_data['notes']`
                     approval_notes_input = st.text_area(
                         "Observações da Aprovação/Reprovação:*",
                         value=current_approval_data.get('notes', ''),
@@ -4695,7 +4716,6 @@ def show_admin():
                                     # Ajusta a sequência SERIAL para o próximo ID disponível
                                     cur.execute(
                                         f"SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));")
-
                                     # Restaura notificações e sub-dados (attachments, actions, history)
                                     for notif_data in backup_data['notifications']:
                                         # Converte datas/tempos para o tipo correto para o DB
@@ -5327,7 +5347,6 @@ def show_dashboard():
                         deadline_date_str).strftime('%d/%m/%Y')
                     deadline_status = get_deadline_status(deadline_date_str)
                     deadline_html = f" | <strong class='{deadline_status['class']}'>Prazo: {deadline_date_formatted} ({deadline_status['text']})</strong>"
-
                 st.markdown(f"""
                                     <div class="notification-card">
                                         <h4>#{notification.get('id', UI_TEXTS.text_na)} - {notification.get('title', UI_TEXTS.text_na)}</h4>
