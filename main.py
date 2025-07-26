@@ -2319,7 +2319,7 @@ def show_classification():
                                     )
                                 else:
                                     st.write(f"Anexo: {original_name_to_use} (arquivo não encontrado ou corrompido)")
-                st.markdown("---")
+                st.markdown("---"")
 # --- Renderiza a etapa atual do formulário de classificação inicial ---
                 if current_step == 1:
                     with st.container():
@@ -2549,7 +2549,7 @@ unsafe_allow_html=True)
                             st.write(f"**Paciente Envolvido Original:** {patient_involved_display}")
                         st.write(
                             f"**Descrição Original:** {notification_initial.get('description', UI_TEXTS.text_na)[:200]}...")  # Trunca para um resumo conciso
-                        st.markdown("---")
+                        st.markdown("---"")
 # --- Edição do Setor Notificado ---
                         st.markdown("#### 🏢 Ajustar Setor Notificado")
                         st.info(
@@ -2580,7 +2580,7 @@ unsafe_allow_html=True)
                             key=f"classifier_notified_dept_comp_{notification_id_initial}_refactored",
                             help="Detalhes adicionais sobre o setor notificado (Ex: Equipe A, Sala 101).")
                         st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
-                        st.markdown("---")
+                        st.markdown("---"")
 
                         executors = get_users_by_role('executor')
                         executor_options = {
@@ -2611,7 +2611,7 @@ unsafe_allow_html=True)
                         st.markdown(
                             "<span class='required-field'>* Campo obrigatório (selecionar ao menos um executor)</span>",
                             unsafe_allow_html=True)
-                        st.markdown("---")
+                        st.markdown("---"")
                         requires_approval_options = [UI_TEXTS.selectbox_default_requires_approval, "Sim", "Não"]
                         current_data['requires_approval'] = st.selectbox(
                             "Requer Aprovação Superior após Execução?*",
@@ -2644,7 +2644,7 @@ unsafe_allow_html=True)
                                 unsafe_allow_html=True)
                         else:
                             current_data['approver_selecionado'] = UI_TEXTS.selectbox_default_approver
-                        st.markdown("---")
+                        st.markdown("---"")
                         st.markdown("#### ✅ Resumo da Classificação Final")
                         st.write(f"**Classificação NNC:** {current_data.get('classificacao_nnc', UI_TEXTS.text_na)}")
                         if current_data.get('classificacao_nnc') == "Evento com dano" and current_data.get(
@@ -2986,7 +2986,7 @@ unsafe_allow_html=True)
             st.markdown("#### 📋 Selecionar Notificação para Revisão")
             
             # Get the currently selected ID from session state, if any
-            current_selected_review_id = st.session_state.get('current_review_classification_id')
+            current_selected_review_id_in_session = st.session_state.get('current_review_classification_id')
             
             # Prepare options for the selectbox, including the placeholder
             notification_options_review_display = [UI_TEXTS.selectbox_default_notification_select] + [
@@ -2996,9 +2996,9 @@ unsafe_allow_html=True)
 
             # Find the index of the previously selected notification (if any) or default to placeholder
             default_index_review = 0 # Default to placeholder
-            if current_selected_review_id:
+            if current_selected_review_id_in_session:
                 for idx, opt_str in enumerate(notification_options_review_display):
-                    if f"#{current_selected_review_id}" in opt_str: # Check if the ID string is in the option
+                    if f"#{current_selected_review_id_in_session}" in opt_str: # Check if the ID string is in the option
                         default_index_review = idx
                         break
 
@@ -3023,7 +3023,7 @@ unsafe_allow_html=True)
                     newly_selected_id = None
 
             # Check if selection has changed AND it's not None (i.e., not just selecting the placeholder again)
-            if newly_selected_id != current_selected_review_id:
+            if newly_selected_id is not None and newly_selected_id != current_selected_review_id_in_session:
                 st.session_state.current_review_classification_id = newly_selected_id
                 # Clear initial classification state if user switches context
                 if 'current_initial_classification_id' in st.session_state: st.session_state.pop(
@@ -3031,22 +3031,35 @@ unsafe_allow_html=True)
                 # Trigger rerun to update the UI with the newly selected notification's details
                 st.rerun()
 
-            # --- Populate notification_review based on persisted ID in session state ---
+            # --- IMPORTANT: Retrieve notification_review and current_review_data from session state ---
             notification_review = None
             if st.session_state.get('current_review_classification_id'):
+                # Only try to fetch if an ID is actually present in session state
+                notification_review_id_from_session = st.session_state.current_review_classification_id
                 notification_review = next(
-                    (n for n in all_notifications if n.get('id') == st.session_state.current_review_classification_id), None)
-                
-                # Also ensure the form state for this specific notification is initialized if it's a valid notification
-                if notification_review and st.session_state.current_review_classification_id not in st.session_state.review_classification_state:
-                    st.session_state.review_classification_state[st.session_state.current_review_classification_id] = {
-                        'decision': UI_TEXTS.selectbox_default_decisao_revisao,
-                        'rejection_reason_review': '',
-                        'notes': '',
-                    }
-            
-            # --- Get current_review_data based on the (potentially newly set) current_review_classification_id ---
-            current_review_data = st.session_state.review_classification_state.get(st.session_state.get('current_review_classification_id'), {})
+                    (n for n in pending_execution_review if n.get('id') == notification_review_id_from_session), None)
+
+                # If the selected notification is no longer in pending_execution_review (e.g., its status changed)
+                # then clear the session state to avoid trying to display a stale notification.
+                if notification_review is None:
+                    st.session_state.pop('current_review_classification_id', None)
+                    st.session_state.review_classification_state.pop(notification_review_id_from_session, None)
+                    st.warning("A notificação anteriormente selecionada não está mais na lista de revisão de execução.")
+                    st.rerun() # Rerun to clean up and avoid further errors.
+
+            # Ensure current_review_data is always linked to the *currently loaded* notification_review
+            current_review_data = st.session_state.review_classification_state.get(
+                notification_review.get('id') if notification_review else None, # Use ID from the actual loaded notification
+                {}
+            )
+            if not current_review_data and notification_review: # If state not found, but notif exists, initialize
+                 current_review_data = {
+                    'decision': UI_TEXTS.selectbox_default_decisao_revisao,
+                    'rejection_reason_review': '',
+                    'notes': '',
+                }
+                 st.session_state.review_classification_state[notification_review['id']] = current_review_data
+
 
             if notification_review is not None:
                 st.markdown(
@@ -3073,13 +3086,13 @@ unsafe_allow_html=True)
                     card_class = "card-prazo-dentro"  # Será verde para "No Prazo" e "Prazo Próximo"
                 elif deadline_status['class'] == "deadline-overdue":
                     card_class = "card-prazo-fora"  # Será vermelho para "Atrasada"
-                st.markdown(f"""
+                st.markdown(f""""
                     <div class="notification-card {card_class}">
                         <h4>#{notification_review.get('id', UI_TEXTS.text_na)} - {notification_review.get('title', UI_TEXTS.text_na)}</h4>
                         <p><strong>Status:</strong> <span class="{status_class}">{notification_review.get('status', UI_TEXTS.text_na).replace('_', ' ').title()}</span></p>
                         <p><strong>Prazo:</strong> {deadline_status['text']}</p>
                     </div>
-                    """, unsafe_allow_html=True)
+                    """", unsafe_allow_html=True)
 
                 st.markdown("#### 📋 Detalhes para Revisão")
                 col_rev1, col_rev2 = st.columns(2)
@@ -3125,7 +3138,7 @@ unsafe_allow_html=True)
                             unsafe_allow_html=True)
                     else:
                         st.write(f"**Prazo de Conclusão:** {UI_TEXTS.deadline_days_nan}")
-                st.markdown("---")
+                st.markdown("---"")
                 st.markdown("#### ⚡ Ações Executadas pelos Responsáveis")
                 if notification_review.get('actions'):
                     for action in sorted(notification_review['actions'], key=lambda x: x.get('timestamp', '')):
@@ -3138,17 +3151,17 @@ unsafe_allow_html=True)
                                     '%d/%m/%Y %H:%M:%S')
                             except ValueError:
                                 pass
-                        st.markdown(f"""
+                        st.markdown(f""""
                                    <strong>{action_type}</strong> - por <strong>{action.get('executor_name', UI_TEXTS.text_na)}</strong> em {action_timestamp}
                                    <br>
                                    <em>{action.get('description', UI_TEXTS.text_na)}</em>
-                                   """, unsafe_allow_html=True)
+                                   """", unsafe_allow_html=True)
                         # Exibir evidências se disponível e for uma ação final
                         if action.get('final_action_by_executor'):
                             evidence_desc = action.get('evidence_description', '').strip()
                             evidence_atts = action.get('evidence_attachments', [])
                             if evidence_desc or evidence_atts:
-                                st.markdown(f"""<div class='evidence-section'>""", unsafe_allow_html=True)
+                                st.markdown(f""""<div class='evidence-section'>"""", unsafe_allow_html=True)
                                 st.markdown("<h6>Evidências da Conclusão:</h6>", unsafe_allow_html=True)
                                 if evidence_desc:
                                     st.info(evidence_desc)
@@ -3169,8 +3182,8 @@ unsafe_allow_html=True)
                                             else:
                                                 st.write(
                                                     f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
-                                st.markdown(f"""</div>""", unsafe_allow_html=True)
-                        st.markdown("---")
+                                st.markdown(f""""</div>"""", unsafe_allow_html=True)
+                        st.markdown("---"")
                 else:
                     st.warning("⚠️ Nenhuma ação foi registrada pelos executores para esta notificação ainda.")
                 users_review = get_users_by_role('executor')
@@ -3210,14 +3223,14 @@ unsafe_allow_html=True)
                                 )
                             else:
                                 st.write(f"Anexo: {original_name_to_use} (arquivo não encontrado ou corrompido)")
-                st.markdown("---")
-                with st.form(key=f"review_decision_form_{notification_id_review_from_session}_refactored", clear_on_submit=False):
+                st.markdown("---"")
+                with st.form(key=f"review_decision_form_{notification_review.get('id')}_refactored", clear_on_submit=False):
                     st.markdown("### 🎯 Decisão de Revisão da Execução")
                     decision_options = [UI_TEXTS.selectbox_default_decisao_revisao, "Aceitar Conclusão",
                                         "Rejeitar Conclusão"]
                     current_review_data['decision'] = st.selectbox(
                         "Decisão:*", options=decision_options,
-                        key=f"review_decision_{notification_id_review_from_session}_refactored",
+                        key=f"review_decision_{notification_review.get('id')}_refactored",
                         index=decision_options.index(
                             current_review_data.get('decision', UI_TEXTS.selectbox_default_decisao_revisao)),
                         help="Selecione 'Aceitar Conclusão' se a execução foi satisfatória ou 'Rejeitar Conclusão' para devolvê-la para correção/revisão.")
@@ -3232,7 +3245,7 @@ unsafe_allow_html=True)
                         current_review_data['rejection_reason_review'] = st.text_area(
                             "Justificativa para Rejeição da Conclusão*",
                             value=current_review_data.get('rejection_reason_review', ''),
-                            key=f"rejection_reason_review_{notification_id_review_from_session}_refactored",
+                            key=f"rejection_reason_review_{notification_review.get('id')}_refactored",
                             help="Descreva os motivos da rejeição e as ações corretivas necessárias.").strip()
                         st.markdown("<span class='required-field'>* Campo obrigatório ao rejeitar</span>",
                                     unsafe_allow_html=True)
@@ -3241,7 +3254,7 @@ unsafe_allow_html=True)
                     current_review_data['notes'] = st.text_area(
                         "Observações da Revisão (opcional)",
                         value=current_review_data.get('notes', ''),
-                        key=f"review_notes_{notification_id_review_from_session}_refactored",
+                        key=f"review_notes_{notification_review.get('id')}_refactored",
                         help="Adicione quaisquer observações relevantes sobre a revisão da execução.").strip()
                     submit_button_review = st.form_submit_button("✔️ Confirmar Decisão",
                                                                  use_container_width=True)
@@ -3407,14 +3420,14 @@ unsafe_allow_html=True)
                         card_class = "card-prazo-dentro"
                     elif deadline_status['class'] == "deadline-overdue":
                         card_class = "card-prazo-fora"
-                    st.markdown(f"""
+                    st.markdown(f""""
                             <div class="notification-card {card_class}">
                                 <h4>#{notification.get('id', UI_TEXTS.text_na)} - {notification.get('title', UI_TEXTS.text_na)}</h4>
                                 <p><strong>Status Final:</strong> <span class="{status_class}">{notification.get('status', UI_TEXTS.text_na).replace('_', ' ').title()}</span></p>
                                 <p><strong>Encerrada por:</strong> {concluded_by} | <strong>Data de Criação:</strong> {created_at_str}</p>
-                                <p><strong>Prazo:</strong> {deadline_status['text']}</p>
+                                <p><strong>Prazo:</strong> {deadline_status['text']} %s </p>
                             </div>
-                            """, unsafe_allow_html=True)
+                            """ % ("" if deadline_status['text'] == UI_TEXTS.deadline_days_nan else f"({deadline_status['text']})"), unsafe_allow_html=True)
                     with st.expander(
                             f"👁️ Visualizar Detalhes - Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
                         display_notification_full_details(notification, st.session_state.user.get('id'),
