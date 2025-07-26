@@ -1580,9 +1580,9 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
         if user_username_logged_in and rej_appr.get('rejected_by') == user_username_logged_in:
             st.markdown(f"""
             <div style='background-color: #ffe6e6; padding: 10px; border-radius: 5px; border-left: 3px solid #f44336;'>
-                <strong>Motivo:</strong> {rej_appr.get('reason', UI_TEXTS.text_na)}
+                <strong>Motivo:** {rej_appr.get('reason', UI_TEXTS.text_na)}
                 <br>
-                <strong>Reprovado por:</strong> VOCÊ ({rej_appr.get('rejected_by', UI_TEXTS.text_na)})
+                <strong>Reprovado por:** VOCÊ ({rej_appr.get('rejected_by', UI_TEXTS.text_na)})
             </div>
             """, unsafe_allow_html=True)
         else:
@@ -1594,9 +1594,9 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
         if user_username_logged_in and rej_exec_review.get('reviewed_by') == user_username_logged_in:
             st.markdown(f"""
             <div style='background-color: #ffe6e6; padding: 10px; border-radius: 5px; border-left: 3px solid #f44336;'>
-                <strong>Motivo:</strong> {rej_exec_review.get('reason', UI_TEXTS.text_na)}
+                <strong>Motivo:** {rej_exec_review.get('reason', UI_TEXTS.text_na)}
                 <br>
-                <strong>Rejeitado por:</strong> VOCÊ ({rej_exec_review.get('reviewed_by', UI_TEXTS.text_na)})
+                <strong>Rejeitado por:** VOCÊ ({rej_exec_review.get('reviewed_by', UI_TEXTS.text_na)})
             </div>
             """, unsafe_allow_html=True)
         else:
@@ -1605,26 +1605,20 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
     if notification.get('attachments'):
         st.markdown("#### 📎 Anexos")
         for attach_info in notification['attachments']:
-            unique_name_to_use = None
-            original_name_to_use = None
-            if isinstance(attach_info, dict) and 'unique_name' in attach_info and 'original_name' in attach_info:
-                unique_name_to_use = attach_info['unique_name']
-                original_name_to_use = attach_info['original_name']
-            elif isinstance(attach_info, str):  # Fallback para compatibilidade antiga
-                unique_name_to_use = attach_info
-                original_name_to_use = attach_info
-            if unique_name_to_use:
-                file_content = get_attachment_data(unique_name_to_use)
+            unique_name = attach_info.get('unique_name')
+            original_name = attach_info.get('original_name')
+            if unique_name and original_name:
+                file_content = get_attachment_data(unique_name)
                 if file_content:
                     st.download_button(
-                        label=f"Baixar {original_name_to_use}",
+                        label=f"Baixar {original_name}",
                         data=file_content,
-                        file_name=original_name_to_use,
+                        file_name=original_name,
                         mime="application/octet-stream",
-                        key=f"download_closed_{notification['id']}_{unique_name_to_use}"
+                        key=f"download_closed_{notification['id']}_{unique_name}"
                     )
                 else:
-                    st.write(f"Anexo: {original_name_to_use} (file não encontrado ou corrompido)")
+                    st.write(f"Anexo: {original_name} (file não encontrado ou corrompido)")
     st.markdown("---")
 
 
@@ -3230,6 +3224,8 @@ def show_classification():
             filtered_closed_notifications = []
             if search_query:
                 for notif in closed_notifications:
+                    if notif is None: # Adicionado: Verificação para garantir que o item não é None
+                        continue
                     if search_query.isdigit() and int(search_query) == notif.get('id'):
                         filtered_closed_notifications.append(notif)
                     elif (search_query in notif.get('title', '').lower() or
@@ -3244,6 +3240,8 @@ def show_classification():
                 filtered_closed_notifications.sort(key=lambda x: x.get('created_at', ''), reverse=True)
                 st.markdown(f"**Notificações Encontradas ({len(filtered_closed_notifications)})**:")
                 for notification in filtered_closed_notifications:
+                    if notification is None: # Adicionado: Verificação para garantir que o item não é None
+                        continue
                     status_class = f"status-{notification.get('status', UI_TEXTS.text_na).replace('_', '-')}"
                     created_at_str = datetime.fromisoformat(notification['created_at']).strftime(
                         '%d/%m/%Y %H:%M:%S')
