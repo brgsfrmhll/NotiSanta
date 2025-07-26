@@ -562,7 +562,7 @@ def init_database():
             CREATE TABLE IF NOT EXISTS notification_attachments (
                 id SERIAL PRIMARY KEY,
                 notification_id INTEGER NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
-                unique_name VARCHAR(255) NOT NULL, -- Nome único do arquivo no disco
+                unique_name VARCHAR(255) NOT NULL, -- Nome único do file no disco
                 original_name VARCHAR(255) NOT NULL, -- Nome original do file
                 uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
@@ -847,7 +847,7 @@ def create_notification(data: Dict, uploaded_files: Optional[List[Any]] = None) 
         # Save initial attachments
         if uploaded_files:
             for file in uploaded_files:
-                # save_uploaded_file_to_disk salva o arquivo no sistema de arquivos
+                # save_uploaded_file_to_disk salva o file no sistema de files
                 saved_file_info = save_uploaded_file_to_disk(file, notification_id)
                 if saved_file_info:
                     # E adiciona o registro na tabela notification_attachments
@@ -880,7 +880,7 @@ def create_notification(data: Dict, uploaded_files: Optional[List[Any]] = None) 
     except psycopg2.Error as e:
         st.error(f"Erro ao criar notificação: {e}")
         if conn:
-            conn.rollback()  # Rollback em caso de erro
+            conn.rollback()  # Rollback em caso de falha grave
         return {}  # Retorna um dicionário vazio em caso de falha grave
     finally:
         if conn:
@@ -1102,7 +1102,7 @@ def add_notification_action(notification_id: int, action_data: Dict, conn=None, 
         if local_conn and not (conn and cur): local_conn.close()
 
 def save_uploaded_file_to_disk(uploaded_file: Any, notification_id: int) -> Optional[Dict]:
-    """Salva um arquivo enviado para o diretório de anexos no disco e retorna suas informações."""
+    """Salva um file enviado para o diretório de anexos no disco e retorna suas informações."""
     if uploaded_file is None:
         return None
     original_name = uploaded_file.name
@@ -1119,7 +1119,7 @@ def save_uploaded_file_to_disk(uploaded_file: Any, notification_id: int) -> Opti
         return None
 
 def get_attachment_data(unique_filename: str) -> Optional[bytes]:
-    """Lê o conteúdo de um arquivo de anexo do disco."""
+    """Lê o conteúdo de um file de anexo do disco."""
     file_path = os.path.join(ATTACHMENTS_DIR, unique_filename)
     try:
         with open(file_path, "rb") as f:
@@ -1543,7 +1543,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
                                         key=f"download_action_evidence_{notification['id']}_{unique_name}"
                                     )
                                 else:
-                                    st.write(f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
+                                    st.write(f"Anexo: {original_name} (file não encontrado ou corrompido)")
                     st.markdown(f"""</div>""", unsafe_allow_html=True)
             st.markdown("---")
     if notification.get('review_execution'):
@@ -1564,7 +1564,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
                 <br>
                 <strong>Aprovado por:</strong> VOCÊ ({approval_info.get('approved_by', UI_TEXTS.text_na)})
                 <br>
-                <strong>Observações:** {approval_info.get('notes', UI_TEXTS.text_na)}
+                <strong>Observações:</strong> {approval_info.get('notes', UI_TEXTS.text_na)}
             </div>
             """, unsafe_allow_html=True)
         else:
@@ -1626,7 +1626,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
                         key=f"download_closed_{notification['id']}_{unique_name_to_use}"
                     )
                 else:
-                    st.write(f"Anexo: {original_name_to_use} (arquivo não encontrado ou corrompido)")
+                    st.write(f"Anexo: {original_name_to_use} (file não encontrado ou corrompido)")
     st.markdown("---")
 
 
@@ -1715,7 +1715,7 @@ def show_create_notification():
                 help="Turno em que o evento ocorreu", key="create_event_shift_state_refactored")
             current_data['description'] = st.text_area(
                 "Descrição Detalhada do Evento*", value=current_data['description'],
-                placeholder="Descreva:\n• O que aconteceu?\n• Quando aconteceu?\n• Onde aconteceu?\n• Quem esteve envolvido?\n• Como aconteceu?\n• Consequências observadas",
+                placeholder="Descreva:\\n• O que aconteceu?\\n• Quando aconteceu?\\n• Onde aconteceu?\\n• Quem esteve envolvido?\\n• Como aconteceu?\\n• Consequências observadas",
                 height=150,
                 key="create_description_state_refactored")
             st.markdown("<span class='required-field'>* Campos obrigatórios</span>", unsafe_allow_html=True)
@@ -1745,7 +1745,7 @@ def show_create_notification():
                 """, unsafe_allow_html=True)
                 current_data['immediate_action_description'] = st.text_area(
                     "Descrição detalhada da ação realizada*", value=current_data['immediate_action_description'],
-                    placeholder="Descreva:\n• Quais ações foram tomadas?\n• Por quem foram executadas?\n• Quando foram realizadas?\n• Resultados obtidos",
+                    placeholder="Descreva:\\n• Quais ações foram tomadas?\\n• Por quem foram executadas?\\n• Quando foram realizadas?\\n• Resultados obtidos",
                     height=150,
                     key="create_immediate_action_desc_state_refactored",
                     help="Forneça um relato completo...")
@@ -1834,13 +1834,13 @@ unsafe_allow_html=True)
             st.markdown("---")
             st.markdown("###    Documentos e Evidências")
             uploaded_files_list_widget = st.file_uploader(
-                "Anexar arquivos relacionados ao evento (Opcional)", type=None, accept_multiple_files=True,
+                "Anexar files relacionados ao evento (Opcional)", type=None, accept_multiple_files=True,
                 help="Anexe fotos, documentos...", key="create_attachments_refactored")
 
             current_data['attachments'] = st.session_state.get('create_attachments_refactored', [])
             if current_data.get('attachments'):
                 st.info(
-                    f"   {len(current_data['attachments'])} arquivo(s) selecionado(s): {', '.join([f.name for f in current_data['attachments']])}")
+                    f"   {len(current_data['attachments'])} file(s) selecionado(s): {', '.join([f.name for f in current_data['attachments']])}")
 
             st.markdown("---")
 
@@ -2005,9 +2005,9 @@ unsafe_allow_html=True)
                                         'additional_notes', UI_TEXTS.text_na))
                                 if uploaded_files_list:
                                     st.write(
-                                        f"**Anexos:** {len(uploaded_files_list)} arquivo(s) - {', '.join([f.name for f in uploaded_files_list])}")
+                                        f"**Anexos:** {len(uploaded_files_list)} file(s) selecionado(s): {', '.join([f.name for f in uploaded_files_list])}")
                                 else:
-                                    st.write("**Anexos:** Nenhum arquivo anexado.")
+                                    st.write("**Anexos:** Nenhum file anexado.")
                             st.session_state.form_step = 5  # Muda para a etapa 5
                             st.rerun() # CORREÇÃO: Força o re-render
                         except Exception as e:
@@ -2175,7 +2175,7 @@ def show_classification():
                         expanded=False):
                     col1, col2 = st.columns(2)
                     with col1:
-                        st.markdown("**📝 Informações Básicas**")
+                        st.markdown("**📝 Evento Reportado Original**")
                         st.write(f"**Título:** {notification_initial.get('title', UI_TEXTS.text_na)}")
                         st.write(f"**Local:** {notification_initial.get('location', UI_TEXTS.text_na)}")
                         occurrence_datetime_summary = format_date_time_summary(
@@ -2237,7 +2237,7 @@ def show_classification():
                                         key=f"download_init_{notification_initial['id']}_{unique_name_to_use}"
                                     )
                                 else:
-                                    st.write(f"Anexo: {original_name_to_use} (arquivo não encontrado ou corrompido)")
+                                    st.write(f"Anexo: {original_name_to_use} (file não encontrado ou corrompido)")
                 st.markdown("---")
                 # --- Renderiza a etapa atual do formulário de classificação inicial ---
                 if current_step == 1:
@@ -2376,7 +2376,7 @@ def show_classification():
                             ]
                             current_data['tipo_evento_sub_texto_livre'] = ""
                         elif current_data.get('tipo_evento_principal_selecionado') in ["Queixa técnica", "Outros"]:
-                            label_text = f"Especifique o tipo '{current_data['tipo_evento_principal_selecionado']}'*" if \
+                            label_text = f"Especifique o tipo '{current_data['tipo_evento_principal_selecionado']}'*" if \\
                                 current_data[
                                     'tipo_evento_principal_selecionado'] == "Outros" else f"Especifique o tipo '{current_data['tipo_evento_principal_selecionado']}':"
                             current_data['tipo_evento_sub_texto_livre'] = st.text_input(
@@ -2436,8 +2436,8 @@ def show_classification():
                              """, unsafe_allow_html=True)
                         # --- Resumo da Notificação Original ---
                         st.markdown("#### 📝 Resumo da Notificação Original")
-                        st.write(f"**Título Original:** {notification_initial.get('title', UI_TEXTS.text_na)}")
-                        st.write(f"**Local Original:** {notification_initial.get('location', UI_TEXTS.text_na)}")
+                        st.write(f"**Título:** {notification_initial.get('title', UI_TEXTS.text_na)}")
+                        st.write(f"**Local:** {notification_initial.get('location', UI_TEXTS.text_na)}")
                         original_occurrence_datetime_summary = format_date_time_summary(
                             notification_initial.get('occurrence_date'), notification_initial.get('occurrence_time'))
                         st.write(f"**Data/Hora Original:** {original_occurrence_datetime_summary}")
@@ -2480,8 +2480,8 @@ def show_classification():
                                 'notified_department_complement')
                         notified_dept_options_classif = [UI_TEXTS.selectbox_default_department_select] + FORM_DATA.SETORES
                         current_data['temp_notified_department'] = st.selectbox(
-                            "Setor Notificado:*",
-                            options=notified_dept_options_classif,
+                            "Setor Notificado*",
+                            options=notified_dept_options_classif, # <-- ALTERADO
                             index=notified_dept_options_classif.index(
                                 initial_notified_department) if initial_notified_department in notified_dept_options_classif else 0,
                             key=f"classifier_notified_dept_{notification_id_initial}_refactored",
@@ -2618,7 +2618,7 @@ def show_classification():
                             validation_errors = []
                             if current_step == 1:
                                 if current_data.get('procede') != 'Sim': validation_errors.append(
-                                    'Etapa 1: Para avançar, a notificação deve proceder (selecione \'Sim\').')
+                                    'Etapa 1: Para avançar, a notificação deve proceder (selecione \\'Sim\\').')
                             elif current_step == 2:
                                 if current_data.get(
                                         'classificacao_nnc') == UI_TEXTS.selectbox_default_classificacao_nnc: validation_errors.append(
@@ -2657,7 +2657,7 @@ def show_classification():
                             ### FIM DA CORREÇÃO
                             elif current_step == 5:
                                 if not current_data.get('classificacao_oms_selecionada'): validation_errors.append(
-                                    "Etapa 5: Classificação OMS é obrigatória (selecione ao menos um item).")
+                                    "Etapa 5: Classificação OMS é obrigatória (selecionar ao menos um item).")
                             if validation_errors:
                                 st.error("⚠️ **Por favor, corrija os seguintes erros para avançar:**")
                                 for error in validation_errors: st.warning(error)
@@ -2666,8 +2666,7 @@ def show_classification():
                                 st.session_state.initial_classification_state[
                                     notification_id_initial] = current_classification_state
                                 st.rerun() # CORREÇÃO: Força o re-render
-                    is_final_classification_submit_step_initial = current_step == 7 and current_data.get(
-                        'procede') == 'Sim'
+                    is_final_classification_submit_step_initial = current_step == 7 and current_data.get('procede') == 'Sim'
                     is_rejection_submit_step_initial = current_step == 1 and current_data.get('procede') == 'Não'
                     if is_final_classification_submit_step_initial or is_rejection_submit_step_initial:
                         with st.form(
@@ -2721,7 +2720,7 @@ def show_classification():
                                     if not current_data.get('classificacao_oms_selecionada'): validation_errors.append(
                                         "Etapa 5: Classificação OMS é obrigatória (selecione ao menos um item).")
                                     # Validação do Setor Notificado Ajustado
-                                    if not current_data.get('temp_notified_department') or \
+                                    if not current_data.get('temp_notified_department') or \\
                                        current_data['temp_notified_department'] == UI_TEXTS.selectbox_default_department_select:
                                         validation_errors.append("Etapa 7: É obrigatório definir o Setor Notificado.")
                                     if not current_data.get('executores_selecionados'): validation_errors.append(
@@ -2871,7 +2870,7 @@ def show_classification():
                                         st.success(
                                             f"✅ Notificação #{notification_id_initial} classificada e atribuída com sucesso!")
                                         st.info(
-                                            "A notificação foi movida para a fase de execução e atribuída aos responsáveis.")
+                                            "Você será redirecionado para a lista atualizada de notificações pendentes.")
                                     st.session_state.initial_classification_state.pop(notification_id_initial,
                                                                                       None)
                                     st.session_state.pop('classification_active_notification_id', None) # Limpa a seleção ativa
@@ -2981,7 +2980,10 @@ def show_classification():
                     card_class = "card-prazo-dentro"  # Será verde para "No Prazo" e "Prazo Próximo"
                 elif deadline_status['class'] == "deadline-overdue":
                     card_class = "card-prazo-fora"  # Será vermelho para "Atrasada"
-                # Renderizar o card com o estilo apropriado
+                
+                # ADIÇÃO: Definição de status_class aqui
+                status_class = f"status-{notification_review.get('status', UI_TEXTS.text_na).replace('_', '-')}"
+
                 st.markdown(f"""
                     <div class="notification-card {card_class}">
                         <h4>#{notification_review.get('id', UI_TEXTS.text_na)} - {notification_review.get('title', UI_TEXTS.text_na)}</h4>
@@ -2998,8 +3000,7 @@ def show_classification():
                     occurrence_datetime_summary = format_date_time_summary(notification_review.get('occurrence_date'),
                                                                            notification_review.get('occurrence_time'))
                     st.write(f"**Data/Hora Ocorrência:** {occurrence_datetime_summary}")
-                    st.write(
-                        f"**Setor Notificante:** {notification_review.get('reporting_department', UI_TEXTS.text_na)}")
+                    st.write(f"**Setor Notificante:** {notification_review.get('reporting_department', UI_TEXTS.text_na)}")
                     if notification_review.get('immediate_actions_taken') and notification_review.get(
                             'immediate_action_description'):
                         st.info(
@@ -3076,7 +3077,7 @@ def show_classification():
                                                 )
                                             else:
                                                 st.write(
-                                                    f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
+                                                    f"Anexo: {original_name} (file não encontrado ou corrompido)")
                                 st.markdown(f"""</div>""", unsafe_allow_html=True)
                         st.markdown("---")
                 else:
@@ -3117,7 +3118,7 @@ def show_classification():
                                     key=f"download_review_{notification_review['id']}_{unique_name_to_use}"
                                 )
                             else:
-                                st.write(f"Anexo: {original_name_to_use} (arquivo não encontrado ou corrompido)")
+                                st.write(f"Anexo: {original_name_to_use} (file não encontrado ou corrompido)")
                 st.markdown("---")
                 with st.form(key=f"review_decision_form_{notification_id_review}_refactored", clear_on_submit=False):
                     st.markdown("### 🎯 Decisão de Revisão da Execução")
@@ -3128,7 +3129,8 @@ def show_classification():
                         key=f"review_decision_{notification_id_review}_refactored",
                         index=decision_options.index(
                             current_review_data.get('decision', UI_TEXTS.selectbox_default_decisao_revisao)),
-                        help="Selecione 'Aceitar Conclusão' se a execução foi satisfatória ou 'Rejeitar Conclusão' para devolvê-la para correção/revisão.")
+                        help="Selecione 'Aceitar Conclusão' se a execução foi satisfatória ou 'Rejeitar Conclusão' para devolvê-la para correção/revisão."
+                    )
                     st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
                     if current_review_data['decision'] == "Rejeitar Conclusão":
                         st.markdown("""
@@ -3313,14 +3315,13 @@ def show_classification():
                                 <h4>#{notification.get('id', UI_TEXTS.text_na)} - {notification.get('title', UI_TEXTS.text_na)}</h4>
                                 <p><strong>Status Final:</strong> <span class="{status_class}">{notification.get('status', UI_TEXTS.text_na).replace('_', ' ').title()}</span></p>
                                 <p><strong>Encerrada por:</strong> {concluded_by} | <strong>Data de Criação:</strong> {created_at_str}</p>
-                                <p><strong>Prazo:</strong> {deadline_status['text']}</p>
+                                <p><strong>Prazo:</strong> {deadline_status['text']} (class={deadline_status['class']})</p>
                             </div>
                             """, unsafe_allow_html=True)
                     with st.expander(
                             f"👁️ Visualizar Detalhes - Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
                         display_notification_full_details(notification, st.session_state.user.get('id'),
                                                           st.session_state.user.get('username'))
-
 @st_fragment
 def show_execution():
     """Renderiza a página para executores visualizarem notificações atribuídas e registrarem ações."""
@@ -3460,7 +3461,7 @@ def show_execution():
                                                 )
                                             else:
                                                 st.write(
-                                                    f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
+                                                    f"Anexo: {original_name} (file não encontrado ou corrompido)")
                                 st.markdown(f"""</div>""", unsafe_allow_html=True)
                         st.markdown("---")
             # FIM DO NOVO CARD DE HISTÓRICO DE AÇÕES
@@ -3497,7 +3498,7 @@ def show_execution():
                         "Descrição detalhada da ação realizada*",
                         value=st.session_state.get(
                             f"exec_action_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored", ""),
-                        placeholder="Descreva:\n• O QUÊ foi feito?\n• POR QUÊ foi feito (qual o objetivo)?\n• ONDE foi realizado?\n• QUANDO foi realizado (data/hora)?\n• QUEM executou (se aplicável)?\n• COMO foi executado (passos, métodos)?\n• QUANTO CUSTOU (recursos, tempo)?\n• QUÃO FREQUENTE (se for uma ação contínua)?",
+                        placeholder="Descreva:\\n• O QUÊ foi feito?\\n• POR QUÊ foi feito (qual o objetivo)?\\n• ONDE foi realizado?\\n• QUANDO foi realizado (data/hora)?\\n• QUEM executou (se aplicável)?\\n• COMO foi executado (passos, métodos)?\\n• QUANTO CUSTOU (recursos, tempo)?\\n• QUÃO FREQUENTE (se for uma ação contínua)?",
                         height=180,
                         key=f"exec_action_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored"
                     ).strip()
@@ -3519,7 +3520,7 @@ def show_execution():
                             key=f"exec_evidence_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored"
                         ).strip()
                         uploaded_evidence_files = st.file_uploader(
-                            "Anexar arquivos de Evidência (Opcional)", type=None, accept_multiple_files=True,
+                            "Anexar files de Evidência (Opcional)", type=None, accept_multiple_files=True,
                             key=f"exec_evidence_attachments_{notification.get('id', UI_TEXTS.text_na)}_refactored"
                         )
                     submit_button = st.form_submit_button("✔️ Confirmar Ação",
@@ -3632,7 +3633,7 @@ def show_execution():
                                                 f"Aguardando conclusão dos seguintes executores: {', '.join(remaining_executors_names) or 'Nenhum'}.")
                                         elif all_executors_concluded:
                                             st.info(
-                                                f"Todos os executores concluíram suas partes. A notificação foi enviada para revisão final pelo classificador.\n\nEvidência da tratativa:\n{evidence_description_state}\n\nAnexos: {len(saved_evidence_attachments) if saved_evidence_attachments else 0}")
+                                                f"Todos os executores concluíram suas partes. A notificação foi enviada para revisão final pelo classificador.\\n\\nEvidência da tratativa:\\n{evidence_description_state}\\n\\nAnexos: {len(saved_evidence_attachments) if saved_evidence_attachments else 0}")
                                     _clear_execution_form_state(notification['id'])
                                     st.rerun() # CORREÇÃO: Força o re-render
                 with st.expander("👥 Adicionar Executor Adicional"):
@@ -3747,12 +3748,13 @@ def show_execution():
                                 <h4>#{notification.get('id', UI_TEXTS.text_na)} - {notification.get('title', UI_TEXTS.text_na)}</h4>
                                 <p><strong>Status Final:</strong> <span class="{status_class}">{notification.get('status', UI_TEXTS.text_na).replace('_', ' ').title()}</span></p>
                                 <p><strong>Encerrada por:</strong> {concluded_by} | <strong>Data de Criação:</strong> {created_at_str}</p>
-                                <p><strong>Prazo:</strong> {deadline_status['text']}</p>
+                                <p><strong>Prazo:</strong> {deadline_status['text']} (class={deadline_status['class']})</p>
                             </div>
                             """, unsafe_allow_html=True)
                     with st.expander(
                             f"  ️ Visualizar Detalhes - Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
                         display_notification_full_details(notification, user_id_logged_in, user_username_logged_in)
+
 @st_fragment
 def show_approval():
     """Renderiza a página para aprovadores revisarem e aprovarem/rejeitarem notificações."""
@@ -3939,7 +3941,7 @@ def show_approval():
                                                     key=f"download_action_evidence_approval_{notification['id']}_{unique_name}"
                                                 )
                                             else:
-                                                st.write(f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
+                                                st.write(f"Anexo: {original_name} (file não encontrado ou corrompido)")
                                 st.markdown(f"""</div>""", unsafe_allow_html=True)
                         st.markdown("---")
                 else:
@@ -4001,7 +4003,7 @@ def show_approval():
                                     key=f"download_approval_{notification['id']}_{unique_name_to_use}"
                                 )
                             else:
-                                st.write(f"Anexo: {original_name_to_use} (arquivo não encontrado ou corrompido)")
+                                st.write(f"Anexo: {original_name_to_use} (file não encontrado ou corrompido)")
                 st.markdown("---")
                 # NOVO: Inicializa ou recupera o estado do formulário de aprovação para esta notificação específica
                 if 'approval_form_state' not in st.session_state:
@@ -4029,7 +4031,7 @@ def show_approval():
                     approval_notes_input = st.text_area(
                         "Observações da Aprovação/Reprovação:*",
                         value=current_approval_data.get('notes', ''),
-                        placeholder="• Avalie a completude e eficácia das ações executadas e a revisão do classificador...\n• Indique se as ações foram satisfatórias para mitigar o risco ou resolver o evento.\n• Forneça recomendações adicionais, se necessário.\n• Em caso de reprovação, explique claramente o motivo e o que precisa ser revisado ou corrigido pelo classificador.",
+                        placeholder="• Avalie a completude e eficácia das ações executadas e a revisão do classificador...\\n• Indique se as ações foram satisfatórias para mitigar o risco ou resolver o evento.\\n• Forneça recomendações adicionais, se necessário.\\n• Em caso de reprovação, explique claramente o motivo e o que precisa ser revisado ou corrigido pelo classificador.",
                         height=120, key=f"approval_notes_{notification.get('id', UI_TEXTS.text_na)}_refactored",
                         help="Forneça sua avaliação sobre as ações executadas, a revisão do classificador, e a decisão final.").strip()
                     current_approval_data['notes'] = approval_notes_input  # Atualiza o estado com o valor do text_area
@@ -4145,31 +4147,19 @@ def show_approval():
                     created_at_str = datetime.fromisoformat(notification['created_at']).strftime(
                         '%d/%m/%Y %H:%M:%S')
                     concluded_by = UI_TEXTS.text_na
-                    if notification.get('conclusion') and notification['conclusion'].get(
-                            'concluded_by'):
+                    if notification.get('conclusion') and notification['conclusion'].get('concluded_by'):
                         concluded_by = notification['conclusion']['concluded_by']
-                    elif notification.get('approval') and (notification.get('approval') or {}).get(
-                            'approved_by'):
+                    elif notification.get('approval') and (notification.get('approval') or {}).get('approved_by'):
                         concluded_by = (notification.get('approval') or {}).get('approved_by')
                     elif notification.get('rejection_classification') and (
-                            notification.get('rejection_classification') or {}).get(
-                        'classified_by'):
-                        concluded_by = (notification.get('rejection_classification') or {}).get(
-                            'classified_by')
-                    elif notification.get('rejection_approval') and (
-                            notification.get('rejection_approval') or {}).get(
-                        'rejected_by'):
-                        concluded_by = (notification.get('rejection_approval') or {}).get(
-                            'rejected_by')
-                    # Determinar o status do prazo para notificações encerradas
-                    classif_info = notification.get('classification', {})
-                    deadline_date_str = classif_info.get('deadline_date')
-                    # Acessa 'timestamp' de 'conclusion' de forma segura
-                    concluded_timestamp_str = (notification.get('conclusion') or {}).get(
-                        'timestamp')
-                    # Verificar se a conclusão foi dentro ou fora do prazo
-                    deadline_status = get_deadline_status(deadline_date_str,
-                                                          concluded_timestamp_str)
+                            notification.get('rejection_classification') or {}).get('classified_by'):
+                        concluded_by = (notification.get('rejection_classification') or {}).get('classified_by')
+                    elif notification.get('rejection_approval') and (notification.get('rejection_approval') or {}).get(
+                            'rejected_by'):
+                        concluded_by = (notification.get('rejection_approval') or {}).get('rejected_by')
+                    deadline_info = notification.get('classification', {}).get('deadline_date')
+                    concluded_timestamp_str = (notification.get('conclusion') or {}).get('timestamp')
+                    deadline_status = get_deadline_status(deadline_info, concluded_timestamp_str)
                     card_class = ""
                     if deadline_status['class'] == "deadline-ontrack" or deadline_status[
                         'class'] == "deadline-duesoon":
@@ -4181,7 +4171,7 @@ def show_approval():
                                             <h4>#{notification.get('id', UI_TEXTS.text_na)} - {notification.get('title', UI_TEXTS.text_na)}</h4>
                                             <p><strong>Status Final:</strong> <span class="{status_class}">{notification.get('status', UI_TEXTS.text_na).replace('_', ' ').title()}</span></p>
                                             <p><strong>Encerrada por:</strong> {concluded_by} | <strong>Data de Criação:</strong> {created_at_str}</p>
-                                            <p><strong>Prazo:</strong> {deadline_status['text']}</p>
+                                            <p><strong>Prazo:</strong> {deadline_status['text']} (class={deadline_status['class']})</p>
                                         </div>
                                         """, unsafe_allow_html=True)
                     with st.expander(
@@ -4286,7 +4276,7 @@ def show_admin():
                                      'name': name_state,
                                      'email': email_state, 'roles': roles_to_save}
                         if create_user(user_data):
-                            st.success(f"✅ Usuário '{name_state}' criado com sucesso!\n\n")
+                            st.success(f"✅ Usuário '{name_state}' criado com sucesso!\\n\\n")
                             st.rerun()
                         else:
                             st.error("❌ Nome de usuário já existe. Por favor, escolha outro.")
@@ -4700,7 +4690,7 @@ def show_admin():
                                         f"SELECT setval('notifications_id_seq', (SELECT MAX(id) FROM notifications));")
                                     conn.commit()
                                     st.success(
-                                        "✅ Dados restaurados com sucesso a partir do arquivo!\n\n")
+                                        "✅ Dados restaurados com sucesso a partir do file!\\n\\n")
                                     st.info(
                                         "A página será recarregada para refletir os dados restaurados.")
                                     st.session_state.pop('admin_restore_file_uploader', None)
@@ -5351,7 +5341,7 @@ def show_dashboard():
                 if not completed_main_type.empty:
                     st.bar_chart(completed_main_type)
                 else:
-                    st.info("Nenhum tipo principal para notificações concluídas no período.")
+                    st.info("Nenhuma tipo principal para notificações concluídas no período.")
             else:
                 st.info("Nenhuma notificação concluída no período.")
         with col_classif4:
