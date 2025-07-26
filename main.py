@@ -2249,7 +2249,7 @@ def show_classification():
 
             if notification_initial:
                 st.markdown(
-                    f"### Notificação Selecionada para Classificação Inicial: #{notification_initial.get('id', UI_TEXTS.text_na)}")
+                    f"### Notificação Selecionada para Classificação Inicial: #{notification_initial.get('id', UI_TEXTS.text_na)}"")
                 with st.expander(
                         f"📄 Detalhes Reportados Originalmente (Notificação #{notification_initial.get('id', UI_TEXTS.text_na)})",
                         expanded=False):
@@ -2706,6 +2706,7 @@ unsafe_allow_html=True)
                                      use_container_width=True):
                             validation_errors = []
                             if current_step == 1:
+                                # CORREÇÃO DE SINTAXE: ' -> " no f-string
                                 if current_data.get('procede') != 'Sim': validation_errors.append(
                                     "Etapa 1: Para avançar, a notificação deve proceder (selecione 'Sim').")
                             elif current_step == 2:
@@ -2983,15 +2984,15 @@ unsafe_allow_html=True)
         else:
             st.markdown("#### 📋 Selecionar Notificação para Revisão")
             
-            # Get the currently selected ID from session state, if any
-            current_selected_review_id_in_session = st.session_state.get('current_review_classification_id')
-            
             # Prepare options for the selectbox, including the placeholder
             notification_options_review_display = [UI_TEXTS.selectbox_default_notification_select] + [
                 f"#{n['id']} | Classificada em: {n.get('classification', {}).get('classification_timestamp', UI_TEXTS.text_na)[:10]} | {n.get('title', 'Sem título')[:60]}..."
                 for n in pending_execution_review
             ]
 
+            # Get the currently selected ID from session state, if any, to set the default index
+            current_selected_review_id_in_session = st.session_state.get('current_review_classification_id')
+            
             # Find the index of the previously selected notification (if any) or default to placeholder
             default_index_review = 0 # Default to placeholder
             if current_selected_review_id_in_session:
@@ -3020,43 +3021,37 @@ unsafe_allow_html=True)
                     st.error("Erro ao processar a seleção da notificação para revisão.")
                     newly_selected_id = None
 
-            # Check if selection has changed AND it's not None (i.e., not just selecting the placeholder again)
-            if newly_selected_id is not None and newly_selected_id != current_selected_review_id_in_session:
+            # Logic to update session_state and trigger rerun if selection changes
+            if newly_selected_id is not None and newly_selected_id != st.session_state.get('current_review_classification_id'):
                 st.session_state.current_review_classification_id = newly_selected_id
                 # Clear initial classification state if user switches context
                 if 'current_initial_classification_id' in st.session_state: st.session_state.pop(
                     'current_initial_classification_id')
-                # Trigger rerun to update the UI with the newly selected notification's details
                 st.rerun()
 
-            # --- IMPORTANT: Retrieve notification_review and current_review_data from session state ---
+            # --- Retrieve notification_review and current_review_data based on persisted ID ---
             notification_review = None
             if st.session_state.get('current_review_classification_id'):
-                # Only try to fetch if an ID is actually present in session state
+                # Fetch the notification from the list of pending ones
                 notification_review_id_from_session = st.session_state.current_review_classification_id
                 notification_review = next(
                     (n for n in pending_execution_review if n.get('id') == notification_review_id_from_session), None)
                 
-                # Also check if it's in the closed_notifications list, in case status changed
-                if notification_review is None:
-                    notification_review = next(
-                        (n for n in closed_notifications if n.get('id') == notification_review_id_from_session), None)
-
-                # If the selected notification is no longer in pending_execution_review or closed_notifications (e.g., status changed to something else)
-                # then clear the session state to avoid trying to display a stale notification.
+                # If notification_review is None here, it means its status changed and it's no longer pending_execution_review.
+                # In this case, clear the selection and rerun to update the UI.
                 if notification_review is None:
                     st.session_state.pop('current_review_classification_id', None)
+                    # Also clear its specific form data from session_state
                     st.session_state.review_classification_state.pop(notification_review_id_from_session, None)
-                    # No warning here, as it might have been legitimately moved out of both lists (e.g., rejected)
-                    # and the rerun below will clean up the display.
-                    st.rerun() # Rerun to clean up and avoid further errors.
+                    st.rerun() # Clear selection and update UI
 
-            # Ensure current_review_data is always linked to the *currently loaded* notification_review
+            # Initialize or retrieve the form data for the currently displayed notification
             current_review_data = st.session_state.review_classification_state.get(
                 notification_review.get('id') if notification_review else None, # Use ID from the actual loaded notification
-                {}
+                {} # Default to empty dict if no notification or state for it
             )
-            if notification_review and not current_review_data: # If state not found, but notif exists, initialize
+            # If notification_review is valid but its state isn't initialized yet, do it now.
+            if notification_review and not current_review_data:
                  current_review_data = {
                     'decision': UI_TEXTS.selectbox_default_decisao_revisao,
                     'rejection_reason_review': '',
@@ -3067,7 +3062,7 @@ unsafe_allow_html=True)
 
             if notification_review is not None:
                 st.markdown(
-                    f"### Notificação Selecionada para Revisão de Execução: #{notification_review.get('id', UI_TEXTS.text_na)}")
+                    f"### Notificação Selecionada para Revisão de Execução: #{notification_review.get('id', UI_TEXTS.text_na)}"")
 
                 # Obter informações de prazo para o card
                 raw_classification_data = notification_review.get('classification')
@@ -3427,7 +3422,7 @@ unsafe_allow_html=True)
                     st.markdown(f"""
                             <div class="notification-card {card_class}">
                                 <h4>#{notification.get('id', UI_TEXTS.text_na)} - {notification.get('title', UI_TEXTS.text_na)}</h4>
-                                <p><strong>Status Final:</strong> <span class="{status_class}">{notification.get('status', UI_TEXTS.text_na).replace('_', ' ').title()}</span></p>
+                                <p><strong>Status Final:</strong> <span class="status-{notification.get('status', UI_TEXTS.text_na).replace('_', '-')}">{notification.get('status', UI_TEXTS.text_na).replace('_', ' ').title()}</span></p>
                                 <p><strong>Encerrada por:</strong> {concluded_by} | <strong>Data de Criação:</strong> {created_at_str}</p>
                                 <p><strong>Prazo:</strong> {deadline_status['text']}</p>
                             </div>
@@ -3436,7 +3431,6 @@ unsafe_allow_html=True)
                             f"👁️ Visualizar Detalhes - Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
                         display_notification_full_details(notification, st.session_state.user.get('id'),
                                                           st.session_state.user.get('username'))
-
 
 @st_fragment
 def show_approval():
@@ -5175,3 +5169,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
