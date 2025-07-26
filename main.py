@@ -3307,7 +3307,7 @@ def show_classification():
                 if pending_execution_review:
                     st.info(f"👆 Selecione uma notificação da lista acima para revisar a execução concluída.")         
                     with tab_closed_notifs:
-        st.markdown("### Notificações Encerradas")
+                        st.markdown("### Notificações Encerradas")
 
         if not closed_notifications:
             st.info("✅ Não há notificações encerradas no momento.")
