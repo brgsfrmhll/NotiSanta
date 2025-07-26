@@ -2137,7 +2137,6 @@ unsafe_allow_html=True)
                         except Exception as e:
                             st.error(f"❌ Ocorreu um erro ao finalizar a notificação: {e}")
                             st.warning("Por favor, revise as informações e tente enviar novamente.")
-
 @st_fragment
 def show_classification():
     """
@@ -2555,8 +2554,7 @@ unsafe_allow_html=True)
                         st.info(
                             "Você pode ajustar o setor que receberá esta notificação e seu complemento, se necessário.")
 
-                        # Inicializa os valores selecionados com os dados da notificação original ou o que já está no estado temporário
-                        # Prioriza o que está no current_data do state, depois a notificação original
+                        # Inicializa os valores selecionados com o que já está no estado temporário ou a notificação original
                         initial_notified_department = current_data.get('temp_notified_department')
                         if initial_notified_department is None and notification_initial:
                             initial_notified_department = notification_initial.get('notified_department')
@@ -2709,7 +2707,7 @@ unsafe_allow_html=True)
                             validation_errors = []
                             if current_step == 1:
                                 if current_data.get('procede') != 'Sim': validation_errors.append(
-                                    'Etapa 1: Para avançar, a notificação deve proceder (selecione \\'Sim\\').')
+                                    "Etapa 1: Para avançar, a notificação deve proceder (selecione 'Sim').")
                             elif current_step == 2:
                                 if current_data.get(
                                         'classificacao_nnc') == UI_TEXTS.selectbox_default_classificacao_nnc: validation_errors.append(
@@ -2779,7 +2777,7 @@ unsafe_allow_html=True)
                                         "Justificativa de rejeição é obrigatória.")
                                 elif is_final_classification_submit_step_initial:
                                     if current_data.get('procede') != 'Sim': validation_errors.append(
-                                        'Erro interno: Status "procede" inválido para finalização.')
+                                        "Erro interno: Status 'procede' inválido para finalização.")
                                     if current_data.get(
                                             'classificacao_nnc') == UI_TEXTS.selectbox_default_classificacao_nnc: validation_errors.append(
                                         "Etapa 2: Classificação NNC é obrigatória.")
@@ -3058,7 +3056,7 @@ unsafe_allow_html=True)
                 notification_review.get('id') if notification_review else None, # Use ID from the actual loaded notification
                 {}
             )
-            if not current_review_data and notification_review: # If state not found, but notif exists, initialize
+            if notification_review and not current_review_data: # If state not found, but notif exists, initialize
                  current_review_data = {
                     'decision': UI_TEXTS.selectbox_default_decisao_revisao,
                     'rejection_reason_review': '',
@@ -3438,6 +3436,7 @@ unsafe_allow_html=True)
                             f"👁️ Visualizar Detalhes - Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
                         display_notification_full_details(notification, st.session_state.user.get('id'),
                                                           st.session_state.user.get('username'))
+
 
 @st_fragment
 def show_approval():
