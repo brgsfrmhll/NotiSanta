@@ -116,7 +116,7 @@ st.markdown(r"""
         text-transform: uppercase !important; /* Transforma todo o texto em maiúsculas, mantendo a consistência */
         letter-spacing: 1.5px !important; /* Espaçamento entre letras para alinhamento visual */
         margin-top: -30px !important; /* Pull closer to main title */
-        margin-bottom: 5px !important; /* Reduce space below subtitle */
+        margin-bottom: 5px !important; /* Reduce space below image */
     }
     /* Estilo geral para cartões de notificação */
     .notification-card {
@@ -1156,11 +1156,10 @@ def logout_user():
     st.session_state.user = None
     st.session_state.page = 'create_notification'
     _reset_form_state()
+    # Limpa estados específicos da classificação/revisão ao deslogar
     if 'initial_classification_state' in st.session_state: st.session_state.pop('initial_classification_state')
     if 'review_classification_state' in st.session_state: st.session_state.pop('review_classification_state')
-    if 'current_initial_classification_id' in st.session_state: st.session_state.pop(
-        'current_initial_classification_id')
-    if 'current_review_classification_id' in st.session_state: st.session_state.pop('current_review_classification_id')
+    if 'classification_active_notification_id' in st.session_state: st.session_state.pop('classification_active_notification_id')
     # Limpa o estado do formulário de aprovação também
     if 'approval_form_state' in st.session_state: st.session_state.pop('approval_form_state')
 
@@ -1353,76 +1352,61 @@ def show_sidebar():
             if st.button("📝 Nova Notificação", key="nav_create_notif", use_container_width=True):
                 st.session_state.page = 'create_notification'
                 _reset_form_state()
-                if 'initial_classification_state' in st.session_state: st.session_state.pop(
-                    'initial_classification_state')
-                if 'review_classification_state' in st.session_state: st.session_state.pop(
-                    'review_classification_state')
-                if 'current_initial_classification_id' in st.session_state: st.session_state.pop(
-                    'current_initial_classification_id')
-                if 'current_review_classification_id' in st.session_state: st.session_state.pop(
-                    'current_review_classification_id')
+                # Limpa estados de classificação ao sair dela
+                if 'initial_classification_state' in st.session_state: st.session_state.pop('initial_classification_state')
+                if 'review_classification_state' in st.session_state: st.session_state.pop('review_classification_state')
+                if 'classification_active_notification_id' in st.session_state: st.session_state.pop('classification_active_notification_id')
                 if 'approval_form_state' in st.session_state: st.session_state.pop('approval_form_state')
                 st.rerun()
             if 'classificador' in user_roles or 'admin' in user_roles:  # Adicione esta linha de verificação
                 if st.button("📊 Dashboard de Notificações", key="nav_dashboard", use_container_width=True):
                     st.session_state.page = 'dashboard'
                     _reset_form_state()
+                    # Limpa estados de classificação ao sair dela
+                    if 'initial_classification_state' in st.session_state: st.session_state.pop('initial_classification_state')
+                    if 'review_classification_state' in st.session_state: st.session_state.pop('review_classification_state')
+                    if 'classification_active_notification_id' in st.session_state: st.session_state.pop('classification_active_notification_id')
+                    if 'approval_form_state' in st.session_state: st.session_state.pop('approval_form_state')
                     st.rerun()
             if 'classificador' in user_roles or 'admin' in user_roles:
                 if st.button("🔍 Classificação/Revisão", key="nav_classification",
                              use_container_width=True):
                     st.session_state.page = 'classification'
                     _reset_form_state()
-                    if 'initial_classification_state' in st.session_state: st.session_state.pop(
-                        'initial_classification_state')
-                    if 'review_classification_state' in st.session_state: st.session_state.pop(
-                        'review_classification_state')
-                    if 'current_initial_classification_id' in st.session_state: st.session_state.pop(
-                        'current_initial_classification_id')
-                    if 'current_review_classification_id' in st.session_state: st.session_state.pop(
-                        'current_review_classification_id')
-                    if 'approval_form_state' in st.session_state: st.session_state.pop('approval_form_state')
+                    # A navegação para a própria página de classificação não limpa estados internos de classificação
+                    # st.session_state.pop('initial_classification_state')
+                    # st.session_state.pop('review_classification_state')
+                    # st.session_state.pop('classification_active_notification_id')
+                    # st.session_state.pop('approval_form_state') # Should already be cleared by _reset_form_state()
                     st.rerun()
             if 'executor' in user_roles or 'admin' in user_roles:
                 if st.button("⚡ Execução", key="nav_execution", use_container_width=True):
                     st.session_state.page = 'execution'
                     _reset_form_state()
-                    if 'initial_classification_state' in st.session_state: st.session_state.pop(
-                        'initial_classification_state')
-                    if 'review_classification_state' in st.session_state: st.session_state.pop(
-                        'review_classification_state')
-                    if 'current_initial_classification_id' in st.session_state: st.session_state.pop(
-                        'current_initial_classification_id')
-                    if 'current_review_classification_id' in st.session_state: st.session_state.pop(
-                        'current_review_classification_id')
+                    # Limpa estados de classificação ao sair dela
+                    if 'initial_classification_state' in st.session_state: st.session_state.pop('initial_classification_state')
+                    if 'review_classification_state' in st.session_state: st.session_state.pop('review_classification_state')
+                    if 'classification_active_notification_id' in st.session_state: st.session_state.pop('classification_active_notification_id')
                     if 'approval_form_state' in st.session_state: st.session_state.pop('approval_form_state')
                     st.rerun()
             if 'aprovador' in user_roles or 'admin' in user_roles:
                 if st.button("✅ Aprovação", key="nav_approval", use_container_width=True):
                     st.session_state.page = 'approval'
                     _reset_form_state()
-                    if 'initial_classification_state' in st.session_state: st.session_state.pop(
-                        'initial_classification_state')
-                    if 'review_classification_state' in st.session_state: st.session_state.pop(
-                        'review_classification_state')
-                    if 'current_initial_classification_id' in st.session_state: st.session_state.pop(
-                        'current_initial_classification_id')
-                    if 'current_review_classification_id' in st.session_state: st.session_state.pop(
-                        'current_review_classification_id')
+                    # Limpa estados de classificação ao sair dela
+                    if 'initial_classification_state' in st.session_state: st.session_state.pop('initial_classification_state')
+                    if 'review_classification_state' in st.session_state: st.session_state.pop('review_classification_state')
+                    if 'classification_active_notification_id' in st.session_state: st.session_state.pop('classification_active_notification_id')
                     if 'approval_form_state' in st.session_state: st.session_state.pop('approval_form_state')
                     st.rerun()
             if 'admin' in user_roles:
                 if st.button("⚙️ Administração", key="nav_admin", use_container_width=True):
                     st.session_state.page = 'admin'
                     _reset_form_state()
-                    if 'initial_classification_state' in st.session_state: st.session_state.pop(
-                        'initial_classification_state')
-                    if 'review_classification_state' in st.session_state: st.session_state.pop(
-                        'review_classification_state')
-                    if 'current_initial_classification_id' in st.session_state: st.session_state.pop(
-                        'current_initial_classification_id')
-                    if 'current_review_classification_id' in st.session_state: st.session_state.pop(
-                        'current_review_classification_id')
+                    # Limpa estados de classificação ao sair dela
+                    if 'initial_classification_state' in st.session_state: st.session_state.pop('initial_classification_state')
+                    if 'review_classification_state' in st.session_state: st.session_state.pop('review_classification_state')
+                    if 'classification_active_notification_id' in st.session_state: st.session_state.pop('classification_active_notification_id')
                     if 'approval_form_state' in st.session_state: st.session_state.pop('approval_form_state')
                     st.rerun()
             st.markdown("---")
@@ -1813,7 +1797,7 @@ def show_create_notification():
                 current_data['patient_id'] = ""
                 current_data['patient_outcome_obito'] = UI_TEXTS.selectbox_default_patient_outcome_obito
         st.markdown("---")
-    elif st.session_state.form_step == 4: # CORREÇÃO: Acessa diretamente
+    elif st.session_state.form_step == 4: # CORREÇÃO: Acessa directamente
         with st.container():
             st.markdown("""
             <div class="form-section">
@@ -2038,7 +2022,6 @@ def show_classification():
     Renders the page for classifiers to perform initial classification of new notifications
     and review the execution of completed actions by responsible parties.
     """
-    # CORREÇÃO: Indentação do bloco if
     if not check_permission('classificador'):
         st.error("❌ Acesso negado! Você não tem permissão para classificar notificações.")
         return
@@ -2061,6 +2044,13 @@ def show_classification():
          f"✅ Notificações Encerradas ({len(closed_notifications)})"]
     )
 
+    # NOVO: Variável para manter a notificação ativa selecionada globalmente na tela de classificação
+    active_notif_id_in_session = st.session_state.get('classification_active_notification_id')
+    active_notification_obj = None
+    if active_notif_id_in_session:
+        active_notification_obj = next((n for n in all_notifications if n['id'] == active_notif_id_in_session), None)
+
+
     with tab_initial_classif:
         st.markdown("### Notificações Aguardando Classificação Inicial")
         if not pending_initial_classification:
@@ -2073,19 +2063,27 @@ def show_classification():
             ]
             pending_initial_ids_str = ",".join(str(n['id']) for n in pending_initial_classification)
             selectbox_key_initial = f"classify_selectbox_initial_{pending_initial_ids_str}"
-            if selectbox_key_initial not in st.session_state or st.session_state[
-                selectbox_key_initial] not in notification_options_initial:
-                previous_selection = st.session_state.get(selectbox_key_initial, notification_options_initial[0])
-                if previous_selection in notification_options_initial:
-                    st.session_state[selectbox_key_initial] = previous_selection
-                else:
-                    st.session_state[selectbox_key_initial] = notification_options_initial[0]
+            
+            # Tenta definir o valor padrão do selectbox para a notificação ativa da sessão, se aplicável
+            default_initial_selection = UI_TEXTS.selectbox_default_notification_select
+            if active_notification_obj and active_notification_obj['id'] in [n['id'] for n in pending_initial_classification]:
+                default_initial_selection = f"#{active_notification_obj['id']} | Criada em: {active_notification_obj.get('created_at', UI_TEXTS.text_na)[:10]} | {active_notification_obj.get('title', 'Sem título')[:60]}..."
+            
+            index_initial_selectbox = 0
+            if default_initial_selection != UI_TEXTS.selectbox_default_notification_select:
+                try:
+                    index_initial_selectbox = notification_options_initial.index(default_initial_selection)
+                except ValueError:
+                    pass # Default to 0 if not found
+
+
             selected_option_initial = st.selectbox(
                 "Escolha uma notificação para analisar e classificar inicial:",
                 options=notification_options_initial,
-                index=notification_options_initial.index(st.session_state[selectbox_key_initial]),
+                index=index_initial_selectbox,
                 key=selectbox_key_initial,
                 help="Selecione na lista a notificação pendente que você deseja classificar.")
+            
             notification_id_initial = None
             notification_initial = None
             if selected_option_initial != UI_TEXTS.selectbox_default_notification_select:
@@ -2094,48 +2092,83 @@ def show_classification():
                     if len(parts) > 1:
                         id_part = parts[1].split(' |')[0]
                         notification_id_initial = int(id_part)
-                        notification_initial = next(
-                            (n for n in all_notifications if n.get('id') == notification_id_initial), None)
                 except (IndexError, ValueError):
                     st.error("Erro ao processar a seleção da notificação para classificação inicial.")
+                    # notification_initial = None # Already None by default
+
+
+            # NOVO: Gerenciamento do estado da notificação ativa e inicialização do formulário
+            if notification_id_initial: # Se uma notificação válida foi selecionada
+                if notification_id_initial != active_notif_id_in_session:
+                    # O usuário selecionou uma NOTIFICAÇÃO DIFERENTE ou uma pela primeira vez na classificação
+                    st.session_state.classification_active_notification_id = notification_id_initial
+                    # Inicializa o estado do formulário para esta notificação
+                    st.session_state.initial_classification_state = st.session_state.get('initial_classification_state', {})
+                    # Garante que o estado para esta notificação é um novo dicionário se ainda não existir
+                    if notification_id_initial not in st.session_state.initial_classification_state:
+                        st.session_state.initial_classification_state[notification_id_initial] = {
+                            'step': 1,
+                            'data': {
+                                'procede': UI_TEXTS.selectbox_default_procede_classification,
+                                'motivo_rejeicao': '',
+                                'classificacao_nnc': UI_TEXTS.selectbox_default_classificacao_nnc,
+                                'nivel_dano': UI_TEXTS.selectbox_default_nivel_dano,
+                                'prioridade_selecionada': UI_TEXTS.selectbox_default_prioridade_resolucao,
+                                'never_event_selecionado': UI_TEXTS.text_na,
+                                'evento_sentinela_sim_nao': UI_TEXTS.selectbox_default_evento_sentinela,
+                                'tipo_evento_principal_selecionado': UI_TEXTS.selectbox_default_tipo_principal,
+                                'tipo_evento_sub_selecionado': [],
+                                'tipo_evento_sub_texto_livre': '',
+                                'classificacao_oms_selecionada': [],
+                                'observacoes_classificacao': '',
+                                'requires_approval': UI_TEXTS.selectbox_default_requires_approval,
+                                'approver_selecionado': UI_TEXTS.selectbox_default_approver,
+                                'executores_selecionados': [],
+                                'temp_notified_department': None, # Será populado abaixo
+                                'temp_notified_department_complement': None, # Será populado abaixo
+                            }
+                        }
+                    st.rerun() # Reruns para que a notificação selecionada seja a 'ativa'
+                
+                # Garante que notification_initial e seu estado de formulário estejam corretos para o render
+                notification_initial = next((n for n in pending_initial_classification if n['id'] == notification_id_initial), None)
+                if notification_initial:
+                    # Se o estado do form ainda não existe (ex: veio de outra aba e foi limpo ou nunca existiu)
+                    # ou se o departamento notificado temporário não foi inicializado
+                    if notification_id_initial not in st.session_state.initial_classification_state or \
+                       st.session_state.initial_classification_state[notification_id_initial]['data']['temp_notified_department'] is None:
+                         st.session_state.initial_classification_state[notification_id_initial] = {
+                            'step': 1,
+                            'data': {
+                                'procede': UI_TEXTS.selectbox_default_procede_classification,
+                                'motivo_rejeicao': '',
+                                'classificacao_nnc': UI_TEXTS.selectbox_default_classificacao_nnc,
+                                'nivel_dano': UI_TEXTS.selectbox_default_nivel_dano,
+                                'prioridade_selecionada': UI_TEXTS.selectbox_default_prioridade_resolucao,
+                                'never_event_selecionado': UI_TEXTS.text_na,
+                                'evento_sentinela_sim_nao': UI_TEXTS.selectbox_default_evento_sentinela,
+                                'tipo_evento_principal_selecionado': UI_TEXTS.selectbox_default_tipo_principal,
+                                'tipo_evento_sub_selecionado': [],
+                                'tipo_evento_sub_texto_livre': '',
+                                'classificacao_oms_selecionada': [],
+                                'observacoes_classificacao': '',
+                                'requires_approval': UI_TEXTS.selectbox_default_requires_approval,
+                                'approver_selecionado': UI_TEXTS.selectbox_default_approver,
+                                'executores_selecionados': [],
+                                'temp_notified_department': notification_initial.get('notified_department'),
+                                'temp_notified_department_complement': notification_initial.get('notified_department_complement'),
+                            }
+                        }
+                else: # Se o ID selecionado não corresponde a uma notificação na lista pendente_initial_classification
                     notification_initial = None
-            if notification_id_initial and (
-                    st.session_state.get('current_initial_classification_id') != notification_id_initial):
-                # Se uma nova notificação foi selecionada, inicializa seu estado de classificação
-                st.session_state.initial_classification_state = st.session_state.get('initial_classification_state', {})
-                st.session_state.initial_classification_state[notification_id_initial] = {
-                    'step': 1,
-                    'data': {
-                        'procede': UI_TEXTS.selectbox_default_procede_classification,
-                        'motivo_rejeicao': '',
-                        'classificacao_nnc': UI_TEXTS.selectbox_default_classificacao_nnc,
-                        'nivel_dano': UI_TEXTS.selectbox_default_nivel_dano,
-                        'prioridade_selecionada': UI_TEXTS.selectbox_default_prioridade_resolucao,
-                        'never_event_selecionado': UI_TEXTS.text_na,
-                        'evento_sentinela_sim_nao': UI_TEXTS.selectbox_default_evento_sentinela,
-                        'tipo_evento_principal_selecionado': UI_TEXTS.selectbox_default_tipo_principal,
-                        'tipo_evento_sub_selecionado': [],
-                        'tipo_evento_sub_texto_livre': '',
-                        'classificacao_oms_selecionada': [],
-                        'observacoes_classificacao': '',
-                        'requires_approval': UI_TEXTS.selectbox_default_requires_approval,
-                        'approver_selecionado': UI_TEXTS.selectbox_default_approver,
-                        'executores_selecionados': [],
-                        # Adicionados para edição do setor notificado
-                        'temp_notified_department': notification_initial.get(
-                            'notified_department') if notification_initial else None,
-                        'temp_notified_department_complement': notification_initial.get(
-                            'notified_department_complement') if notification_initial else None,
-                    }
-                }
-                st.session_state.current_initial_classification_id = notification_id_initial
-                if 'current_review_classification_id' in st.session_state: st.session_state.pop(
-                    'current_review_classification_id')
-                st.rerun() # CORREÇÃO: Força o re-render
-            current_classification_state = st.session_state.initial_classification_state.get(notification_id_initial,
-                                                                                             {})
+            else: # Nenhuma notificação selecionada no selectbox
+                notification_initial = None
+
+
+            current_classification_state = st.session_state.initial_classification_state.get(notification_id_initial, {})
             current_step = current_classification_state.get('step', 1)
             current_data = current_classification_state.get('data', {})
+
             if notification_initial:
                 st.markdown(
                     f"### Notificação Selecionada para Classificação Inicial: #{notification_initial.get('id', UI_TEXTS.text_na)}")
@@ -2577,7 +2610,7 @@ def show_classification():
                                      key=f"cancel_btn_{notification_id_initial}_step{current_step}_initial_refactored"):
                             st.session_state.initial_classification_state.pop(notification_id_initial,
                                                                               None)
-                            st.session_state.pop('current_initial_classification_id', None)
+                            st.session_state.pop('classification_active_notification_id', None) # Limpa a seleção ativa
                             st.info(f"A classificação inicial da notificação #{notification_id_initial} foi cancelada.")
                             st.rerun() # CORREÇÃO: Força o re-render
                 with col_next_submit_initial:
@@ -2660,22 +2693,22 @@ def show_classification():
                                         'Erro interno: Status "procede" inválido para finalização.')
                                     if current_data.get(
                                             'classificacao_nnc') == UI_TEXTS.selectbox_default_classificacao_nnc: validation_errors.append(
-                                        "Etapa 2: Classificação NNC é obrigatória.")
+                                    "Etapa 2: Classificação NNC é obrigatória.")
                                     if current_data.get('classificacao_nnc') == "Evento com dano" and current_data.get(
                                             'nivel_dano') == UI_TEXTS.selectbox_default_nivel_dano: validation_errors.append(
-                                        "Etapa 2: Nível de dano é obrigatório para evento com dano.")
+                                    "Etapa 2: Nível de dano é obrigatório para evento com dano.")
                                     if current_data.get(
                                             'prioridade_selecionada') == UI_TEXTS.selectbox_default_prioridade_resolucao: validation_errors.append(
-                                        "Etapa 2: Prioridade de Resolução é obrigatória.")
+                                    "Etapa 2: Prioridade de Resolução é obrigatória.")
                                     if current_data.get(
                                             'never_event_selecionado') == UI_TEXTS.selectbox_default_never_event: validation_errors.append(
-                                        "Etapa 3: Never Event é obrigatório (selecione 'N/A' se não se aplica).")
+                                    "Etapa 3: Never Event é obrigatório (selecione 'N/A' se não se aplica).")
                                     if current_data.get(
                                             'evento_sentinela_sim_nao') == UI_TEXTS.selectbox_default_evento_sentinela: validation_errors.append(
-                                        "Etapa 3: Evento Sentinela é obrigatório (Sim/Não).")
+                                    "Etapa 3: Evento Sentinela é obrigatório (Sim/Não).")
                                     if current_data.get(
                                             'tipo_evento_principal_selecionado') == UI_TEXTS.selectbox_default_tipo_principal: validation_errors.append(
-                                        "Etapa 4: Tipo Principal de Evento é obrigatório.")
+                                    "Etapa 4: Tipo Principal de Evento é obrigatório.")
                                     if current_data.get('tipo_evento_principal_selecionado') in ["Clínico",
                                                                                                  "Não-clínico",
                                                                                                  "Ocupacional"] and not current_data.get(
@@ -2702,11 +2735,11 @@ def show_classification():
                                         "Etapa 7: É obrigatório atribuir ao menos um Executor Responsável.")
                                     if current_data.get(
                                             'requires_approval') == UI_TEXTS.selectbox_default_requires_approval: validation_errors.append(
-                                        "Etapa 7: É obrigatório indicar se requer Aprovação Superior (Sim/Não).")
+                                    "Etapa 7: É obrigatório indicar se requer Aprovação Superior (Sim/Não).")
                                     if current_data.get('requires_approval') == "Sim" and (
                                             current_data.get('approver_selecionado') is None or current_data.get(
                                         'approver_selecionado') == UI_TEXTS.selectbox_default_approver): validation_errors.append(
-                                        "Etapa 7: É obrigatório selecionar o Aprovador Responsável quando requer aprovação.")
+                                    "Etapa 7: É obrigatório selecionar o Aprovador Responsável quando requer aprovação.")
                                 if validation_errors:
                                     st.error("⚠️ **Por favor, corrija os seguintes erros antes de enviar:**")
                                     for error in validation_errors: st.warning(error)
@@ -2848,7 +2881,7 @@ def show_classification():
                                             "A notificação foi movida para a fase de execução e atribuída aos responsáveis.")
                                     st.session_state.initial_classification_state.pop(notification_id_initial,
                                                                                       None)
-                                    st.session_state.pop('current_initial_classification_id', None)
+                                    st.session_state.pop('classification_active_notification_id', None) # Limpa a seleção ativa
                                     st.rerun() # CORREÇÃO: Força o re-render
             else:
                 if pending_initial_classification:
@@ -2867,19 +2900,26 @@ def show_classification():
             ]
             pending_review_ids_str = ",".join(str(n['id']) for n in pending_execution_review)
             selectbox_key_review = f"classify_selectbox_review_{pending_review_ids_str}"
-            if selectbox_key_review not in st.session_state or st.session_state[
-                selectbox_key_review] not in notification_options_review:
-                previous_selection = st.session_state.get(selectbox_key_review, notification_options_review[0])
-                if previous_selection in notification_options_review:
-                    st.session_state[selectbox_key_review] = previous_selection
-                else:
-                    st.session_state[selectbox_key_review] = notification_options_review[0]
+            
+            # Tenta definir o valor padrão do selectbox para a notificação ativa da sessão, se aplicável
+            default_review_selection = UI_TEXTS.selectbox_default_notification_select
+            if active_notification_obj and active_notification_obj['id'] in [n['id'] for n in pending_execution_review]:
+                 default_review_selection = f"#{active_notification_obj['id']} | Classificada em: {active_notification_obj.get('classification', {}).get('classification_timestamp', UI_TEXTS.text_na)[:10]} | {active_notification_obj.get('title', 'Sem título')[:60]}..."
+            
+            index_review_selectbox = 0
+            if default_review_selection != UI_TEXTS.selectbox_default_notification_select:
+                try:
+                    index_review_selectbox = notification_options_review.index(default_review_selection)
+                except ValueError:
+                    pass
+
             selected_option_review = st.selectbox(
                 "Escolha uma notificação para revisar a execução:",
                 options=notification_options_review,
-                index=notification_options_review.index(st.session_state[selectbox_key_review]),
+                index=index_review_selectbox,
                 key=selectbox_key_review,
                 help="Selecione na lista a notificação cuja execução você deseja revisar.")
+            
             notification_id_review = None
             notification_review = None
             if selected_option_review != UI_TEXTS.selectbox_default_notification_select:
@@ -2888,23 +2928,40 @@ def show_classification():
                     if len(parts) > 1:
                         id_part = parts[1].split(' |')[0]
                         notification_id_review = int(id_part)
-                        notification_review = next(
-                            (n for n in all_notifications if n.get('id') == notification_id_review), None)
                 except (IndexError, ValueError):
                     st.error("Erro ao processar a seleção da notificação para revisão.")
+                    # notification_review = None # Already None by default
+            
+            # NOVO: Gerenciamento do estado da notificação ativa e inicialização do formulário
+            if notification_id_review: # Se uma notificação válida foi selecionada
+                if notification_id_review != active_notif_id_in_session:
+                    # O usuário selecionou uma NOTIFICAÇÃO DIFERENTE ou uma pela primeira vez na revisão
+                    st.session_state.classification_active_notification_id = notification_id_review
+                    # Inicializa o estado do formulário para esta notificação
+                    st.session_state.review_classification_state = st.session_state.get('review_classification_state', {})
+                    # Garante que o estado para esta notificação é um novo dicionário se ainda não existir
+                    if notification_id_review not in st.session_state.review_classification_state:
+                        st.session_state.review_classification_state[notification_id_review] = {
+                            'decision': UI_TEXTS.selectbox_default_decisao_revisao,
+                            'rejection_reason_review': '',
+                            'notes': '',
+                        }
+                    st.rerun() # Reruns para que a notificação selecionada seja a 'ativa'
+
+                # Garante que notification_review e seu estado de formulário estejam corretos para o render
+                notification_review = next((n for n in pending_execution_review if n['id'] == notification_id_review), None)
+                if notification_review:
+                    if notification_id_review not in st.session_state.review_classification_state:
+                         st.session_state.review_classification_state[notification_id_review] = {
+                            'decision': UI_TEXTS.selectbox_default_decisao_revisao,
+                            'rejection_reason_review': '',
+                            'notes': '',
+                        }
+                else: # Se o ID selecionado não corresponde a uma notificação na lista pending_execution_review
                     notification_review = None
-            if notification_id_review and (
-                    st.session_state.get('current_review_classification_id') != notification_id_review):
-                st.session_state.review_classification_state = st.session_state.get('review_classification_state', {})
-                st.session_state.review_classification_state[notification_id_review] = {
-                    'decision': UI_TEXTS.selectbox_default_decisao_revisao,
-                    'rejection_reason_review': '',
-                    'notes': '',
-                }
-                st.session_state.current_review_classification_id = notification_id_review
-                if 'current_initial_classification_id' in st.session_state: st.session_state.pop(
-                    'current_initial_classification_id')
-                st.rerun() # CORREÇÃO: Força o re-render
+            else: # Nenhuma notificação selecionada no selectbox
+                notification_review = None
+
 
             current_review_data = st.session_state.review_classification_state.get(notification_id_review or 0, {})
             if notification_review is not None:
@@ -2935,7 +2992,7 @@ def show_classification():
                 st.markdown(f"""
                     <div class="notification-card {card_class}">
                         <h4>#{notification_review.get('id', UI_TEXTS.text_na)} - {notification_review.get('title', UI_TEXTS.text_na)}</h4>
-                        <p><strong>Status:</strong> <span class="status-{notification_review.get('status', UI_TEXTS.text_na).replace('_', '-')}">{notification_review.get('status', UI_TEXTS.text_na).replace('_', ' ').title()}</span></p>
+                        <p><strong>Status:</strong> <span class="status-{notification_review.get('status', UI_TEXTS.text_na).replace('_', '-')}" >{notification_review.get('status', UI_TEXTS.text_na).replace('_', ' ').title()}</span></p>
                         <p><strong>Prazo:</strong> {deadline_status['text']}</p>
                     </div>
                     """, unsafe_allow_html=True)
@@ -3192,10 +3249,10 @@ def show_classification():
                                 st.warning(
                                     f"⚠️ Execução da Notificação #{notification_id_review} rejeitada! Devolvida para classificação inicial para reanálise e reatribuição.")
                                 st.info(
-                                    "A notificação foi movida para o status 'pendente_classificacao' e aparecerá na aba 'Pendentes Classificação Inicial' para que a equipe de classificação possa reclassificá-la e redefinir o fluxo.")
+                                    "A notificação foi movida para o status 'pendente_classificacao' e aparecerá na aba 'Pendentes Classificação Inicial' para que a equipe de classificação possa revisar e redefinir o fluxo.")
                             update_notification(notification_id_review, updates)  # Atualiza no DB
                             st.session_state.review_classification_state.pop(notification_id_review, None)
-                            st.session_state.pop('current_review_classification_id', None)
+                            st.session_state.pop('classification_active_notification_id', None) # Limpa a seleção ativa
                             st.rerun() # CORREÇÃO: Força o re-render
             else:
                 if pending_execution_review:
@@ -3453,8 +3510,7 @@ def show_execution():
                             f"exec_action_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored", ""),
                         placeholder="Descreva:\n• O QUÊ foi feito?\n• POR QUÊ foi feito (qual o objetivo)?\n• ONDE foi realizado?\n• QUANDO foi realizado (data/hora)?\n• QUEM executou (se aplicável)?\n• COMO foi executado (passos, métodos)?\n• QUANTO CUSTOU (recursos, tempo)?\n• QUÃO FREQUENTE (se for uma ação contínua)?",
                         height=180,
-                        key=f"exec_action_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored",
-                        help="Forneça um relato completo e estruturado da ação executada ou da conclusão da sua parte, utilizando os pontos do 5W3H como guia."
+                        key=f"exec_action_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored"
                     ).strip()
                     evidence_description_state = ""
                     uploaded_evidence_files = []
@@ -3890,8 +3946,7 @@ def show_approval():
                                         unique_name = attach_info.get('unique_name')
                                         original_name = attach_info.get('original_name')
                                         if unique_name and original_name:
-                                            file_content = get_attachment_data(unique_name)
-                                            if file_content:
+                                            file_content = get_attachment_data
                                                 st.download_button(
                                                     label=f"Baixar Evidência: {original_name}",
                                                     data=file_content,
@@ -3981,7 +4036,7 @@ def show_approval():
                     current_approval_data['decision'] = st.selectbox(
                         "Decisão:*", options=approval_decision_options,
                         key=f"approval_decision_{notification.get('id', UI_TEXTS.text_na)}_refactored",
-                                                index=approval_decision_options.index(
+                        index=approval_decision_options.index(
                             current_approval_data.get('decision', UI_TEXTS.selectbox_default_decisao_aprovacao)),
                         help="Selecione 'Aprovar' para finalizar a notificação ou 'Reprovar' para devolvê-la para revisão pelo classificador."
                     )
@@ -3990,7 +4045,7 @@ def show_approval():
                     approval_notes_input = st.text_area(
                         "Observações da Aprovação/Reprovação:*",
                         value=current_approval_data.get('notes', ''),
-                        placeholder="• Avalie a completude e eficácia das ações executadas e a revisão do classificador...\n• Indique se as ações foram satisfatórias para mitigar o risco ou resolver o evento.\n• Forneça recomendações adicionais, se necessário.\n• Em caso de reprovação, explique claramente o motivo e o que precisa ser revisado ou corrigido pelo classificador.",
+                        placeholder="• Avalie a completude e eficácia das ações executadas e a revisão do classificador...\\n• Indique se as ações foram satisfatórias para mitigar o risco ou resolver o evento.\\n• Forneça recomendações adicionais, se necessário.\\n• Em caso de reprovação, explique claramente o motivo e o que precisa ser revisado ou corrigido pelo classificador.",
                         height=120, key=f"approval_notes_{notification.get('id', UI_TEXTS.text_na)}_refactored",
                         help="Forneça sua avaliação sobre as ações executadas, a revisão do classificador, e a decisão final.").strip()
                     current_approval_data['notes'] = approval_notes_input  # Atualiza o estado com o valor do text_area
@@ -4247,7 +4302,7 @@ def show_admin():
                                      'name': name_state,
                                      'email': email_state, 'roles': roles_to_save}
                         if create_user(user_data):
-                            st.success(f"✅ Usuário '{name_state}' criado com sucesso!\n\n")
+                            st.success(f"✅ Usuário '{name_state}' criado com sucesso!\\n\\n")
                             st.rerun()
                         else:
                             st.error("❌ Nome de usuário já existe. Por favor, escolha outro.")
@@ -4662,15 +4717,14 @@ def show_admin():
                                         f"SELECT setval('notifications_id_seq', (SELECT MAX(id) FROM notifications));")
                                     conn.commit()
                                     st.success(
-                                        "✅ Dados restaurados com sucesso a partir do arquivo!\n\n")
+                                        "✅ Dados restaurados com sucesso a partir do arquivo!\\n\\n")
                                     st.info(
                                         "A página será recarregada para refletir os dados restaurados.")
                                     st.session_state.pop('admin_restore_file_uploader', None)
                                     _reset_form_state()
                                     st.session_state.initial_classification_state = {}
                                     st.session_state.review_classification_state = {}
-                                    st.session_state.current_initial_classification_id = None
-                                    st.session_state.current_review_classification_id = None
+                                    st.session_state.classification_active_notification_id = None # Limpa a seleção ativa
                                     st.session_state.approval_form_state = {}
                                     st.rerun()
                                 except psycopg2.Error as e:
@@ -5339,8 +5393,8 @@ def main():
     if 'page' not in st.session_state: st.session_state.page = 'create_notification'
     if 'initial_classification_state' not in st.session_state: st.session_state.initial_classification_state = {}
     if 'review_classification_state' not in st.session_state: st.session_state.review_classification_state = {}
-    if 'current_initial_classification_id' not in st.session_state: st.session_state.current_initial_classification_id = None
-    if 'current_review_classification_id' not in st.session_state: st.session_state.current_review_classification_id = None
+    # NOVO: Variável única para notificação ativa na tela de classificação/revisão
+    if 'classification_active_notification_id' not in st.session_state: st.session_state.classification_active_notification_id = None
     # NOVO: Adiciona o estado para o formulário de aprovação
     if 'approval_form_state' not in st.session_state: st.session_state.approval_form_state = {}
 
@@ -5370,4 +5424,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main()                                            
