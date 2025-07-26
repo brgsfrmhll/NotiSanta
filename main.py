@@ -2137,6 +2137,7 @@ unsafe_allow_html=True)
                         except Exception as e:
                             st.error(f"❌ Ocorreu um erro ao finalizar a notificação: {e}")
                             st.warning("Por favor, revise as informações e tente enviar novamente.")
+
 @st_fragment
 def show_classification():
     """
@@ -2713,9 +2714,9 @@ unsafe_allow_html=True)
                                 if current_data.get(
                                         'classificacao_nnc') == UI_TEXTS.selectbox_default_classificacao_nnc: validation_errors.append(
                                     "Etapa 2: Classificação NNC é obrigatória.")
-                                if current_data.get('classificacao_nnc') == "Evento com dano" and current_data.get(
-                                        'nivel_dano') == UI_TEXTS.selectbox_default_nivel_dano: validation_errors.append(
-                                    "Etapa 2: Nível de dano é obrigatório para evento com dano.")
+                                # CORREÇÃO DE SINTAXE: Removida a barra invertida e alinhado o código
+                                if current_data.get('classificacao_nnc') == "Evento com dano" and current_data.get('nivel_dano'):
+                                    validation_errors.append("Etapa 2: Nível de dano é obrigatório para evento com dano.")
                                 if current_data.get(
                                         'prioridade_selecionada') == UI_TEXTS.selectbox_default_prioridade_resolucao: validation_errors.append(
                                     "Etapa 2: Prioridade de Resolução é obrigatória.")
@@ -2782,9 +2783,9 @@ unsafe_allow_html=True)
                                     if current_data.get(
                                             'classificacao_nnc') == UI_TEXTS.selectbox_default_classificacao_nnc: validation_errors.append(
                                         "Etapa 2: Classificação NNC é obrigatória.")
-                                    if current_data.get('classificacao_nnc') == "Evento com dano" and current_data.get(
-                                        'nivel_dano') == UI_TEXTS.selectbox_default_nivel_dano: validation_errors.append(
-                                        "Etapa 2: Nível de dano é obrigatório para evento com dano.")
+                                    # CORREÇÃO DE SINTAXE: Removida a barra invertida
+                                    if current_data.get('classificacao_nnc') == "Evento com dano" and current_data.get('nivel_dano'):
+                                        validation_errors.append("Etapa 2: Nível de dano é obrigatório para evento com dano.")
                                     if current_data.get(
                                         'prioridade_selecionada') == UI_TEXTS.selectbox_default_prioridade_resolucao: validation_errors.append(
                                         "Etapa 2: Prioridade de Resolução é obrigatória.")
@@ -2880,7 +2881,7 @@ unsafe_allow_html=True)
                                             deadline_days = DEADLINE_DAYS_MAPPING[nnc_type].get(dano_level, 0)
                                         else:
                                             deadline_days = DEADLINE_DAYS_MAPPING.get(nnc_type, 0)
-                                        # Ensure deadline_days is an integer, default to 0 if not found/invalid
+                                        # Ensure deadline_days is an integer, default to 0 if mapping fails
                                         if not isinstance(deadline_days, int):
                                             deadline_days = 0  # Default to 0 days if mapping fails
                                         deadline_date_calculated = (
@@ -2924,8 +2925,7 @@ unsafe_allow_html=True)
                                         }
                                         update_notification(notification_id_initial, updates)  # Atualiza no DB
                                         details_hist = f"Classificação NNC: {classification_data_to_save['nnc']}, Prioridade: {classification_data_to_save.get('prioridade', UI_TEXTS.text_na)}"
-                                        if classification_data_to_save["nnc"] == "Evento com dano" and \\
-                                                classification_data_to_save["nivel_dano"]:
+                                        if classification_data_to_save["nnc"] == "Evento com dano" and classification_data_to_save["nivel_dano"]:
                                             details_hist += f", Nível Dano: {classification_data_to_save['nivel_dano']}"
                                         details_hist += f", Never Event: {classification_data_to_save.get('never_event', UI_TEXTS.text_na)}"
                                         details_hist += f", Evento Sentinela: {'Sim' if classification_data_to_save.get('is_sentinel_event') else 'Não'}"
@@ -3431,6 +3431,7 @@ unsafe_allow_html=True)
                             f"👁️ Visualizar Detalhes - Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
                         display_notification_full_details(notification, st.session_state.user.get('id'),
                                                           st.session_state.user.get('username'))
+
 
 @st_fragment
 def show_approval():
