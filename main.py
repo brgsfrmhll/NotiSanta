@@ -2790,13 +2790,13 @@ unsafe_allow_html=True)
                                         'prioridade_selecionada') == UI_TEXTS.selectbox_default_prioridade_resolucao: validation_errors.append(
                                         "Etapa 2: Prioridade de Resolução é obrigatória.")
                                     if current_data.get(
-                                            'never_event_selecionado') == UI_TEXTS.selectbox_default_never_event: validation_errors.append(
+                                        'never_event_selecionado') == UI_TEXTS.selectbox_default_never_event: validation_errors.append(
                                         "Etapa 3: Never Event é obrigatório (selecione 'N/A' se não se aplica).")
                                     if current_data.get(
-                                            'evento_sentinela_sim_nao') == UI_TEXTS.selectbox_default_evento_sentinela: validation_errors.append(
+                                        'evento_sentinela_sim_nao') == UI_TEXTS.selectbox_default_evento_sentinela: validation_errors.append(
                                         "Etapa 3: Evento Sentinela é obrigatório (Sim/Não).")
                                     if current_data.get(
-                                            'tipo_evento_principal_selecionado') == UI_TEXTS.selectbox_default_tipo_principal: validation_errors.append(
+                                        'tipo_evento_principal_selecionado') == UI_TEXTS.selectbox_default_tipo_principal: validation_errors.append(
                                         "Etapa 4: Tipo Principal de Evento é obrigatório.")
                                     if current_data.get('tipo_evento_principal_selecionado') in ["Clínico",
                                                                                                  "Não-clínico",
@@ -2984,67 +2984,69 @@ unsafe_allow_html=True)
             st.info("✅ Não há notificações aguardando revisão da execução no momento.")
         else:
             st.markdown("#### 📋 Selecionar Notificação para Revisão")
-            notification_options_review = [UI_TEXTS.selectbox_default_notification_select] + [
+            
+            # Get the currently selected ID from session state, if any
+            current_selected_review_id = st.session_state.get('current_review_classification_id')
+            
+            # Prepare options for the selectbox, including the placeholder
+            notification_options_review_display = [UI_TEXTS.selectbox_default_notification_select] + [
                 f"#{n['id']} | Classificada em: {n.get('classification', {}).get('classification_timestamp', UI_TEXTS.text_na)[:10]} | {n.get('title', 'Sem título')[:60]}..."
                 for n in pending_execution_review
             ]
 
-            pending_review_ids_str = ",".join(str(n['id']) for n in pending_execution_review)
-            selectbox_key_review = f"classify_selectbox_review_{pending_review_ids_str}"
-            if selectbox_key_review not in st.session_state or st.session_state[
-                selectbox_key_review] not in notification_options_review:
-                previous_selection = st.session_state.get(selectbox_key_review, notification_options_review[0])
-                if previous_selection in notification_options_review:
-                    st.session_state[selectbox_key_review] = previous_selection
-                else:
-                    st.session_state[selectbox_key_review] = notification_options_review[0]
+            # Find the index of the previously selected notification (if any) or default to placeholder
+            default_index_review = 0 # Default to placeholder
+            if current_selected_review_id:
+                for idx, opt_str in enumerate(notification_options_review_display):
+                    if f"#{current_selected_review_id}" in opt_str: # Check if the ID string is in the option
+                        default_index_review = idx
+                        break
 
             selected_option_review = st.selectbox(
                 "Escolha uma notificação para revisar a execução:",
-                options=notification_options_review,
-                index=notification_options_review.index(st.session_state[selectbox_key_review]),
-                key=selectbox_key_review,
-                help="Selecione na lista a notificação cuja execução você deseja revisar.")
-            
-            notification_id_review_from_session = st.session_state.get('current_review_classification_id')
-            notification_review = None
+                options=notification_options_review_display, # Use the display options
+                index=default_index_review,
+                key="review_notification_selection_box", # Use a consistent key
+                help="Selecione na lista a notificação cuja execução você deseja revisar."
+            )
 
-            notification_id_selected_from_ui = None
+            # Determine the ID from the selected option string
+            newly_selected_id = None
             if selected_option_review != UI_TEXTS.selectbox_default_notification_select:
                 try:
                     parts = selected_option_review.split('#')
                     if len(parts) > 1:
                         id_part = parts[1].split(' |')[0]
-                        notification_id_selected_from_ui = int(id_part)
+                        newly_selected_id = int(id_part)
                 except (IndexError, ValueError):
                     st.error("Erro ao processar a seleção da notificação para revisão.")
-                    notification_id_selected_from_ui = None
-            
-            # Decide qual ID de notificação usar: o recém-selecionado na UI ou o que está em session_state
-            notification_id_to_process = None
-            if notification_id_selected_from_ui and (notification_id_selected_from_ui != notification_id_review_from_session):
-                # Uma nova notificação foi selecionada na UI, atualiza o session_state e re-executa
-                notification_id_to_process = notification_id_selected_from_ui
-                st.session_state.current_review_classification_id = notification_id_to_process
-                st.session_state.review_classification_state = st.session_state.get('review_classification_state', {})
-                st.session_state.review_classification_state[notification_id_to_process] = {
-                    'decision': UI_TEXTS.selectbox_default_decisao_revisao,
-                    'rejection_reason_review': '',
-                    'notes': '',
-                }
+                    newly_selected_id = None
+
+            # Check if selection has changed AND it's not None (i.e., not just selecting the placeholder again)
+            if newly_selected_id != current_selected_review_id:
+                st.session_state.current_review_classification_id = newly_selected_id
+                # Clear initial classification state if user switches context
                 if 'current_initial_classification_id' in st.session_state: st.session_state.pop(
                     'current_initial_classification_id')
-                st.rerun() 
-            elif notification_id_review_from_session:
-                # Nenhuma nova seleção, mas há um ID em session_state, então usa ele
-                notification_id_to_process = notification_id_review_from_session
-            
-            # Popula notification_review com base no ID determinado
-            if notification_id_to_process:
-                notification_review = next(
-                    (n for n in all_notifications if n.get('id') == notification_id_to_process), None)
+                # Trigger rerun to update the UI with the newly selected notification's details
+                st.rerun()
 
-            current_review_data = st.session_state.review_classification_state.get(notification_id_to_process or 0, {})
+            # --- Populate notification_review based on persisted ID in session state ---
+            notification_review = None
+            if st.session_state.get('current_review_classification_id'):
+                notification_review = next(
+                    (n for n in all_notifications if n.get('id') == st.session_state.current_review_classification_id), None)
+                
+                # Also ensure the form state for this specific notification is initialized if it's a valid notification
+                if notification_review and st.session_state.current_review_classification_id not in st.session_state.review_classification_state:
+                    st.session_state.review_classification_state[st.session_state.current_review_classification_id] = {
+                        'decision': UI_TEXTS.selectbox_default_decisao_revisao,
+                        'rejection_reason_review': '',
+                        'notes': '',
+                    }
+            
+            # --- Get current_review_data based on the (potentially newly set) current_review_classification_id ---
+            current_review_data = st.session_state.review_classification_state.get(st.session_state.get('current_review_classification_id'), {})
 
             if notification_review is not None:
                 st.markdown(
@@ -3063,7 +3065,7 @@ unsafe_allow_html=True)
 
                 # Acessa 'timestamp' de 'conclusion' de forma segura
                 concluded_timestamp_str = (notification_review.get('conclusion') or {}).get('timestamp')
-# Determinar o status do prazo (cor do texto)
+                # Determinar o status do prazo (cor do texto)
                 deadline_status = get_deadline_status(deadline_date_str, concluded_timestamp_str)
                 # Determinar a classe do cartão (fundo) com APENAS DOIS STATUS
                 card_class = ""
@@ -3071,11 +3073,10 @@ unsafe_allow_html=True)
                     card_class = "card-prazo-dentro"  # Será verde para "No Prazo" e "Prazo Próximo"
                 elif deadline_status['class'] == "deadline-overdue":
                     card_class = "card-prazo-fora"  # Será vermelho para "Atrasada"
-# Renderizar o card com o estilo apropriado
                 st.markdown(f"""
                     <div class="notification-card {card_class}">
                         <h4>#{notification_review.get('id', UI_TEXTS.text_na)} - {notification_review.get('title', UI_TEXTS.text_na)}</h4>
-                        <p><strong>Status:</strong> <span class="status-{notification_review.get('status', UI_TEXTS.text_na).replace('_', '-')}">{notification_review.get('status', UI_TEXTS.text_na).replace('_', ' ').title()}</span></p>
+                        <p><strong>Status:</strong> <span class="{status_class}">{notification_review.get('status', UI_TEXTS.text_na).replace('_', ' ').title()}</span></p>
                         <p><strong>Prazo:</strong> {deadline_status['text']}</p>
                     </div>
                     """, unsafe_allow_html=True)
@@ -3210,13 +3211,13 @@ unsafe_allow_html=True)
                             else:
                                 st.write(f"Anexo: {original_name_to_use} (arquivo não encontrado ou corrompido)")
                 st.markdown("---")
-                with st.form(key=f"review_decision_form_{notification_id_to_process}_refactored", clear_on_submit=False):
+                with st.form(key=f"review_decision_form_{notification_id_review_from_session}_refactored", clear_on_submit=False):
                     st.markdown("### 🎯 Decisão de Revisão da Execução")
                     decision_options = [UI_TEXTS.selectbox_default_decisao_revisao, "Aceitar Conclusão",
                                         "Rejeitar Conclusão"]
                     current_review_data['decision'] = st.selectbox(
                         "Decisão:*", options=decision_options,
-                        key=f"review_decision_{notification_id_to_process}_refactored",
+                        key=f"review_decision_{notification_id_review_from_session}_refactored",
                         index=decision_options.index(
                             current_review_data.get('decision', UI_TEXTS.selectbox_default_decisao_revisao)),
                         help="Selecione 'Aceitar Conclusão' se a execução foi satisfatória ou 'Rejeitar Conclusão' para devolvê-la para correção/revisão.")
@@ -3231,7 +3232,7 @@ unsafe_allow_html=True)
                         current_review_data['rejection_reason_review'] = st.text_area(
                             "Justificativa para Rejeição da Conclusão*",
                             value=current_review_data.get('rejection_reason_review', ''),
-                            key=f"rejection_reason_review_{notification_id_to_process}_refactored",
+                            key=f"rejection_reason_review_{notification_id_review_from_session}_refactored",
                             help="Descreva os motivos da rejeição e as ações corretivas necessárias.").strip()
                         st.markdown("<span class='required-field'>* Campo obrigatório ao rejeitar</span>",
                                     unsafe_allow_html=True)
@@ -3240,7 +3241,7 @@ unsafe_allow_html=True)
                     current_review_data['notes'] = st.text_area(
                         "Observações da Revisão (opcional)",
                         value=current_review_data.get('notes', ''),
-                        key=f"review_notes_{notification_id_to_process}_refactored",
+                        key=f"review_notes_{notification_id_review_from_session}_refactored",
                         help="Adicione quaisquer observações relevantes sobre a revisão da execução.").strip()
                     submit_button_review = st.form_submit_button("✔️ Confirmar Decisão",
                                                                  use_container_width=True)
@@ -3281,12 +3282,12 @@ unsafe_allow_html=True)
                                         'review_execution': review_details_to_save
                                     }
                                     add_history_entry(
-                                        notification_id_to_process, "Revisão de Execução: Conclusão Aceita",
+                                        notification_review['id'], "Revisão de Execução: Conclusão Aceita",
                                         user_name,
                                         f"Execução aceita pelo classificador. Encaminhada para aprovação superior." + (
                                             f" Obs: {review_notes}" if review_notes else ""))
                                     st.success(
-                                        f"✅ Execução da Notificação #{notification_id_to_process} aceita! Encaminhada para aprovação superior.")
+                                        f"✅ Execução da Notificação #{notification_review['id']} aceita! Encaminhada para aprovação superior.")
                                 else:
                                     new_status = 'aprovada'
                                     updates = {
@@ -3301,12 +3302,12 @@ unsafe_allow_html=True)
                                         'approver': None  # Remove aprovador se não precisa de aprovação
                                     }
                                     add_history_entry(
-                                        notification_id_to_process, "Revisão de Execução: Conclusão Aceita e Finalizada",
+                                        notification_review['id'], "Revisão de Execução: Conclusão Aceita e Finalizada",
                                         user_name,
                                         f"Execução revisada e aceita pelo classificador. Ciclo de gestão do evento concluído (não requeria aprovação superior)." + (
                                             f" Obs: {review_notes}" if review_notes else ""))
                                     st.success(
-                                        f"✅ Execução da Notificação #{notification_id_to_process} revisada e aceita. Notificação concluída!")
+                                        f"✅ Execução da Notificação #{notification_review['id']} revisada e aceita. Notificação concluída!")
                             elif review_decision_state == "Rejeitar Conclusão":
                                 new_status = 'pendente_classificacao'  # Retorna para classif. inicial
                                 updates = {
@@ -3324,7 +3325,7 @@ unsafe_allow_html=True)
                                     }
                                 }
                                 add_history_entry(
-                                    notification_id_to_process,
+                                    notification_review['id'],
                                     "Revisão de Execução: Conclusão Rejeitada e Reclassificação Necessária",
                                     user_name,
                                     f"Execução rejeitada. Notificação movida para classificação inicial para reanálise e reatribuição. Motivo: {current_review_data.get('rejection_reason_review', '')[:150]}..." if len(
@@ -3332,11 +3333,11 @@ unsafe_allow_html=True)
                                                                 '')) > 150 else f"Execução rejeitada. Notificação movida para classificação inicial para reanálise e reatribuição. Motivo: {current_review_data.get('rejection_reason_review', '')}" + (
                                         f" Obs: {review_notes}" if review_notes else ""))
                                 st.warning(
-                                    f"⚠️ Execução da Notificação #{notification_id_to_process} rejeitada! Devolvida para classificação inicial para reanálise e reatribuição.")
+                                    f"⚠️ Execução da Notificação #{notification_review['id']} rejeitada! Devolvida para classificação inicial para reanálise e reatribuição.")
                                 st.info(
                                     "A notificação foi movida para o status 'pendente_classificacao' e aparecerá na aba 'Pendentes Classificação Inicial' para que a equipe de classificação possa reclassificá-la e redefinir o fluxo.")
-                            update_notification(notification_id_to_process, updates)  # Atualiza no DB
-                            st.session_state.review_classification_state.pop(notification_id_to_process, None)
+                            update_notification(notification_review['id'], updates)  # Atualiza no DB
+                            st.session_state.review_classification_state.pop(notification_review['id'], None)
                             st.session_state.pop('current_review_classification_id', None)
                             st.rerun() # CORREÇÃO: Força o re-render
             else:
