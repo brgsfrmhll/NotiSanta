@@ -3753,7 +3753,6 @@ def show_execution():
                     with st.expander(
                             f"  ️ Visualizar Detalhes - Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
                         display_notification_full_details(notification, user_id_logged_in, user_username_logged_in)
-
 @st_fragment
 def show_approval():
     """Renderiza a página para aprovadores revisarem e aprovarem/rejeitarem notificações."""
@@ -4048,11 +4047,19 @@ def show_approval():
                         if validation_errors:
                             st.error("⚠️ **Por favor, corrija os seguintes erros:**")
                             for error in validation_errors: st.warning(error)
-                            st.stop()
                         else:
                             user_name = st.session_state.user.get('name', 'Usuário')
                             user_username = st.session_state.user.get('username', UI_TEXTS.text_na)
                             approval_notes = current_approval_data['notes']
+                            
+                            # Construção da mensagem para o histórico (corrigido)
+                            history_notes_part = ""
+                            if approval_notes:
+                                if len(approval_notes) > 150:
+                                    history_notes_part = f" Obs: {approval_notes[:150]}..."
+                                else:
+                                    history_notes_part = f" Obs: {approval_notes}"
+
                             if current_approval_data['decision'] == "Aprovar":
                                 new_status = 'aprovada'
                                 updates = {
@@ -4074,10 +4081,7 @@ def show_approval():
                                 update_notification(notification['id'], updates)  # Atualiza no DB
                                 add_history_entry(notification['id'], "Notificação aprovada e finalizada",
                                                   user_name,
-                                                  f"Aprovada superiormente." + (
-                                                      f" Obs: {approval_notes[:150]}..." if approval_notes and len(
-                                                          approval_notes) > 150 else (
-                                                          f" Obs: {approval_notes}" if approval_notes else "")))
+                                                  f"Aprovada superiormente.{history_notes_part}")
                                 st.success(
                                     f"✅ Notificação #{notification['id']} aprovada e finalizada com sucesso! O ciclo de gestão do evento foi concluído.")
                             elif current_approval_data['decision'] == "Reprovar":
@@ -4095,9 +4099,7 @@ def show_approval():
                                 update_notification(notification['id'], updates)  # Atualiza no DB
                                 add_history_entry(notification['id'], "Notificação reprovada (Aprovação)",
                                                   user_name,
-                                                  f"Reprovada superiormente. Motivo: {approval_notes[:150]}..." if len(
-                                                      approval_notes) > 150 else f"Reprovada superiormente. Motivo: {approval_notes}" + (
-                                                      f" Obs: {approval_notes}" if approval_notes else "")))
+                                                  f"Reprovada superiormente. Motivo: {approval_notes[:150]}...{history_notes_part}") 
                                 st.warning(
                                     f"⚠️ Notificação #{notification['id']} reprovada! Devolvida para revisão pelo classificador.")
                                 st.info(
@@ -4140,13 +4142,8 @@ def show_approval():
                     f"**Notificações Encontradas ({len(filtered_closed_my_approval_notifications)})**:")
                 for notification in filtered_closed_my_approval_notifications:
                     status_class = f"status-{notification.get('status', UI_TEXTS.text_na).replace('_', '-')}"
-                    created_at_str = notification.get('created_at', UI_TEXTS.text_na)
-                    if created_at_str != UI_TEXTS.text_na:
-                        try:
-                            created_at_str = datetime.fromisoformat(created_at_str).strftime(
-                                '%d/%m/%Y %H:%M:%S')
-                        except ValueError:
-                            pass
+                    created_at_str = datetime.fromisoformat(notification['created_at']).strftime(
+                        '%d/%m/%Y %H:%M:%S')
                     concluded_by = UI_TEXTS.text_na
                     if notification.get('conclusion') and notification['conclusion'].get(
                             'concluded_by'):
@@ -4300,7 +4297,7 @@ def show_admin():
             if 'editing_user_id' not in st.session_state:
                 st.session_state.editing_user_id = None
             # Filtra o próprio usuário logado da lista para edição
-            users_to_display = [u for u in users if u['id'] != st.session_state.editing_user_id]
+            users_to_display = [u for u in users if u['id'] != st.session_state.user.get('id')]
             users_to_display.sort(key=lambda x: x.get('name', ''))
 
             for user in users_to_display:
@@ -4374,7 +4371,8 @@ def show_admin():
                     (u for u in users if u['id'] == st.session_state.editing_user_id), None)
                 if edited_user:
                     st.markdown(
-                        f"### ✏️ Editando Usuário: {edited_user.get('name', UI_TEXTS.text_na)} ({edited_user.get('username', UI_TEXTS.text_na)})")
+                        f"### ✏️ Editando Usuário: {edited_user.get('name', UI_TEXTS.text_na)} ({edited_user.get('username', UI_TEXTS.text_na)})"
+                    )
                     with st.form(key=f"edit_user_form_{edited_user['id']}",
                                  clear_on_submit=False):
                         st.text_input("Nome de Usuário", value=edited_user.get('username', ''),
@@ -5353,7 +5351,7 @@ def show_dashboard():
                 if not completed_main_type.empty:
                     st.bar_chart(completed_main_type)
                 else:
-                    st.info("Nenhuma tipo principal para notificações concluídas no período.")
+                    st.info("Nenhum tipo principal para notificações concluídas no período.")
             else:
                 st.info("Nenhuma notificação concluída no período.")
         with col_classif4:
