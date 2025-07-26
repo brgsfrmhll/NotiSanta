@@ -13,9 +13,9 @@ import uuid
 import pandas as pd
 import time as time_module
 import psycopg2
-from psycopg2 import sql  # Importa sql para usar na construÃ§Ã£o de queries dinÃ¢micas
+from psycopg2 import sql  # Importa sql para usar na construção de queries dinâmicas
 from dotenv import load_dotenv
-from streamlit import fragment as st_fragment  # Mantido para compatibilidade com o cÃ³digo completo
+from streamlit import fragment as st_fragment  # Mantido para compatibilidade com o código completo
 
 DB_CONFIG = {
     "host": os.getenv("DB_HOST"),
@@ -26,18 +26,18 @@ DB_CONFIG = {
 
 def get_db_connection():
     """
-    Estabelece e retorna uma conexÃ£o com o banco de dados PostgreSQL.
+    Estabelece e retorna uma conexão com o banco de dados PostgreSQL.
     """
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         return conn
     except psycopg2.Error as e:
         st.error(f"Erro ao conectar ao banco de dados: {e}")
-        raise  # Levanta a exceÃ§Ã£o para que o chamador possa lidar com ela
+        raise  # Levanta a exceção para que o chamador possa lidar com ela
 
 
-# --- ConfiguraÃ§Ã£o do Streamlit e CSS Customizado ---
-# CORREÃ‡ÃƒO DO ERRO 1.1: Removida a linha duplicada de st.set_page_config
+# --- Configuração do Streamlit e CSS Customizado ---
+# CORREÇÃO DO ERRO 1.1: Removida a linha duplicada de st.set_page_config
 st.set_page_config(
     page_title="NotificaSanta",
     page_icon="favicon/logo.png",
@@ -45,10 +45,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# CORREÃ‡ÃƒO DO ERRO 1.2: Sintaxe corrigida no bloco CSS dentro de st.markdown
+# CORREÇÃO DO ERRO 1.2: Sintaxe corrigida no bloco CSS dentro de st.markdown
 st.markdown(r"""
 <style>
-    /* Esconde botÃµes e decoraÃ§Ãµes padrÃ£o do Streamlit */
+    /* Esconde botões e decorações padrão do Streamlit */
     button[data-testid="stDeployButton"],
     .stDeployButton,
     footer,
@@ -87,66 +87,66 @@ st.markdown(r"""
         margin-bottom: -20px; /* Reduce space below image */
     }
 
-    /* Estilo do cabeÃ§alho principal da aplicaÃ§Ã£o */
+    /* Estilo do cabeçalho principal da aplicação */
     .main-header {
         text-align: center;
         color: #2E86AB;
         margin-bottom: 30px;
     }
 
-    /* Novo Estilo para o TÃ­tulo Principal da Sidebar */
-    /* Usamos [data-testid="stSidebarContent"] para aumentar a especificidade e garantir a aplicaÃ§Ã£o */
+    /* Novo Estilo para o Título Principal da Sidebar */
+    /* Usamos [data-testid="stSidebarContent"] para aumentar a especificidade e garantir a aplicação */
     [data-testid="stSidebarContent"] .sidebar-main-title {
         text-align: center !important; /* Centraliza o texto */
-        color: #00008B !important; /* Cor azul escuro para o tÃ­tulo principal */
+        color: #00008B !important; /* Cor azul escuro para o título principal */
         font-size: 1.76em !important; /* 2.2em * 0.8 = 1.76em */
-        font-weight: 700 !important; /* Negrito forte para o tÃ­tulo */
-        text-transform: uppercase !important; /* Transforma todo o texto em maiÃºsculas */
-        letter-spacing: 2px !important; /* Aumenta o espaÃ§amento entre as letras para um visual "minimalista" e "estiloso" */
+        font-weight: 700 !important; /* Negrito forte para o título */
+        text-transform: uppercase !important; /* Transforma todo o texto em maiúsculas */
+        letter-spacing: 2px !important; /* Aumenta o espaçamento entre as letras para um visual "minimalista" e "estiloso" */
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2) !important; /* Sombra mais suave para profundidade */
-        margin-top: -30px !important; /* Move tÃ­tulo principal para cima */
+        margin-top: -30px !important; /* Move título principal para cima */
     }
 
-    /* Novo Estilo para o SubtÃ­tulo da Sidebar */
-    /* Usamos [data-testid="stSidebarContent"] para aumentar a especificidade e garantir a aplicaÃ§Ã£o */
+    /* Novo Estilo para o Subtítulo da Sidebar */
+    /* Usamos [data-testid="stSidebarContent"] para aumentar a especificidade e garantir a aplicação */
     [data-testid="stSidebarContent"] .sidebar-subtitle {
         text-align: center !important; /* Centraliza o texto */
-        color: #333 !important; /* Cor mais suave para o subtÃ­tulo */
+        color: #333 !important; /* Cor mais suave para o subtítulo */
         font-size: 0.72em !important; /* 0.9em * 0.8 = 0.72em */
-        font-weight: 400 !important; /* Peso de fonte mÃ©dio */
-        text-transform: uppercase !important; /* Transforma todo o texto em maiÃºsculas, mantendo a consistÃªncia */
-        letter-spacing: 1.5px !important; /* EspaÃ§amento entre letras para alinhamento visual */
+        font-weight: 400 !important; /* Peso de fonte médio */
+        text-transform: uppercase !important; /* Transforma todo o texto em maiúsculas, mantendo a consistência */
+        letter-spacing: 1.5px !important; /* Espaçamento entre letras para alinhamento visual */
         margin-top: -30px !important; /* Pull closer to main title */
         margin-bottom: 5px !important; /* Reduce margin below subtitle */
     }
 
-    /* Estilo geral para cartÃµes de notificaÃ§Ã£o */
+    /* Estilo geral para cartões de notificação */
     .notification-card {
         border: 1px solid #ddd;
         border-radius: 10px;
         padding: 15px;
         margin: 10px 0;
         background-color: #f9f9f9;
-        color: #2E86AB; /* Cor do texto padrÃ£o para o cartÃ£o */
+        color: #2E86AB; /* Cor do texto padrão para o cartão */
     }
 
-    /* Cores e destaque para diferentes status de notificaÃ§Ã£o */
+    /* Cores e destaque para diferentes status de notificação */
     .status-pendente_classificacao { color: #ff9800; font-weight: bold; } /* Laranja */
     .status-classificada { color: #2196f3; font-weight: bold; } /* Azul */
     .status-em_execucao { color: #9c27b0; font-weight: bold; } /* Roxo */
-    .status-aguardando_classificador { color: #ff5722; font-weight: bold; } /* Laranja avermelhado (Usado para RevisÃ£o Rejeitada) */
+    .status-aguardando_classificador { color: #ff5722; font-weight: bold; } /* Laranja avermelhado (Usado para Revisão Rejeitada) */
     .status-revisao_classificador_execucao { color: #8BC34A; font-weight: bold; } /* Verde Lima - Novo Status */
     .status-aguardando_aprovacao { color: #ffc107; font-weight: bold; } /* Amarelo */
     .status-aprovada { color: #4caf50; font-weight: bold; } /* Verde */
     .status-concluida { color: #4caf50; font-weight: bold; } /* Verde (mesmo que aprovada para simplificar) */
-    .status-rejeitada { color: #f44336; font-weight: bold; } /* Vermelho (Usado para RejeiÃ§Ã£o Inicial) */
-    .status-reprovada { color: #f44336; font-weight: bold; } /* Vermelho (Usado para RejeiÃ§Ã£o de AprovaÃ§Ã£o)*/
-    /* Estilo para o conteÃºdo da barra lateral */
+    .status-rejeitada { color: #f44336; font-weight: bold; } /* Vermelho (Usado para Rejeição Inicial) */
+    .status-reprovada { color: #f44336; font-weight: bold; } /* Vermelho (Usado para Rejeição de Aprovação)*/
+    /* Estilo para o conteúdo da barra lateral */
     .sidebar .sidebar-content {
         background-color: #f0f2f6; /* Cinza claro */
     }
 
-    /* Estilo para a caixa de informaÃ§Ãµes do usuÃ¡rio na sidebar */
+    /* Estilo para a caixa de informações do usuário na sidebar */
     .user-info {
         background-color: #e8f4fd; /* Azul claro */
         padding: 10px;
@@ -154,7 +154,7 @@ st.markdown(r"""
         margin-bottom: 20px;
     }
 
-    /* Estilo para seÃ§Ãµes de formulÃ¡rio */
+    /* Estilo para seções de formulário */
     .form-section {
         background-color: #f8f9fa; /* Cinza bem claro */
         padding: 15px;
@@ -163,7 +163,7 @@ st.markdown(r"""
         border-left: 4px solid #2E86AB; /* Barra lateral azul */
     }
 
-    /* Estilo para campos condicionais em formulÃ¡rios (ex: detalhes de aÃ§Ã£o imediata) */
+    /* Estilo para campos condicionais em formulários (ex: detalhes de ação imediata) */
     .conditional-field {
         background-color: #fff3cd; /* Amarelo claro */
         padding: 10px;
@@ -172,13 +172,13 @@ st.markdown(r"""
         margin: 10px 0;
     }
 
-    /* Estilo para campos obrigatÃ³rios */
+    /* Estilo para campos obrigatórios */
     .required-field {
         color: #dc3545; /* Vermelho */
         font-weight: bold;
     }
 
-    /* Cores especÃ­ficas para botÃµes "Sim" e "NÃ£o" selecionados */
+    /* Cores específicas para botões "Sim" e "Não" selecionados */
     div.stButton > button[data-testid='stButton'][data-key*='_sim_step'][data-selected='true'] {
         border-color: #4caf50; /* Verde */
         color: #4caf50;
@@ -193,7 +193,7 @@ st.markdown(r"""
         font-weight: bold;
     }
 
-    /* Estilo para cartÃµes de mÃ©tricas no dashboard */
+    /* Estilo para cartões de métricas no dashboard */
     .metric-card {
         background-color: #ffffff;
         border-radius: 8px;
@@ -215,24 +215,24 @@ st.markdown(r"""
         margin-bottom: 0;
     }
 
-    /* Estilo para o rodapÃ© da sidebar */
+    /* Estilo para o rodapé da sidebar */
     .sidebar-footer {
         text-align: center;
-        margin-top: 20px; /* Adiciona um espaÃ§o acima do rodapÃ© */
+        margin-top: 20px; /* Adiciona um espaço acima do rodapé */
         padding: 10px;
         color: #888;
         font-size: 0.75em;
-        border-top: 1px solid #eee; /* Linha divisÃ³ria sutil */
+        border-top: 1px solid #eee; /* Linha divisória sutil */
     }
 
-    /* Remove padding do container principal, pois o rodapÃ© fixo foi removido */
+    /* Remove padding do container principal, pois o rodapé fixo foi removido */
     div[data-testid="stAppViewContainer"] {
-        padding-bottom: 0px; /* NÃ£o Ã© mais necessÃ¡rio padding na parte inferior */
+        padding-bottom: 0px; /* Não é mais necessário padding na parte inferior */
     }
 
-    /* Estilos para o fundo do cartÃ£o de notificaÃ§Ã£o com base no status do prazo */
+    /* Estilos para o fundo do cartão de notificação com base no status do prazo */
     .notification-card.card-prazo-dentro {
-        background-color: #e6ffe6; /* Verde claro para "No Prazo" e "Prazo PrÃ³ximo" */
+        background-color: #e6ffe6; /* Verde claro para "No Prazo" e "Prazo Próximo" */
         border: 1px solid #4CAF50; /* Borda verde */
     }
 
@@ -245,7 +245,7 @@ st.markdown(r"""
     .deadline-ontrack { color: #4CAF50; font-weight: bold; } /* Verde */
     .deadline-duesoon { color: #FFC107; font-weight: bold; } /* Amarelo */
 
-    /* Estilo para entrada de aÃ§Ã£o individual */
+    /* Estilo para entrada de ação individual */
     .action-entry-card {
         border: 1px solid #cceeff; /* Azul claro */
         border-left: 5px solid #2E86AB; /* Azul mais escuro para destaque */
@@ -265,7 +265,7 @@ st.markdown(r"""
         color: #555;
     }
 
-    /* Estilo para "minhas" aÃ§Ãµes na execuÃ§Ã£o */
+    /* Estilo para "minhas" ações na execução */
     .my-action-entry-card {
         border: 1px solid #d4edda; /* Verde claro */
         border-left: 5px solid #28a745; /* Verde para destaque */
@@ -281,7 +281,7 @@ st.markdown(r"""
         color: #28a745;
     }
 
-    /* Estilo para a seÃ§Ã£o de evidÃªncias dentro de uma aÃ§Ã£o */
+    /* Estilo para a seção de evidências dentro de uma ação */
     .evidence-section {
         background-color: #ffffff; /* Fundo branco */
         border-top: 1px dashed #cccccc; /* Linha tracejada superior */
@@ -289,7 +289,7 @@ st.markdown(r"""
         padding-top: 10px;
     }
 
-    .evidence-section h6 { /* Adicionado para subtÃ­tulos dentro das evidÃªncias */
+    .evidence-section h6 { /* Adicionado para subtítulos dentro das evidências */
         color: #666;
         margin-bottom: 5px;
     }
@@ -302,17 +302,17 @@ st.markdown(r"""
 </style>
 """, unsafe_allow_html=True)
 
-# Mapeamento de prazos para conclusÃ£o da notificaÃ§Ã£o
+# Mapeamento de prazos para conclusão da notificação
 DEADLINE_DAYS_MAPPING = {
-    "NÃ£o conformidade": 30,
-    "CircunstÃ¢ncia de Risco": 30,
+    "Não conformidade": 30,
+    "Circunstância de Risco": 30,
     "Near Miss": 30,
     "Evento sem dano": 10,
     "Evento com dano": {
         "Dano leve": 7,
         "Dano moderado": 5,
         "Dano grave": 3,
-        "Ã“bito": 3
+        "Óbito": 3
     }
 }
 
@@ -326,7 +326,7 @@ class UI_TEXTS:
     selectbox_default_patient_outcome_obito = "Selecione"
     selectbox_default_initial_event_type = "Selecione"
     selectbox_default_initial_severity = "Selecione"
-    selectbox_default_notification_select = "Selecione uma notificaÃ§Ã£o..."
+    selectbox_default_notification_select = "Selecione uma notificação..."
     text_na = "N/A"
     selectbox_default_procede_classification = "Selecione"
     selectbox_default_classificacao_nnc = "Selecione"
@@ -335,164 +335,164 @@ class UI_TEXTS:
     selectbox_default_never_event = "Selecione"
     selectbox_default_evento_sentinela = "Selecione"
     selectbox_default_tipo_principal = "Selecione"
-    multiselect_instruction_placeholder = "Selecione uma ou mais opÃ§Ãµes..."
-    multiselect_event_spec_label_prefix = "EspecificaÃ§Ã£o do Evento "
+    multiselect_instruction_placeholder = "Selecione uma ou mais opções..."
+    multiselect_event_spec_label_prefix = "Especificação do Evento "
     multiselect_event_spec_label_suffix = ":"
-    multiselect_classification_oms_label = "ClassificaÃ§Ã£o OMS:* (selecionar ao menos um)"
+    multiselect_classification_oms_label = "Classificação OMS:* (selecionar ao menos um)"
     selectbox_default_requires_approval = "Selecione"
     selectbox_default_approver = "Selecione"
     selectbox_default_decisao_revisao = "Selecione"
     selectbox_default_acao_realizar = "Selecione"
-    multiselect_assign_executors_label = "Atribuir Executores ResponsÃ¡veis:*"
+    multiselect_assign_executors_label = "Atribuir Executores Responsáveis:*"
     selectbox_default_decisao_aprovacao = "Selecione"
     multiselect_all_option = "Todos"
     selectbox_sort_by_placeholder = "Ordenar por..."
     selectbox_sort_by_label = "Ordenar por:"
-    selectbox_items_per_page_placeholder = "Itens por pÃ¡gina..."
-    selectbox_items_per_page_label = "Itens por pÃ¡gina:"
-    selectbox_default_admin_debug_notif = "Selecione uma notificaÃ§Ã£o..."
-    selectbox_never_event_na_text = "NÃ£o AplicÃ¡vel (N/A)"
-    multiselect_user_roles_label = "FunÃ§Ãµes do UsuÃ¡rio:*"
+    selectbox_items_per_page_placeholder = "Itens por página..."
+    selectbox_items_per_page_label = "Itens por página:"
+    selectbox_default_admin_debug_notif = "Selecione uma notificação..."
+    selectbox_never_event_na_text = "Não Aplicável (N/A)"
+    multiselect_user_roles_label = "Funções do Usuário:*"
 
     # Novos textos para status de prazo
     deadline_status_ontrack = "No Prazo"
-    deadline_status_duesoon = "Prazo PrÃ³ximo"
+    deadline_status_duesoon = "Prazo Próximo"
     deadline_status_overdue = "Atrasada"
     deadline_days_nan = "Nenhum prazo definido"
     selectbox_default_department_select = "Selecione o Setor..."  # <-- ADICIONADO
 
     # Constantes para filtros do dashboard
     multiselect_filter_status_label = "Filtrar por Status:"
-    multiselect_filter_nnc_label = "Filtrar por ClassificaÃ§Ã£o NNC:"
+    multiselect_filter_nnc_label = "Filtrar por Classificação NNC:"
     multiselect_filter_priority_label = "Filtrar por Prioridade:"
 
 
 class FORM_DATA:
-    turnos = ["Diurno", "Noturno", "NÃ£o sei informar"]
-    classificacao_nnc = ["NÃ£o conformidade", "CircunstÃ¢ncia de Risco", "Near Miss", "Evento sem dano",
+    turnos = ["Diurno", "Noturno", "Não sei informar"]
+    classificacao_nnc = ["Não conformidade", "Circunstância de Risco", "Near Miss", "Evento sem dano",
                          "Evento com dano"]
-    niveis_dano = ["Dano leve", "Dano moderado", "Dano grave", "Ã“bito"]
-    prioridades = ["Baixa", "MÃ©dia", "Alta", "CrÃ­tica"]
+    niveis_dano = ["Dano leve", "Dano moderado", "Dano grave", "Óbito"]
+    prioridades = ["Baixa", "Média", "Alta", "Crítica"]
 
     SETORES = [
-        "SuperintendÃªncia", "AgÃªncia Transfusional (AGT)", "Ala A", "Ala B",
-        "Ala C", "Ala E", "Almoxarifado", "AssistÃªncia Social",
-        "AmbulatÃ³rio BariÃ¡trica/Reparadora", "CCIH", "CDI", "Centro CirÃºrgico",
-        "Centro ObstÃ©trico", "CME", "Comercial/Tesouraria", "Compras",
-        "ComunicaÃ§Ã£o", "Contabilidade", "CPD (TI)", "DPI",
-        "Diretoria Assistencial", "Diretoria ClÃ­nica", "Diretoria Financeira",
-        "Diretoria TÃ©cnica", "Departamento Pessoal (RH)", "AmbulatÃ³rio Egresso (Especialidades)",
-        "EMTN", "FarmÃ¡cia ClÃ­nica", "FarmÃ¡cia Central", "FarmÃ¡cia OncolÃ³gica (ManipulaÃ§Ã£o Quimioterapia)",
-        "FarmÃ¡cia UNACON", "FarmÃ¡cia SatÃ©lite UTI",
-        "Faturamento", "Fisioterapia", "Fonoaudiologia", "GestÃ£o de Leitos",
-        "HemodiÃ¡lise", "HigienizaÃ§Ã£o", "InternaÃ§Ã£o/AutorizaÃ§Ã£o (ConvÃªnio)", "Iodoterapia",
-        "LaboratÃ³rio de AnÃ¡lises ClÃ­nicas", "Lavanderia", "ManutenÃ§Ã£o Equipamentos", "ManutenÃ§Ã£o Predial",
+        "Superintendência", "Agência Transfusional (AGT)", "Ala A", "Ala B",
+        "Ala C", "Ala E", "Almoxarifado", "Assistência Social",
+        "Ambulatório Bariátrica/Reparadora", "CCIH", "CDI", "Centro Cirúrgico",
+        "Centro Obstétrico", "CME", "Comercial/Tesouraria", "Compras",
+        "Comunicação", "Contabilidade", "CPD (TI)", "DPI",
+        "Diretoria Assistencial", "Diretoria Clínica", "Diretoria Financeira",
+        "Diretoria Técnica", "Departamento Pessoal (RH)", "Ambulatório Egresso (Especialidades)",
+        "EMTN", "Farmácia Clínica", "Farmácia Central", "Farmácia Oncológica (Manipulação Quimioterapia)",
+        "Farmácia UNACON", "Farmácia Satélite UTI",
+        "Faturamento", "Fisioterapia", "Fonoaudiologia", "Gestão de Leitos",
+        "Hemodiálise", "Higienização", "Internação/Autorização (Convênio)", "Iodoterapia",
+        "Laboratório de Análises Clínicas", "Lavanderia", "Manutenção Equipamentos", "Manutenção Predial",
         "Maternidade", "Medicina do Trabalho", "NHE", "Odontologia", "Ouvidoria", "Pediatria",
-        "Portaria/GestÃ£o de Acessos", "Psicologia", "Qualidade", "Quimioterapia (SalÃ£o de Quimio)",
-        "RecepÃ§Ã£o", "Recrutamento e SeleÃ§Ã£o", "RegulaÃ§Ã£o", "SAME", "SESMT",
-        "ServiÃ§o de NutriÃ§Ã£o e DietÃ©tica", "SSB", "UrgÃªncia e EmergÃªncia/Pronto Socorro",
-        "UNACON", "UTI Adulto", "UTI Neo e PediÃ¡trica"
+        "Portaria/Gestão de Acessos", "Psicologia", "Qualidade", "Quimioterapia (Salão de Quimio)",
+        "Recepção", "Recrutamento e Seleção", "Regulação", "SAME", "SESMT",
+        "Serviço de Nutrição e Dietética", "SSB", "Urgência e Emergência/Pronto Socorro",
+        "UNACON", "UTI Adulto", "UTI Neo e Pediátrica"
     ]
     never_events = [
         "Cirurgia no local errado do corpo, no paciente errado ou o procedimento errado",
-        "RetenÃ§Ã£o de corpo estranho em paciente apÃ³s a cirurgia",
-        "Morte de paciente ou lesÃ£o grave associada ao uso de dispositivo mÃ©dico",
-        "Morte de paciente ou lesÃ£o grave associada Ã  incompatibilidade de tipo sanguÃ­neo",
-        "Morte de paciente ou lesÃ£o grave associada a erro de medicaÃ§Ã£o",
-        "Morte de paciente ou lesÃ£o grave associada Ã  trombose venosa profunda (TVP) ou embolia pulmonar (EP) apÃ³s artroplastia total de quadril ou joelho",
-        "Morte de paciente ou lesÃ£o grave associada a hipoglicemia",
-        "Morte de paciente ou lesÃ£o grave associada Ã  infecÃ§Ã£o hospitalar",
-        "Morte de paciente ou lesÃ£o grave associada a Ãºlcera por pressÃ£o (escaras) adquirida no hospital",
-        "Morte de paciente ou lesÃ£o grave associada Ã  contenÃ§Ã£o inadequada",
-        "Morte ou lesÃ£o grave associada Ã  falha ou uso incorreto de equipamentos de proteÃ§Ã£o individual (EPIs)",
-        "Morte de paciente ou lesÃ£o grave associada Ã  queda do paciente",
-        "Morte de paciente ou lesÃ£o grave associada Ã  violÃªncia fÃ­sica ou sexual no ambiente hospitalar",
-        "Morte de paciente ou lesÃ£o grave associada ao desaparecimento de paciente"
+        "Retenção de corpo estranho em paciente após a cirurgia",
+        "Morte de paciente ou lesão grave associada ao uso de dispositivo médico",
+        "Morte de paciente ou lesão grave associada à incompatibilidade de tipo sanguíneo",
+        "Morte de paciente ou lesão grave associada a erro de medicação",
+        "Morte de paciente ou lesão grave associada à trombose venosa profunda (TVP) ou embolia pulmonar (EP) após artroplastia total de quadril ou joelho",
+        "Morte de paciente ou lesão grave associada a hipoglicemia",
+        "Morte de paciente ou lesão grave associada à infecção hospitalar",
+        "Morte de paciente ou lesão grave associada a úlcera por pressão (escaras) adquirida no hospital",
+        "Morte de paciente ou lesão grave associada à contenção inadequada",
+        "Morte ou lesão grave associada à falha ou uso incorreto de equipamentos de proteção individual (EPIs)",
+        "Morte de paciente ou lesão grave associada à queda do paciente",
+        "Morte de paciente ou lesão grave associada à violência física ou sexual no ambiente hospitalar",
+        "Morte de paciente ou lesão grave associada ao desaparecimento de paciente"
     ]
     tipos_evento_principal = {
-        "ClÃ­nico": [
-            "InfecÃ§Ã£o Relacionada Ã  AssistÃªncia Ã  SaÃºde (IRAS)",
-            "AdministraÃ§Ã£o de AntineoplÃ¡sicos",
-            "META 1 - IdentificaÃ§Ã£o Incorreta do Paciente",
-            "META 2 - Falha na ComunicaÃ§Ã£o entre Profissionais",
-            "META 3 - Problema com Medicamento (SeguranÃ§a Medicamentosa)",
+        "Clínico": [
+            "Infecção Relacionada à Assistência à Saúde (IRAS)",
+            "Administração de Antineoplásicos",
+            "META 1 - Identificação Incorreta do Paciente",
+            "META 2 - Falha na Comunicação entre Profissionais",
+            "META 3 - Problema com Medicamento (Segurança Medicamentosa)",
             "META 4 - Procedimento Incorreto (Cirurgia/Parto)",
-            "META 5 - Higiene das MÃ£os Inadequada",
-            "META 6 - Queda de Paciente e LesÃ£o por PressÃ£o",
-            "TransfusÃ£o Inadequada de Sangue ou Derivados",
-            "Problema com Dispositivo/Equipamento MÃ©dico",
-            "Evento CrÃ­tico ou IntercorrÃªncia Grave em Processo Seguro",
-            "Problema Nutricional Relacionado Ã  AssistÃªncia",
-            "NÃ£o Conformidade com Protocolos Gerenciados",
-            "Quebra de SLA (Atraso ou Falha na AssistÃªncia)",
+            "META 5 - Higiene das Mãos Inadequada",
+            "META 6 - Queda de Paciente e Lesão por Pressão",
+            "Transfusão Inadequada de Sangue ou Derivados",
+            "Problema com Dispositivo/Equipamento Médico",
+            "Evento Crítico ou Intercorrência Grave em Processo Seguro",
+            "Problema Nutricional Relacionado à Assistência",
+            "Não Conformidade com Protocolos Gerenciados",
+            "Quebra de SLA (Atraso ou Falha na Assistência)",
             "Evento Relacionado ao Parto e Nascimento",
             "Crise Convulsiva em Ambiente Assistencial",
-            "[HemodiÃ¡lise] CoagulaÃ§Ã£o do Sistema ExtracorpÃ³reo",
-            "[HemodiÃ¡lise] DesconexÃ£o Acidental da Agulha de PunÃ§Ã£o da FÃ­stula Arteriovenosa",
-            "[HemodiÃ¡lise] DesconexÃ£o Acidental do Cateter Ã s Linhas de HemodiÃ¡lise",
-            "[HemodiÃ¡lise] Embolia Pulmonar Relacionada Ã  HemodiÃ¡lise",
-            "[HemodiÃ¡lise] ExteriorizaÃ§Ã£o Acidental da Agulha de PunÃ§Ã£o da FÃ­stula Arteriovenosa",
-            "[HemodiÃ¡lise] ExteriorizaÃ§Ã£o Acidental do Cateter de HemodiÃ¡lise",
-            "[HemodiÃ¡lise] Falha na IdentificaÃ§Ã£o do Dialisador ou das Linhas de HemodiÃ¡lise",
-            "[HemodiÃ¡lise] Falha no Fluxo SanguÃ­neo do Cateter de HemodiÃ¡lise",
-            "[HemodiÃ¡lise] Falha no Fluxo SanguÃ­neo da FÃ­stula Arteriovenosa",
-            "[HemodiÃ¡lise] Hematoma Durante a Passagem do Cateter de HemodiÃ¡lise",
-            "[HemodiÃ¡lise] HemÃ³lise Relacionada Ã  HemodiÃ¡lise",
-            "[HemodiÃ¡lise] InfiltraÃ§Ã£o, Edema ou Hematoma na FÃ­stula Arteriovenosa",
-            "[HemodiÃ¡lise] PneumotÃ³rax Durante a Passagem do Cateter de HemodiÃ¡lise",
-            "[HemodiÃ¡lise] Pseudoaneurisma na FÃ­stula Arteriovenosa",
-            "[HemodiÃ¡lise] PunÃ§Ã£o Arterial Acidental Durante InserÃ§Ã£o do Cateter de HemodiÃ¡lise",
-            "[HemodiÃ¡lise] Rotura da FÃ­stula Arteriovenosa",
-            "[HemodiÃ¡lise] Sangramento pelo Ã“stio do Cateter de HemodiÃ¡lise",
-            "[HemodiÃ¡lise] Outras Falhas Relacionadas Ã  HemodiÃ¡lise"
+            "[Hemodiálise] Coagulação do Sistema Extracorpóreo",
+            "[Hemodiálise] Desconexão Acidental da Agulha de Punção da Fístula Arteriovenosa",
+            "[Hemodiálise] Desconexão Acidental do Cateter às Linhas de Hemodiálise",
+            "[Hemodiálise] Embolia Pulmonar Relacionada à Hemodiálise",
+            "[Hemodiálise] Exteriorização Acidental da Agulha de Punção da Fístula Arteriovenosa",
+            "[Hemodiálise] Exteriorização Acidental do Cateter de Hemodiálise",
+            "[Hemodiálise] Falha na Identificação do Dialisador ou das Linhas de Hemodiálise",
+            "[Hemodiálise] Falha no Fluxo Sanguíneo do Cateter de Hemodiálise",
+            "[Hemodiálise] Falha no Fluxo Sanguíneo da Fístula Arteriovenosa",
+            "[Hemodiálise] Hematoma Durante a Passagem do Cateter de Hemodiálise",
+            "[Hemodiálise] Hemólise Relacionada à Hemodiálise",
+            "[Hemodiálise] Infiltração, Edema ou Hematoma na Fístula Arteriovenosa",
+            "[Hemodiálise] Pneumotórax Durante a Passagem do Cateter de Hemodiálise",
+            "[Hemodiálise] Pseudoaneurisma na Fístula Arteriovenosa",
+            "[Hemodiálise] Punção Arterial Acidental Durante Inserção do Cateter de Hemodiálise",
+            "[Hemodiálise] Rotura da Fístula Arteriovenosa",
+            "[Hemodiálise] Sangramento pelo Óstio do Cateter de Hemodiálise",
+            "[Hemodiálise] Outras Falhas Relacionadas à Hemodiálise"
         ],
-        "NÃ£o-clÃ­nico": [
-            "Incidente de SeguranÃ§a Patrimonial",
-            "Problema Estrutural/InstalaÃ§Ãµes",
-            "Problema de Abastecimento/LogÃ­stica",
+        "Não-clínico": [
+            "Incidente de Segurança Patrimonial",
+            "Problema Estrutural/Instalações",
+            "Problema de Abastecimento/Logística",
             "Incidente de TI/Dados",
             "Erro Administrativo",
-            "Outros Eventos NÃ£o-clÃ­nicos"
+            "Outros Eventos Não-clínicos"
         ],
         "Ocupacional": [
-            "Acidente com Material BiolÃ³gico",
+            "Acidente com Material Biológico",
             "Acidente de Trabalho (geral)",
-            "DoenÃ§a Ocupacional",
-            "ExposiÃ§Ã£o a Agentes de Risco",
+            "Doença Ocupacional",
+            "Exposição a Agentes de Risco",
             "Outros Eventos Ocupacionais"
         ],
-        "Queixa tÃ©cnica": [],
+        "Queixa técnica": [],
         "Outros": []
     }
     classificacao_oms = [
-        "Quedas", "InfecÃ§Ãµes", "MedicaÃ§Ã£o", "Cirurgia", "IdentificaÃ§Ã£o do Paciente",
-        "Procedimentos", "Dispositivos MÃ©dicos", "UrgÃªncia/EmergÃªncia",
-        "SeguranÃ§a do Ambiente", "ComunicaÃ§Ã£o", "Recursos Humanos", "Outros"
+        "Quedas", "Infecções", "Medicação", "Cirurgia", "Identificação do Paciente",
+        "Procedimentos", "Dispositivos Médicos", "Urgência/Emergência",
+        "Segurança do Ambiente", "Comunicação", "Recursos Humanos", "Outros"
     ]
 
 
-# --- DiretÃ³rios de Dados e Arquivos (para anexos) ---
+# --- Diretórios de Dados e Arquivos (para anexos) ---
 DATA_DIR = "data"
 ATTACHMENTS_DIR = os.path.join(DATA_DIR, "attachments")
 
 
-# --- FunÃ§Ãµes de PersistÃªncia e Banco de Dados ---
+# --- Funções de Persistência e Banco de Dados ---
 
 def init_database():
-    """Garante que os diretÃ³rios de dados e arquivos iniciais existam e cria tabelas no DB."""
-    # Garante que os diretÃ³rios existam
+    """Garante que os diretórios de dados e arquivos iniciais existam e cria tabelas no DB."""
+    # Garante que os diretórios existam
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
     if not os.path.exists(ATTACHMENTS_DIR):
         os.makedirs(ATTACHMENTS_DIR)
 
-    conn = None # Inicializa a variÃ¡vel de conexÃ£o para garantir que seja None em caso de erro na conexÃ£o
+    conn = None # Inicializa a variável de conexão para garantir que seja None em caso de erro na conexão
     try:
         conn = get_db_connection()
         cur = conn.cursor()
 
         # Criar tabelas
-        # Os comandos SQL foram limpos de duplicaÃ§Ãµes e erros de sintaxe
+        # Os comandos SQL foram limpos de duplicações e erros de sintaxe
         cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -500,7 +500,7 @@ def init_database():
                 password_hash VARCHAR(255) NOT NULL,
                 name VARCHAR(255) NOT NULL,
                 email VARCHAR(255) UNIQUE NOT NULL,
-                roles TEXT[] NOT NULL DEFAULT '{}', -- Array de strings para as funÃ§Ãµes (e.g., {'admin', 'classificador'})
+                roles TEXT[] NOT NULL DEFAULT '{}', -- Array de strings para as funções (e.g., {'admin', 'classificador'})
                 active BOOLEAN NOT NULL DEFAULT TRUE,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
@@ -536,11 +536,11 @@ def init_database():
                 rejection_execution_review JSONB,
                 conclusion JSONB,
 
-                -- ReferÃªncias a usuÃ¡rios (IDs de usuÃ¡rios)
-                executors INTEGER[] DEFAULT '{}', -- IDs dos usuÃ¡rios executores (pode ser um array de IDs)
-                approver INTEGER REFERENCES users(id), -- ID do usuÃ¡rio aprovador
+                -- Referências a usuários (IDs de usuários)
+                executors INTEGER[] DEFAULT '{}', -- IDs dos usuários executores (pode ser um array de IDs)
+                approver INTEGER REFERENCES users(id), -- ID do usuário aprovador
 
-                -- Colunas para otimizaÃ§Ã£o de busca (Full-text search)
+                -- Colunas para otimização de busca (Full-text search)
                 search_vector TSVECTOR
             );
             CREATE INDEX IF NOT EXISTS idx_notifications_status ON notifications (status);
@@ -551,7 +551,7 @@ def init_database():
             CREATE INDEX IF NOT EXISTS idx_notifications_search_vector ON notifications USING GIN (search_vector);
 
             -- Trigger para atualizar search_vector automaticamente
-            -- Usamos $BODY$ como delimitador, que Ã© uma prÃ¡tica comum para funÃ§Ãµes PL/pgSQL
+            -- Usamos $BODY$ como delimitador, que é uma prática comum para funções PL/pgSQL
             CREATE OR REPLACE FUNCTION update_notification_search_vector() RETURNS TRIGGER AS $BODY$
             BEGIN
                 NEW.search_vector := to_tsvector('portuguese',
@@ -565,7 +565,7 @@ def init_database():
             END;
             $BODY$ LANGUAGE plpgsql;
 
-            -- Remover o trigger antigo se existir para evitar duplicaÃ§Ã£o ou erros
+            -- Remover o trigger antigo se existir para evitar duplicação ou erros
             DROP TRIGGER IF EXISTS trg_notifications_search_vector ON notifications;
             CREATE TRIGGER trg_notifications_search_vector
             BEFORE INSERT OR UPDATE ON notifications
@@ -574,7 +574,7 @@ def init_database():
             CREATE TABLE IF NOT EXISTS notification_attachments (
                 id SERIAL PRIMARY KEY,
                 notification_id INTEGER NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
-                unique_name VARCHAR(255) NOT NULL, -- Nome Ãºnico do arquivo no disco
+                unique_name VARCHAR(255) NOT NULL, -- Nome único do arquivo no disco
                 original_name VARCHAR(255) NOT NULL, -- Nome original do arquivo
                 uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
@@ -583,8 +583,8 @@ def init_database():
             CREATE TABLE IF NOT EXISTS notification_history (
                 id SERIAL PRIMARY KEY,
                 notification_id INTEGER NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
-                action_type VARCHAR(255) NOT NULL, -- e.g., 'NotificaÃ§Ã£o criada', 'Classificada', 'ExecuÃ§Ã£o concluÃ­da'
-                performed_by VARCHAR(255), -- Nome de usuÃ¡rio ou 'Sistema'
+                action_type VARCHAR(255) NOT NULL, -- e.g., 'Notificação criada', 'Classificada', 'Execução concluída'
+                performed_by VARCHAR(255), -- Nome de usuário ou 'Sistema'
                 action_timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                 details TEXT
             );
@@ -595,47 +595,47 @@ def init_database():
                 id SERIAL PRIMARY KEY,
                 notification_id INTEGER NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
                 executor_id INTEGER REFERENCES users(id),
-                executor_name VARCHAR(255), -- Para facilitar a exibiÃ§Ã£o, embora executor_id seja a FK
+                executor_name VARCHAR(255), -- Para facilitar a exibição, embora executor_id seja a FK
                 description TEXT NOT NULL,
                 action_timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                 final_action_by_executor BOOLEAN NOT NULL DEFAULT FALSE,
                 evidence_description TEXT,
-                evidence_attachments JSONB -- Lista de {unique_name, original_name} para evidÃªncias (pode ser uma FK para notification_attachments ou JSONB para pequenos dados)
+                evidence_attachments JSONB -- Lista de {unique_name, original_name} para evidências (pode ser uma FK para notification_attachments ou JSONB para pequenos dados)
             );
             CREATE INDEX IF NOT EXISTS idx_actions_notification_id ON notification_actions (notification_id);
             CREATE INDEX IF NOT EXISTS idx_actions_executor_id ON notification_actions (executor_id);
             CREATE INDEX IF NOT EXISTS idx_actions_timestamp ON notification_actions (action_timestamp);
         """)
 
-        # Adiciona usuÃ¡rio admin padrÃ£o se nÃ£o existir
+        # Adiciona usuário admin padrão se não existir
         cur.execute("SELECT COUNT(*) FROM users WHERE username = 'admin'")
         if cur.fetchone()[0] == 0:
-            admin_password_hash = hash_password("6105/*") # Hash da senha padrÃ£o
+            admin_password_hash = hash_password("6105/*") # Hash da senha padrão
             cur.execute("""
                 INSERT INTO users (username, password_hash, name, email, roles, active)
                 VALUES (%s, %s, %s, %s, %s, %s)
             """, ('admin', admin_password_hash, 'Administrador', 'admin@hospital.com',
                   ['admin', 'classificador', 'executor', 'aprovador'], True))
-            conn.commit() # Confirma a inserÃ§Ã£o do usuÃ¡rio admin
-            st.toast("UsuÃ¡rio administrador padrÃ£o criado no banco de dados!")         
+            conn.commit() # Confirma a inserção do usuário admin
+            st.toast("Usuário administrador padrão criado no banco de dados!")         
 
 
-        conn.commit() # Confirma todas as operaÃ§Ãµes de criaÃ§Ã£o de tabelas e Ã­ndices
-        cur.close() # Fecha o cursor apÃ³s o uso
+        conn.commit() # Confirma todas as operações de criação de tabelas e índices
+        cur.close() # Fecha o cursor após o uso
 
     except psycopg2.Error as e:
         # Em caso de qualquer erro de banco de dados, exibe uma mensagem e faz rollback
         st.error(f"Erro ao inicializar o banco de dados: {e}")
         if conn:
-            conn.rollback() # Reverte quaisquer alteraÃ§Ãµes incompletas
+            conn.rollback() # Reverte quaisquer alterações incompletas
 
     finally:
-        # Garante que a conexÃ£o seja fechada, mesmo que ocorra um erro
+        # Garante que a conexão seja fechada, mesmo que ocorra um erro
         if conn:
             conn.close()
 
 def load_users() -> List[Dict]:
-    """Carrega dados de usuÃ¡rio do banco de dados."""
+    """Carrega dados de usuário do banco de dados."""
     conn = None
     try:
         conn = get_db_connection()
@@ -648,7 +648,7 @@ def load_users() -> List[Dict]:
             {
                 "id": u[0],
                 "username": u[1],
-                "password": u[2],  # Armazenando o hash, nÃ£o a senha em texto claro
+                "password": u[2],  # Armazenando o hash, não a senha em texto claro
                 "name": u[3],
                 "email": u[4],
                 "roles": u[5],  # Lista de strings
@@ -658,7 +658,7 @@ def load_users() -> List[Dict]:
             for u in users_raw
         ]
     except psycopg2.Error as e:
-        st.error(f"Erro ao carregar usuÃ¡rios: {e}")
+        st.error(f"Erro ao carregar usuários: {e}")
         return []
     finally:
         if conn:
@@ -666,16 +666,16 @@ def load_users() -> List[Dict]:
 
 
 def create_user(data: Dict) -> Optional[Dict]:
-    """Cria um novo registro de usuÃ¡rio no banco de dados."""
+    """Cria um novo registro de usuário no banco de dados."""
     conn = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
 
-        # Verifica se o username jÃ¡ existe
+        # Verifica se o username já existe
         cur.execute("SELECT id FROM users WHERE username = %s", (data.get('username', '').lower(),))
         if cur.fetchone():
-            return None  # Username jÃ¡ existe
+            return None  # Username já existe
 
         user_password_hash = hash_password(data.get('password', '').strip())
         cur.execute("""
@@ -699,7 +699,7 @@ def create_user(data: Dict) -> Optional[Dict]:
             return {
                 "id": new_user_raw[0],
                 "username": new_user_raw[1],
-                "password": new_user_raw[2],  # Retorna o hash para consistÃªncia com load_users
+                "password": new_user_raw[2],  # Retorna o hash para consistência com load_users
                 "name": new_user_raw[3],
                 "email": new_user_raw[4],
                 "roles": new_user_raw[5],
@@ -708,7 +708,7 @@ def create_user(data: Dict) -> Optional[Dict]:
             }
         return None
     except psycopg2.Error as e:
-        st.error(f"Erro ao criar usuÃ¡rio: {e}")
+        st.error(f"Erro ao criar usuário: {e}")
         if conn:
             conn.rollback()
         return None
@@ -718,7 +718,7 @@ def create_user(data: Dict) -> Optional[Dict]:
 
 
 def update_user(user_id: int, updates: Dict) -> Optional[Dict]:
-    """Atualiza um registro de usuÃ¡rio existente no banco de dados."""
+    """Atualiza um registro de usuário existente no banco de dados."""
     conn = None
     try:
         conn = get_db_connection()
@@ -733,12 +733,12 @@ def update_user(user_id: int, updates: Dict) -> Optional[Dict]:
             elif key == 'roles':  # Se for para atualizar roles (array de texto)
                 set_clauses.append(sql.Identifier(key) + sql.SQL(' = %s'))
                 values.append(list(value))  # Converte para lista explicitamente, se for um set
-            elif key not in ['id', 'username', 'created_at']:  # Campos que nÃ£o devem ser atualizados diretamente
+            elif key not in ['id', 'username', 'created_at']:  # Campos que não devem ser atualizados diretamente
                 set_clauses.append(sql.Identifier(key) + sql.SQL(' = %s'))
                 values.append(value)
 
         if not set_clauses:
-            return None  # Nenhuma atualizaÃ§Ã£o para aplicar
+            return None  # Nenhuma atualização para aplicar
 
         query = sql.SQL(
             "UPDATE users SET {} WHERE id = %s RETURNING id, username, password_hash, name, email, roles, active, created_at").format(
@@ -764,7 +764,7 @@ def update_user(user_id: int, updates: Dict) -> Optional[Dict]:
             }
         return None
     except psycopg2.Error as e:
-        st.error(f"Erro ao atualizar usuÃ¡rio: {e}")
+        st.error(f"Erro ao atualizar usuário: {e}")
         if conn:
             conn.rollback()
         return None
@@ -774,7 +774,7 @@ def update_user(user_id: int, updates: Dict) -> Optional[Dict]:
 
 
 def load_notifications() -> List[Dict]:
-    """Carrega dados de notificaÃ§Ã£o do banco de dados, incluindo dados relacionados."""
+    """Carrega dados de notificação do banco de dados, incluindo dados relacionados."""
     conn = None
     try:
         conn = get_db_connection()
@@ -793,12 +793,12 @@ def load_notifications() -> List[Dict]:
         """)
         notifications_raw = cur.fetchall()
 
-        # Mapeamento dos nomes das colunas para facilitar a construÃ§Ã£o do dicionÃ¡rio
+        # Mapeamento dos nomes das colunas para facilitar a construção do dicionário
         column_names = [desc[0] for desc in cur.description]
         notifications = []
         for row in notifications_raw:
             notification = dict(zip(column_names, row))
-            # Ajustar tipos de dados que nÃ£o sÃ£o serializÃ¡veis para JSON (datetime, date, time)
+            # Ajustar tipos de dados que não são serializáveis para JSON (datetime, date, time)
             if notification.get('occurrence_date'):
                 notification['occurrence_date'] = notification['occurrence_date'].isoformat()
             if notification.get('occurrence_time'):
@@ -806,7 +806,7 @@ def load_notifications() -> List[Dict]:
             if notification.get('created_at'):
                 notification['created_at'] = notification['created_at'].isoformat()
 
-            # Buscar dados de outras tabelas para compor a notificaÃ§Ã£o completa
+            # Buscar dados de outras tabelas para compor a notificação completa
             notification['attachments'] = get_notification_attachments(notification['id'], conn, cur)
             notification['history'] = get_notification_history(notification['id'], conn, cur)
             notification['actions'] = get_notification_actions(notification['id'], conn, cur)
@@ -815,7 +815,7 @@ def load_notifications() -> List[Dict]:
         cur.close()
         return notifications
     except psycopg2.Error as e:
-        st.error(f"Erro ao carregar notificaÃ§Ãµes: {e}")
+        st.error(f"Erro ao carregar notificações: {e}")
         return []
     finally:
         if conn:
@@ -824,8 +824,8 @@ def load_notifications() -> List[Dict]:
 
 def create_notification(data: Dict, uploaded_files: Optional[List[Any]] = None) -> Dict:
     """
-    Cria um novo registro de notificaÃ§Ã£o no banco de dados e seus anexos iniciais.
-    Retorna o objeto de notificaÃ§Ã£o completo (como se fosse lido do DB).
+    Cria um novo registro de notificação no banco de dados e seus anexos iniciais.
+    Retorna o objeto de notificação completo (como se fosse lido do DB).
     """
     conn = None
     notification_id = None
@@ -865,7 +865,7 @@ def create_notification(data: Dict, uploaded_files: Optional[List[Any]] = None) 
             data.get('patient_involved') == "Sim",  # Converte para booleano
             data.get('patient_id', '').strip() if data.get('patient_involved') == "Sim" else None,
             (True if data.get('patient_outcome_obito') == "Sim" else False if data.get(
-                'patient_outcome_obito') == "NÃ£o" else None) if data.get('patient_involved') == "Sim" else None,
+                'patient_outcome_obito') == "Não" else None) if data.get('patient_involved') == "Sim" else None,
             data.get('additional_notes', '').strip(),
             "pendente_classificacao",
             datetime.now().isoformat()
@@ -887,30 +887,30 @@ def create_notification(data: Dict, uploaded_files: Optional[List[Any]] = None) 
         # Add initial history entry
         add_history_entry(
             notification_id,
-            "NotificaÃ§Ã£o criada",
-            "Sistema (FormulÃ¡rio PÃºblico)",
-            f"NotificaÃ§Ã£o enviada para classificaÃ§Ã£o. TÃ­tulo: {data.get('title', 'Sem tÃ­tulo')[:100]}..." if len(
+            "Notificação criada",
+            "Sistema (Formulário Público)",
+            f"Notificação enviada para classificação. Título: {data.get('title', 'Sem título')[:100]}..." if len(
                 data.get('title',
-                         '')) > 100 else f"NotificaÃ§Ã£o enviada para classificaÃ§Ã£o. TÃ­tulo: {data.get('title', 'Sem tÃ­tulo')}",
-            conn=conn,  # Passa a conexÃ£o para a funÃ§Ã£o de histÃ³rico usar a mesma transaÃ§Ã£o
+                         '')) > 100 else f"Notificação enviada para classificação. Título: {data.get('title', 'Sem título')}",
+            conn=conn,  # Passa a conexão para a função de histórico usar a mesma transação
             cursor=cur  # Passa o cursor
         )
 
         conn.commit()
         cur.close()
 
-        # Recarregar a notificaÃ§Ã£o completa para retornar
-        # Isso Ã© importante porque a notificaÃ§Ã£o pode ter valores padrÃ£o ou triggers que a modificam
+        # Recarregar a notificação completa para retornar
+        # Isso é importante porque a notificação pode ter valores padrão ou triggers que a modificam
         # (Chama load_notifications e filtra pelo ID)
-        all_notifications = load_notifications()  # Recarrega tudo para garantir consistÃªncia
+        all_notifications = load_notifications()  # Recarrega tudo para garantir consistência
         created_notification = next((n for n in all_notifications if n['id'] == notification_id), None)
         return created_notification
 
     except psycopg2.Error as e:
-        st.error(f"Erro ao criar notificaÃ§Ã£o: {e}")
+        st.error(f"Erro ao criar notificação: {e}")
         if conn:
             conn.rollback()  # Rollback em caso de erro
-        return {}  # Retorna um dicionÃ¡rio vazio em caso de falha grave
+        return {}  # Retorna um dicionário vazio em caso de falha grave
     finally:
         if conn:
             conn.close()
@@ -918,9 +918,9 @@ def create_notification(data: Dict, uploaded_files: Optional[List[Any]] = None) 
 
 def update_notification(notification_id: int, updates: Dict):
     """
-    Atualiza um registro de notificaÃ§Ã£o com novos dados no banco de dados.
-    Esta funÃ§Ã£o Ã© inteligente para lidar com campos JSONB e arrays,
-    alÃ©m de campos simples.
+    Atualiza um registro de notificação com novos dados no banco de dados.
+    Esta função é inteligente para lidar com campos JSONB e arrays,
+    além de campos simples.
     """
     conn = None
     try:
@@ -931,11 +931,11 @@ def update_notification(notification_id: int, updates: Dict):
         values = []
 
         # Mapeamento para garantir que booleanos e datas/tempos sejam formatados corretamente para o DB
-        # E que dicionÃ¡rios sejam serializados para JSONB
+        # E que dicionários sejam serializados para JSONB
         column_mapping = {
-            'immediate_actions_taken': lambda x: True if x == "Sim" else False if x == "NÃ£o" else None,
-            'patient_involved': lambda x: True if x == "Sim" else False if x == "NÃ£o" else None,
-            'patient_outcome_obito': lambda x: (True if x == "Sim" else False if x == "NÃ£o" else None),
+            'immediate_actions_taken': lambda x: True if x == "Sim" else False if x == "Não" else None,
+            'patient_involved': lambda x: True if x == "Sim" else False if x == "Não" else None,
+            'patient_outcome_obito': lambda x: (True if x == "Sim" else False if x == "Não" else None),
             'occurrence_date': lambda x: x.isoformat() if isinstance(x, dt_date_class) else x,
             'occurrence_time': lambda x: x.isoformat() if isinstance(x, dt_time_class) else x,
             'classification': lambda x: json.dumps(x) if x is not None else None,
@@ -950,7 +950,7 @@ def update_notification(notification_id: int, updates: Dict):
 
         for key, value in updates.items():
             if key not in ['id', 'created_at', 'attachments', 'actions',
-                           'history']:  # NÃ£o atualiza IDs ou listas complexas aqui
+                           'history']:  # Não atualiza IDs ou listas complexas aqui
                 if key in column_mapping:
                     set_clauses.append(sql.Identifier(key) + sql.SQL(' = %s'))
                     values.append(column_mapping[key](value))
@@ -959,7 +959,7 @@ def update_notification(notification_id: int, updates: Dict):
                     values.append(value)
 
         if not set_clauses:
-            return None  # Nenhuma atualizaÃ§Ã£o para aplicar
+            return None  # Nenhuma atualização para aplicar
 
         query = sql.SQL("UPDATE notifications SET {} WHERE id = %s").format(
             sql.SQL(', ').join(set_clauses)
@@ -970,13 +970,13 @@ def update_notification(notification_id: int, updates: Dict):
         conn.commit()
         cur.close()
 
-        # Recarregar a notificaÃ§Ã£o atualizada para retornar (chama load_notifications e filtra)
+        # Recarregar a notificação atualizada para retornar (chama load_notifications e filtra)
         all_notifications = load_notifications()
         updated_notification = next((n for n in all_notifications if n['id'] == notification_id), None)
         return updated_notification
 
     except psycopg2.Error as e:
-        st.error(f"Erro ao atualizar notificaÃ§Ã£o: {e}")
+        st.error(f"Erro ao atualizar notificação: {e}")
         if conn:
             conn.rollback()
         return None
@@ -985,9 +985,9 @@ def update_notification(notification_id: int, updates: Dict):
             conn.close()
 
 
-# FunÃ§Ãµes auxiliares para buscar dados relacionados (usadas por load_notifications)
+# Funções auxiliares para buscar dados relacionados (usadas por load_notifications)
 def get_notification_attachments(notification_id: int, conn=None, cur=None) -> List[Dict]:
-    """Busca anexos para uma notificaÃ§Ã£o especÃ­fica. Pode usar conexÃ£o e cursor existentes."""
+    """Busca anexos para uma notificação específica. Pode usar conexão e cursor existentes."""
     local_conn = conn
     local_cur = cur
     try:
@@ -1000,7 +1000,7 @@ def get_notification_attachments(notification_id: int, conn=None, cur=None) -> L
         attachments_raw = local_cur.fetchall()
         return [{"unique_name": att[0], "original_name": att[1]} for att in attachments_raw]
     except psycopg2.Error as e:
-        st.error(f"Erro ao carregar anexos da notificaÃ§Ã£o {notification_id}: {e}")
+        st.error(f"Erro ao carregar anexos da notificação {notification_id}: {e}")
         return []
     finally:
         if not (conn and cur) and local_cur: local_cur.close()
@@ -1008,7 +1008,7 @@ def get_notification_attachments(notification_id: int, conn=None, cur=None) -> L
 
 
 def get_notification_history(notification_id: int, conn=None, cur=None) -> List[Dict]:
-    """Busca entradas de histÃ³rico para uma notificaÃ§Ã£o. Pode usar conexÃ£o e cursor existentes."""
+    """Busca entradas de histórico para uma notificação. Pode usar conexão e cursor existentes."""
     local_conn = conn
     local_cur = cur
     try:
@@ -1030,7 +1030,7 @@ def get_notification_history(notification_id: int, conn=None, cur=None) -> List[
             for h in history_raw
         ]
     except psycopg2.Error as e:
-        st.error(f"Erro ao carregar histÃ³rico da notificaÃ§Ã£o {notification_id}: {e}")
+        st.error(f"Erro ao carregar histórico da notificação {notification_id}: {e}")
         return []
     finally:
         if not (conn and cur) and local_cur: local_cur.close()
@@ -1038,7 +1038,7 @@ def get_notification_history(notification_id: int, conn=None, cur=None) -> List[
 
 
 def get_notification_actions(notification_id: int, conn=None, cur=None) -> List[Dict]:
-    """Busca aÃ§Ãµes de executores para uma notificaÃ§Ã£o. Pode usar conexÃ£o e cursor existentes."""
+    """Busca ações de executores para uma notificação. Pode usar conexão e cursor existentes."""
     local_conn = conn
     local_cur = cur
     try:
@@ -1058,12 +1058,12 @@ def get_notification_actions(notification_id: int, conn=None, cur=None) -> List[
                 "timestamp": a[3].isoformat() if a[3] else None,
                 "final_action_by_executor": a[4],
                 "evidence_description": a[5],
-                "evidence_attachments": a[6]  # JÃ¡ Ã© JSONB, entÃ£o vem como objeto Python (list/dict)
+                "evidence_attachments": a[6]  # Já é JSONB, então vem como objeto Python (list/dict)
             }
             for a in actions_raw
         ]
     except psycopg2.Error as e:
-        st.error(f"Erro ao carregar aÃ§Ãµes da notificaÃ§Ã£o {notification_id}: {e}")
+        st.error(f"Erro ao carregar ações da notificação {notification_id}: {e}")
         return []
     finally:
         if not (conn and cur) and local_cur: local_cur.close()
@@ -1072,8 +1072,8 @@ def get_notification_actions(notification_id: int, conn=None, cur=None) -> List[
 
 def add_history_entry(notification_id: int, action: str, user: str, details: str = "", conn=None, cursor=None):
     """
-    Adiciona uma entrada ao histÃ³rico de uma notificaÃ§Ã£o.
-    Pode usar uma conexÃ£o e cursor existentes para transaÃ§Ãµes, ou criar novas.
+    Adiciona uma entrada ao histórico de uma notificação.
+    Pode usar uma conexão e cursor existentes para transações, ou criar novas.
     """
     local_conn = conn
     local_cur = cursor
@@ -1087,11 +1087,11 @@ def add_history_entry(notification_id: int, action: str, user: str, details: str
             VALUES (%s, %s, %s, %s, %s)
         """, (notification_id, action, user, datetime.now().isoformat(), details))
 
-        if not (conn and cursor):  # Se for uma transaÃ§Ã£o separada, faÃ§a commit aqui
+        if not (conn and cursor):  # Se for uma transação separada, faça commit aqui
             local_conn.commit()
         return True
     except psycopg2.Error as e:
-        st.error(f"Erro ao adicionar entrada de histÃ³rico para notificaÃ§Ã£o {notification_id}: {e}")
+        st.error(f"Erro ao adicionar entrada de histórico para notificação {notification_id}: {e}")
         if local_conn and not (conn and cursor):
             local_conn.rollback()
         return False
@@ -1104,8 +1104,8 @@ def add_history_entry(notification_id: int, action: str, user: str, details: str
 
 def add_notification_action(notification_id: int, action_data: Dict, conn=None, cur=None):
     """
-    Adiciona uma aÃ§Ã£o de executor a uma notificaÃ§Ã£o.
-    Pode usar uma conexÃ£o e cursor existentes para transaÃ§Ãµes, ou criar novas.
+    Adiciona uma ação de executor a uma notificação.
+    Pode usar uma conexão e cursor existentes para transações, ou criar novas.
     """
     local_conn = conn
     local_cur = cur
@@ -1133,7 +1133,7 @@ def add_notification_action(notification_id: int, action_data: Dict, conn=None, 
             local_conn.commit()
         return True
     except psycopg2.Error as e:
-        st.error(f"Erro ao adicionar aÃ§Ã£o para notificaÃ§Ã£o {notification_id}: {e}")
+        st.error(f"Erro ao adicionar ação para notificação {notification_id}: {e}")
         if local_conn and not (conn and cur):
             local_conn.rollback()
         return False
@@ -1143,7 +1143,7 @@ def add_notification_action(notification_id: int, action_data: Dict, conn=None, 
 
 
 def save_uploaded_file_to_disk(uploaded_file: Any, notification_id: int) -> Optional[Dict]:
-    """Salva um arquivo enviado para o diretÃ³rio de anexos no disco e retorna suas informaÃ§Ãµes."""
+    """Salva um arquivo enviado para o diretório de anexos no disco e retorna suas informações."""
     if uploaded_file is None:
         return None
     original_name = uploaded_file.name
@@ -1151,7 +1151,7 @@ def save_uploaded_file_to_disk(uploaded_file: Any, notification_id: int) -> Opti
     unique_filename = f"{notification_id}_{uuid.uuid4().hex}_{safe_original_name}"
     file_path = os.path.join(ATTACHMENTS_DIR, unique_filename)
     try:
-        os.makedirs(ATTACHMENTS_DIR, exist_ok=True)  # Garante que o diretÃ³rio exista
+        os.makedirs(ATTACHMENTS_DIR, exist_ok=True)  # Garante que o diretório exista
         with open(file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
         return {"unique_name": unique_filename, "original_name": original_name}
@@ -1161,20 +1161,20 @@ def save_uploaded_file_to_disk(uploaded_file: Any, notification_id: int) -> Opti
 
 
 def get_attachment_data(unique_filename: str) -> Optional[bytes]:
-    """LÃª o conteÃºdo de um arquivo de anexo do disco."""
+    """Lê o conteúdo de um arquivo de anexo do disco."""
     file_path = os.path.join(ATTACHMENTS_DIR, unique_filename)
     try:
         with open(file_path, "rb") as f:
             return f.read()
     except FileNotFoundError:
-        st.warning(f"Anexo nÃ£o encontrado no caminho: {unique_filename}")
+        st.warning(f"Anexo não encontrado no caminho: {unique_filename}")
         return None
     except Exception as e:
         st.error(f"Erro ao ler o anexo {unique_filename}: {e}")
         return None
 
 
-# --- FunÃ§Ãµes de AutenticaÃ§Ã£o e AutorizaÃ§Ã£o ---
+# --- Funções de Autenticação e Autorização ---
 
 def hash_password(password: str) -> str:
     """Faz o hash de uma senha usando SHA-256."""
@@ -1182,20 +1182,20 @@ def hash_password(password: str) -> str:
 
 
 def authenticate_user(username: str, password: str) -> Optional[Dict]:
-    """Autentica um usuÃ¡rio com base no nome de usuÃ¡rio e senha."""
-    users = load_users()  # Carrega usuÃ¡rios do DB
+    """Autentica um usuário com base no nome de usuário e senha."""
+    users = load_users()  # Carrega usuários do DB
     hashed_password = hash_password(password)
     for user in users:
-        # A senha do user no dicionÃ¡rio retornado por load_users Ã© o hash
+        # A senha do user no dicionário retornado por load_users é o hash
         if (user.get('username', '').lower() == username.lower() and
-                user.get('password') == hashed_password and  # Compare com o hash jÃ¡ armazenado
+                user.get('password') == hashed_password and  # Compare com o hash já armazenado
                 user.get('active', True)):
             return user
     return None
 
 
 def logout_user():
-    """Desloga o usuÃ¡rio atual."""
+    """Desloga o usuário atual."""
     st.session_state.authenticated = False
     st.session_state.user = None
     st.session_state.page = 'create_notification'
@@ -1205,12 +1205,12 @@ def logout_user():
     if 'current_initial_classification_id' in st.session_state: st.session_state.pop(
         'current_initial_classification_id')
     if 'current_review_classification_id' in st.session_state: st.session_state.pop('current_review_classification_id')
-    # Limpa o estado do formulÃ¡rio de aprovaÃ§Ã£o tambÃ©m
+    # Limpa o estado do formulário de aprovação também
     if 'approval_form_state' in st.session_state: st.session_state.pop('approval_form_state')
 
 
 def check_permission(required_role: str) -> bool:
-    """Verifica se o usuÃ¡rio logado possui a funÃ§Ã£o necessÃ¡ria ou Ã© um admin."""
+    """Verifica se o usuário logado possui a função necessária ou é um admin."""
     if not st.session_state.authenticated or st.session_state.user is None:
         return False
     user_roles = st.session_state.user.get('roles', [])
@@ -1218,50 +1218,50 @@ def check_permission(required_role: str) -> bool:
 
 
 def get_users_by_role(role: str) -> List[Dict]:
-    """Retorna usuÃ¡rios ativos com uma funÃ§Ã£o especÃ­fica."""
-    users = load_users()  # Carrega usuÃ¡rios do DB
+    """Retorna usuários ativos com uma função específica."""
+    users = load_users()  # Carrega usuários do DB
     return [user for user in users if role in user.get('roles', []) and user.get('active', True)]
 
 
-# --- FunÃ§Ãµes Auxiliares/UtilitÃ¡rias ---
+# --- Funções Auxiliares/Utilitárias ---
 
 def get_deadline_status(deadline_date_str: Optional[str], completion_timestamp_str: Optional[str] = None) -> Dict:
     """
-    Calcula o status do prazo com base no prazo final e, caso aplicÃ¡vel, tambÃ©m se a notificaÃ§Ã£o foi concluÃ­da a tempo.
-    Retorna um dicionÃ¡rio com 'text' (status) e 'class' (classe CSS para estilo).
+    Calcula o status do prazo com base no prazo final e, caso aplicável, também se a notificação foi concluída a tempo.
+    Retorna um dicionário com 'text' (status) e 'class' (classe CSS para estilo).
     """
     if not deadline_date_str:
         return {"text": UI_TEXTS.deadline_days_nan, "class": ""}
 
     try:
-        # CORREÃ‡ÃƒO AQUI: Usando dt_date_class.fromisoformat
+        # CORREÇÃO AQUI: Usando dt_date_class.fromisoformat
         deadline_date = dt_date_class.fromisoformat(deadline_date_str)
 
         if completion_timestamp_str:
-            # A notificaÃ§Ã£o foi concluÃ­da, compare a data de conclusÃ£o com o prazo limite
+            # A notificação foi concluída, compare a data de conclusão com o prazo limite
             completion_date = datetime.fromisoformat(completion_timestamp_str).date()
             if completion_date <= deadline_date:
                 return {"text": UI_TEXTS.deadline_status_ontrack, "class": "deadline-ontrack"}
             else:
                 return {"text": UI_TEXTS.deadline_status_overdue, "class": "deadline-overdue"}
         else:
-            # Caso nÃ£o tenha sido concluÃ­da ainda: verificar relaÃ§Ã£o com a data de hoje
-            # CORREÃ‡ÃƒO AQUI: Usando dt_date_class.today()
+            # Caso não tenha sido concluída ainda: verificar relação com a data de hoje
+            # CORREÇÃO AQUI: Usando dt_date_class.today()
             today = dt_date_class.today()
             days_diff = (deadline_date - today).days
 
             if days_diff < 0:
                 return {"text": UI_TEXTS.deadline_status_overdue, "class": "deadline-overdue"}  # Prazo vencido
             elif days_diff <= 7:
-                return {"text": UI_TEXTS.deadline_status_duesoon, "class": "deadline-duesoon"}  # Prazo prÃ³ximo
+                return {"text": UI_TEXTS.deadline_status_duesoon, "class": "deadline-duesoon"}  # Prazo próximo
             else:
                 return {"text": UI_TEXTS.deadline_status_ontrack, "class": "deadline-ontrack"}  # Dentro do prazo
     except ValueError:
-        return {"text": UI_TEXTS.text_na, "class": ""}  # Formato invÃ¡lido de data
+        return {"text": UI_TEXTS.text_na, "class": ""}  # Formato inválido de data
 
 
 def format_date_time_summary(date_val: Any, time_val: Any) -> str:
-    """Formata data e hora opcional para exibiÃ§Ã£o."""
+    """Formata data e hora opcional para exibição."""
     date_part_formatted = UI_TEXTS.text_na
     time_part_formatted = ''
 
@@ -1271,35 +1271,35 @@ def format_date_time_summary(date_val: Any, time_val: Any) -> str:
         try:
             date_part_formatted = datetime.fromisoformat(date_val).date().strftime('%d/%m/%Y')
         except ValueError:
-            date_part_formatted = 'Data invÃ¡lida'
+            date_part_formatted = 'Data inválida'
     elif date_val is None:
-        date_part_formatted = 'NÃ£o informada'
+        date_part_formatted = 'Não informada'
 
     if isinstance(time_val, dt_time_class):  # Corrigido: usa dt_time_class
-        time_part_formatted = f" Ã s {time_val.strftime('%H:%M')}"
+        time_part_formatted = f" às {time_val.strftime('%H:%M')}"
     elif isinstance(time_val, str) and time_val and time_val.lower() != 'none':
         try:
             time_str_part = time_val.split('.')[0]
             try:
                 time_obj = datetime.strptime(time_str_part, '%H:%M:%S').time()
-                # CORREÃ‡ÃƒO: Tratar o caso de "00:00:00" para evitar que seja exibido para campos de hora vazios
+                # CORREÇÃO: Tratar o caso de "00:00:00" para evitar que seja exibido para campos de hora vazios
                 if time_obj == datetime.strptime("00:00:00", '%H:%M:%S').time():
                     time_part_formatted = ''
                 else:
-                    time_part_formatted = f" Ã s {time_obj.strftime('%H:%M')}"
+                    time_part_formatted = f" às {time_obj.strftime('%H:%M')}"
             except ValueError:
                 try:
                     time_obj = datetime.strptime("00:00", '%H:%M').time()
                     if time_obj == datetime.strptime("00:00", '%H:%M').time():
                         time_part_formatted = ''
                     else:
-                        time_part_formatted = f" Ã s {time_obj.strftime('%H:%M')}"
+                        time_part_formatted = f" às {time_obj.strftime('%H:%M')}"
                 except ValueError:
-                    time_part_formatted = f" Ã s {time_val}"
+                    time_part_formatted = f" às {time_val}"
                     time_obj = None
 
         except ValueError:
-            time_part_formatted = f" Ã s {time_val}"
+            time_part_formatted = f" às {time_val}"
     elif time_val is None:
         time_part_formatted = ''
 
@@ -1307,7 +1307,7 @@ def format_date_time_summary(date_val: Any, time_val: Any) -> str:
 
 
 def _clear_execution_form_state(notification_id: int):
-    """Limpa as chaves do session_state para o formulÃ¡rio de execuÃ§Ã£o apÃ³s o envio."""
+    """Limpa as chaves do session_state para o formulário de execução após o envio."""
     key_desc = f"exec_action_desc_{notification_id}_refactored"
     key_choice = f"exec_action_choice_{notification_id}_refactored"
     key_evidence_desc = f"exec_evidence_desc_{notification_id}_refactored"
@@ -1324,7 +1324,7 @@ def _clear_execution_form_state(notification_id: int):
 
 
 def _clear_approval_form_state(notification_id: int):
-    """Limpa as chaves do session_state para o formulÃ¡rio de aprovaÃ§Ã£o."""
+    """Limpa as chaves do session_state para o formulário de aprovação."""
     key_notes = f"approval_notes_{notification_id}_refactored"
     key_decision = f"approval_decision_{notification_id}_refactored"
 
@@ -1333,13 +1333,13 @@ def _clear_approval_form_state(notification_id: int):
     if key_decision in st.session_state:
         del st.session_state[key_decision]
 
-    # TambÃ©m remove o estado do formulÃ¡rio de aprovaÃ§Ã£o da notificaÃ§Ã£o especÃ­fica
+    # Também remove o estado do formulário de aprovação da notificação específica
     if 'approval_form_state' in st.session_state and notification_id in st.session_state.approval_form_state:
         del st.session_state.approval_form_state[notification_id]
 
 
 def _reset_form_state():
-    """Reinicia as variÃ¡veis de estado para o formulÃ¡rio de criaÃ§Ã£o de notificaÃ§Ã£o e outros estados especÃ­ficos da pÃ¡gina."""
+    """Reinicia as variáveis de estado para o formulário de criação de notificação e outros estados específicos da página."""
     keys_to_clear = [
         'form_step', 'create_form_data',
         'create_title_state_refactored', 'create_location_state_refactored',
@@ -1378,29 +1378,29 @@ def _reset_form_state():
     }
 
 
-# --- FunÃ§Ãµes de RenderizaÃ§Ã£o da Interface (UI) ---
+# --- Funções de Renderização da Interface (UI) ---
 
 def show_sidebar():
-    """Renderiza a barra lateral com navegaÃ§Ã£o e informaÃ§Ãµes do usuÃ¡rio/login."""
+    """Renderiza a barra lateral com navegação e informações do usuário/login."""
     with st.sidebar:
         st.image("logo.png", use_container_width=True)
-        st.markdown("<h2 class='sidebar-main-title'>Portal de NotificaÃ§Ãµes</h2>", unsafe_allow_html=True)
-        st.markdown("<h3 class='sidebar-subtitle'>Santa Casa de PoÃ§os de Caldas</h3>", unsafe_allow_html=True)
+        st.markdown("<h2 class='sidebar-main-title'>Portal de Notificações</h2>", unsafe_allow_html=True)
+        st.markdown("<h3 class='sidebar-subtitle'>Santa Casa de Poços de Caldas</h3>", unsafe_allow_html=True)
         st.markdown("---")
 
         if st.session_state.authenticated and st.session_state.user:
             st.markdown(f"""
             <div class="user-info">
-                <strong>ðŸ‘¤ {st.session_state.user.get('name', 'UsuÃ¡rio')}</strong><br>
+                <strong>👤 {st.session_state.user.get('name', 'Usuário')}</strong><br>
                 <small>{st.session_state.user.get('username', UI_TEXTS.text_na)}</small><br>
-                <small>FunÃ§Ãµes: {', '.join(st.session_state.user.get('roles', [])) or 'Nenhuma'}</small>
+                <small>Funções: {', '.join(st.session_state.user.get('roles', [])) or 'Nenhuma'}</small>
             </div>
             """, unsafe_allow_html=True)
-            st.markdown("### ðŸ“‹ Menu Principal")
+            st.markdown("### 📋 Menu Principal")
 
             user_roles = st.session_state.user.get('roles', [])
 
-            if st.button("ðŸ“ Nova NotificaÃ§Ã£o", key="nav_create_notif", use_container_width=True):
+            if st.button("📝 Nova Notificação", key="nav_create_notif", use_container_width=True):
                 st.session_state.page = 'create_notification'
                 _reset_form_state()
                 if 'initial_classification_state' in st.session_state: st.session_state.pop(
@@ -1414,14 +1414,14 @@ def show_sidebar():
                 if 'approval_form_state' in st.session_state: st.session_state.pop('approval_form_state')
                 st.rerun()
 
-            if 'classificador' in user_roles or 'admin' in user_roles:  # Adicione esta linha de verificaÃ§Ã£o
-                if st.button("ðŸ“Š Dashboard de NotificaÃ§Ãµes", key="nav_dashboard", use_container_width=True):
+            if 'classificador' in user_roles or 'admin' in user_roles:  # Adicione esta linha de verificação
+                if st.button("📊 Dashboard de Notificações", key="nav_dashboard", use_container_width=True):
                     st.session_state.page = 'dashboard'
                     _reset_form_state()
                     st.rerun()
 
             if 'classificador' in user_roles or 'admin' in user_roles:
-                if st.button("ðŸ” ClassificaÃ§Ã£o/RevisÃ£o", key="nav_classification",
+                if st.button("🔍 Classificação/Revisão", key="nav_classification",
                              use_container_width=True):
                     st.session_state.page = 'classification'
                     _reset_form_state()
@@ -1437,7 +1437,7 @@ def show_sidebar():
                     st.rerun()
 
             if 'executor' in user_roles or 'admin' in user_roles:
-                if st.button("âš¡ ExecuÃ§Ã£o", key="nav_execution", use_container_width=True):
+                if st.button("⚡ Execução", key="nav_execution", use_container_width=True):
                     st.session_state.page = 'execution'
                     _reset_form_state()
                     if 'initial_classification_state' in st.session_state: st.session_state.pop(
@@ -1452,7 +1452,7 @@ def show_sidebar():
                     st.rerun()
 
             if 'aprovador' in user_roles or 'admin' in user_roles:
-                if st.button("âœ… AprovaÃ§Ã£o", key="nav_approval", use_container_width=True):
+                if st.button("✅ Aprovação", key="nav_approval", use_container_width=True):
                     st.session_state.page = 'approval'
                     _reset_form_state()
                     if 'initial_classification_state' in st.session_state: st.session_state.pop(
@@ -1467,7 +1467,7 @@ def show_sidebar():
                     st.rerun()
 
             if 'admin' in user_roles:
-                if st.button("âš™ï¸ AdministraÃ§Ã£o", key="nav_admin", use_container_width=True):
+                if st.button("⚙️ Administração", key="nav_admin", use_container_width=True):
                     st.session_state.page = 'admin'
                     _reset_form_state()
                     if 'initial_classification_state' in st.session_state: st.session_state.pop(
@@ -1482,21 +1482,21 @@ def show_sidebar():
                     st.rerun()
 
             st.markdown("---")
-            if st.button("ðŸšª Sair", key="nav_logout", use_container_width=True):
+            if st.button("🚪 Sair", key="nav_logout", use_container_width=True):
                 logout_user()
-                st.rerun()  # MANTIDO: O logout exige um reinÃ­cio completo para limpar todo o estado.
+                st.rerun()  # MANTIDO: O logout exige um reinício completo para limpar todo o estado.
         else:
-            st.markdown("### ðŸ” Login do Operador")
+            st.markdown("### 🔐 Login do Operador")
             with st.form("sidebar_login_form"):
-                username = st.text_input("UsuÃ¡rio", key="sidebar_username_form")
+                username = st.text_input("Usuário", key="sidebar_username_form")
                 password = st.text_input("Senha", type="password", key="sidebar_password_form")
-                if st.form_submit_button("ðŸ”‘ Entrar", use_container_width=True):
+                if st.form_submit_button("🔑 Entrar", use_container_width=True):
                     user = authenticate_user(st.session_state.sidebar_username_form,
                                              st.session_state.sidebar_password_form)
                     if user:
                         st.session_state.authenticated = True
                         st.session_state.user = user
-                        st.success(f"Login realizado com sucesso! Bem-vindo, {user.get('name', 'UsuÃ¡rio')}.")
+                        st.success(f"Login realizado com sucesso! Bem-vindo, {user.get('name', 'Usuário')}.")
                         st.session_state.pop('sidebar_username_form', None)
                         st.session_state.pop('sidebar_password_form', None)
                         if 'classificador' in user.get('roles', []) or 'admin' in user.get('roles', []):
@@ -1505,7 +1505,7 @@ def show_sidebar():
                             st.session_state.page = 'create_notification'
                         st.rerun()
                     else:
-                        st.error("UsuÃ¡rio ou senha invÃ¡lidos!")
+                        st.error("Usuário ou senha inválidos!")
             st.markdown("---")
 
         st.markdown("""
@@ -1518,28 +1518,28 @@ def show_sidebar():
 
 def display_notification_full_details(notification: Dict, user_id_logged_in: Optional[int] = None,
                                       user_username_logged_in: Optional[str] = None):
-    st.markdown("###    Detalhes da NotificaÃ§Ã£o")
+    st.markdown("###    Detalhes da Notificação")
     col_det1, col_det2 = st.columns(2)
     with col_det1:
-        st.markdown("**ðŸ“ Evento Reportado Original**")
-        st.write(f"**TÃ­tulo:** {notification.get('title', UI_TEXTS.text_na)}")
+        st.markdown("**📝 Evento Reportado Original**")
+        st.write(f"**Título:** {notification.get('title', UI_TEXTS.text_na)}")
         st.write(f"**Local:** {notification.get('location', UI_TEXTS.text_na)}")
         occurrence_datetime_summary = format_date_time_summary(notification.get('occurrence_date'),
                                                                notification.get('occurrence_time'))
-        st.write(f"**Data/Hora OcorrÃªncia:** {occurrence_datetime_summary}")
+        st.write(f"**Data/Hora Ocorrência:** {occurrence_datetime_summary}")
         st.write(f"**Setor Notificante:** {notification.get('reporting_department', UI_TEXTS.text_na)}")
         if notification.get('immediate_actions_taken') and notification.get('immediate_action_description'):
             st.info(
-                f"**AÃ§Ãµes Imediatas Reportadas:** {notification.get('immediate_action_description', UI_TEXTS.text_na)[:300]}...")
+                f"**Ações Imediatas Reportadas:** {notification.get('immediate_action_description', UI_TEXTS.text_na)[:300]}...")
 
     with col_det2:
-        st.markdown("**â±ï¸ InformaÃ§Ãµes de GestÃ£o e ClassificaÃ§Ã£o**")
+        st.markdown("**⏱️ Informações de Gestão e Classificação**")
         classif = notification.get('classification') or {}
-        st.write(f"**ClassificaÃ§Ã£o NNC:** {classif.get('nnc', UI_TEXTS.text_na)}")
-        if classif.get('nivel_dano'): st.write(f"**NÃ­vel de Dano:** {classif.get('nivel_dano', UI_TEXTS.text_na)}")
+        st.write(f"**Classificação NNC:** {classif.get('nnc', UI_TEXTS.text_na)}")
+        if classif.get('nivel_dano'): st.write(f"**Nível de Dano:** {classif.get('nivel_dano', UI_TEXTS.text_na)}")
         st.write(f"**Prioridade:** {classif.get('prioridade', UI_TEXTS.text_na)}")
         st.write(f"**Never Event:** {classif.get('never_event', UI_TEXTS.text_na)}")
-        st.write(f"**Evento Sentinela:** {'Sim' if classif.get('is_sentinel_event') else 'NÃ£o'}")
+        st.write(f"**Evento Sentinela:** {'Sim' if classif.get('is_sentinel_event') else 'Não'}")
         st.write(f"**Tipo Principal:** {classif.get('event_type_main', UI_TEXTS.text_na)}")
         sub_type_display_closed = ''
         if classif.get('event_type_sub'):
@@ -1547,33 +1547,33 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
                 sub_type_display_closed = ', '.join(classif['event_type_sub'])
             else:
                 sub_type_display_closed = str(classif['event_type_sub'])
-        if sub_type_display_closed: st.write(f"**EspecificaÃ§Ã£o:** {sub_type_display_closed}")
-        st.write(f"**ClassificaÃ§Ã£o OMS:** {', '.join(classif.get('oms', [UI_TEXTS.text_na]))}")
+        if sub_type_display_closed: st.write(f"**Especificação:** {sub_type_display_closed}")
+        st.write(f"**Classificação OMS:** {', '.join(classif.get('oms', [UI_TEXTS.text_na]))}")
         st.write(f"**Classificado por:** {classif.get('classificador', UI_TEXTS.text_na)}")
 
-        # ExibiÃ§Ã£o do Prazo e Status
+        # Exibição do Prazo e Status
         deadline_date_str = classif.get('deadline_date')
         if deadline_date_str:
             deadline_date_formatted = datetime.fromisoformat(deadline_date_str).strftime('%d/%m/%Y')
             completion_timestamp_str = (notification.get('conclusion') or {}).get('timestamp')
-            # Em seguida, passe-o para a funÃ§Ã£o get_deadline_status
+            # Em seguida, passe-o para a função get_deadline_status
             deadline_status = get_deadline_status(deadline_date_str, completion_timestamp_str)
             st.markdown(
-                f"**Prazo de ConclusÃ£o:** {deadline_date_formatted} (<span class='{deadline_status['class']}'>{deadline_status['text']}</span>)",
+                f"**Prazo de Conclusão:** {deadline_date_formatted} (<span class='{deadline_status['class']}'>{deadline_status['text']}</span>)",
                 unsafe_allow_html=True)
         else:
-            st.write(f"**Prazo de ConclusÃ£o:** {UI_TEXTS.deadline_days_nan}")
+            st.write(f"**Prazo de Conclusão:** {UI_TEXTS.deadline_days_nan}")
 
-    st.markdown("**ðŸ“ DescriÃ§Ã£o Completa do Evento**")
+    st.markdown("**📝 Descrição Completa do Evento**")
     st.info(notification.get('description', UI_TEXTS.text_na))
     if classif.get('notes'):
-        st.markdown("**ðŸ“‹ OrientaÃ§Ãµes / ObservaÃ§Ãµes do Classificador**")
+        st.markdown("**📋 Orientações / Observações do Classificador**")
         st.success(classif.get('notes', UI_TEXTS.text_na))
 
     if notification.get('actions'):
-        st.markdown("#### âš¡ HistÃ³rico de AÃ§Ãµes")
+        st.markdown("#### ⚡ Histórico de Ações")
         for action in sorted(notification['actions'], key=lambda x: x.get('timestamp', '')):
-            action_type = "ðŸ CONCLUSÃƒO (Executor)" if action.get('final_action_by_executor') else "ðŸ“ AÃ‡ÃƒO Registrada"
+            action_type = "🏁 CONCLUSÃO (Executor)" if action.get('final_action_by_executor') else "📝 AÇÃO Registrada"
             action_timestamp = action.get('timestamp', UI_TEXTS.text_na)
             if action_timestamp != UI_TEXTS.text_na:
                 try:
@@ -1584,7 +1584,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
             if user_id_logged_in and action.get('executor_id') == user_id_logged_in:
                 st.markdown(f"""
                 <div class='my-action-entry-card'>
-                    <strong>{action_type}</strong> - por <strong>VOCÃŠ ({action.get('executor_name', UI_TEXTS.text_na)})</strong> em {action_timestamp}
+                    <strong>{action_type}</strong> - por <strong>VOCÊ ({action.get('executor_name', UI_TEXTS.text_na)})</strong> em {action_timestamp}
                     <br>
                     <em>{action.get('description', UI_TEXTS.text_na)}</em>
                 </div>
@@ -1598,13 +1598,13 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
                 </div>
                 """, unsafe_allow_html=True)
 
-            # NOVO: Exibir evidÃªncias se disponÃ­vel e for uma aÃ§Ã£o final
+            # NOVO: Exibir evidências se disponível e for uma ação final
             if action.get('final_action_by_executor'):
                 evidence_desc = action.get('evidence_description', '').strip()
                 evidence_atts = action.get('evidence_attachments', [])
                 if evidence_desc or evidence_atts:
                     st.markdown(f"""<div class='evidence-section'>""", unsafe_allow_html=True)
-                    st.markdown("<h6>EvidÃªncias da ConclusÃ£o:</h6>", unsafe_allow_html=True)
+                    st.markdown("<h6>Evidências da Conclusão:</h6>", unsafe_allow_html=True)
                     if evidence_desc:
                         st.info(evidence_desc)
                     if evidence_atts:
@@ -1615,59 +1615,59 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
                                 file_content = get_attachment_data(unique_name)
                                 if file_content:
                                     st.download_button(
-                                        label=f"Baixar EvidÃªncia: {original_name}",
+                                        label=f"Baixar Evidência: {original_name}",
                                         data=file_content,
                                         file_name=original_name,
                                         mime="application/octet-stream",
                                         key=f"download_action_evidence_{notification['id']}_{unique_name}"
                                     )
                                 else:
-                                    st.write(f"Anexo: {original_name} (arquivo nÃ£o encontrado ou corrompido)")
+                                    st.write(f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
                     st.markdown(f"""</div>""", unsafe_allow_html=True)
 
             st.markdown("---")
 
     if notification.get('review_execution'):
-        st.markdown("#### ðŸ› ï¸ RevisÃ£o de ExecuÃ§Ã£o")
+        st.markdown("#### 🛠️ Revisão de Execução")
         review_exec = notification['review_execution']
-        st.write(f"**DecisÃ£o:** {review_exec.get('decision', UI_TEXTS.text_na)}")
+        st.write(f"**Decisão:** {review_exec.get('decision', UI_TEXTS.text_na)}")
         st.write(f"**Revisado por:** {review_exec.get('reviewed_by', UI_TEXTS.text_na)}")
-        st.write(f"**ObservaÃ§Ãµes:** {review_exec.get('notes', UI_TEXTS.text_na)}")
+        st.write(f"**Observações:** {review_exec.get('notes', UI_TEXTS.text_na)}")
         if review_exec.get('rejection_reason'):
-            st.write(f"**Motivo RejeiÃ§Ã£o:** {review_exec.get('rejection_reason', UI_TEXTS.text_na)}")
+            st.write(f"**Motivo Rejeição:** {review_exec.get('rejection_reason', UI_TEXTS.text_na)}")
     if notification.get('approval'):
-        st.markdown("#### âœ… AprovaÃ§Ã£o Final")
+        st.markdown("#### ✅ Aprovação Final")
         approval_info = notification['approval']
         if user_username_logged_in and approval_info.get('approved_by') == user_username_logged_in:
             st.markdown(f"""
             <div style='background-color: #e6ffe6; padding: 10px; border-radius: 5px; border-left: 3px solid #4CAF50;'>
-                <strong>DecisÃ£o:</strong> {approval_info.get('decision', UI_TEXTS.text_na)}
+                <strong>Decisão:</strong> {approval_info.get('decision', UI_TEXTS.text_na)}
                 <br>
-                <strong>Aprovado por:</strong> VOCÃŠ ({approval_info.get('approved_by', UI_TEXTS.text_na)})
+                <strong>Aprovado por:</strong> VOCÊ ({approval_info.get('approved_by', UI_TEXTS.text_na)})
                 <br>
-                <strong>ObservaÃ§Ãµes:</strong> {approval_info.get('notes', UI_TEXTS.text_na)}
+                <strong>Observações:</strong> {approval_info.get('notes', UI_TEXTS.text_na)}
             </div>
             """, unsafe_allow_html=True)
         else:
-            st.write(f"**DecisÃ£o:** {approval_info.get('decision', UI_TEXTS.text_na)}")
+            st.write(f"**Decisão:** {approval_info.get('decision', UI_TEXTS.text_na)}")
             st.write(f"**Aprovado por:** {approval_info.get('approved_by', UI_TEXTS.text_na)}")
-            st.write(f"**ObservaÃ§Ãµes:** {approval_info.get('notes', UI_TEXTS.text_na)}")
+            st.write(f"**Observações:** {approval_info.get('notes', UI_TEXTS.text_na)}")
 
     if notification.get('rejection_classification'):
-        st.markdown("#### âŒ RejeiÃ§Ã£o na ClassificaÃ§Ã£o Inicial")
+        st.markdown("#### ❌ Rejeição na Classificação Inicial")
         rej_classif = notification['rejection_classification']
         st.write(f"**Motivo:** {rej_classif.get('reason', UI_TEXTS.text_na)}")
         st.write(f"**Rejeitado por:** {rej_classif.get('classified_by', UI_TEXTS.text_na)}")
 
     if notification.get('rejection_approval'):
-        st.markdown("#### â›” Reprovada na AprovaÃ§Ã£o")
+        st.markdown("#### ⛔ Reprovada na Aprovação")
         rej_appr = notification['rejection_approval']
         if user_username_logged_in and rej_appr.get('rejected_by') == user_username_logged_in:
             st.markdown(f"""
             <div style='background-color: #ffe6e6; padding: 10px; border-radius: 5px; border-left: 3px solid #f44336;'>
                 <strong>Motivo:</strong> {rej_appr.get('reason', UI_TEXTS.text_na)}
                 <br>
-                <strong>Reprovado por:</strong> VOCÃŠ ({rej_appr.get('rejected_by', UI_TEXTS.text_na)})
+                <strong>Reprovado por:</strong> VOCÊ ({rej_appr.get('rejected_by', UI_TEXTS.text_na)})
             </div>
             """, unsafe_allow_html=True)
         else:
@@ -1675,14 +1675,14 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
             st.write(f"**Reprovado por:** {rej_appr.get('rejected_by', UI_TEXTS.text_na)}")
 
     if notification.get('rejection_execution_review'):
-        st.markdown("#### ðŸ”„ ExecuÃ§Ã£o Rejeitada (RevisÃ£o do Classificador)")
+        st.markdown("#### 🔄 Execução Rejeitada (Revisão do Classificador)")
         rej_exec_review = notification['rejection_execution_review']
         if user_username_logged_in and rej_exec_review.get('reviewed_by') == user_username_logged_in:
             st.markdown(f"""
             <div style='background-color: #ffe6e6; padding: 10px; border-radius: 5px; border-left: 3px solid #f44336;'>
                 <strong>Motivo:</strong> {rej_exec_review.get('reason', UI_TEXTS.text_na)}
                 <br>
-                <strong>Rejeitado por:</strong> VOCÃŠ ({rej_exec_review.get('reviewed_by', UI_TEXTS.text_na)})
+                <strong>Rejeitado por:</strong> VOCÊ ({rej_exec_review.get('reviewed_by', UI_TEXTS.text_na)})
             </div>
             """, unsafe_allow_html=True)
         else:
@@ -1690,7 +1690,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
             st.write(f"**Rejeitado por:** {rej_exec_review.get('reviewed_by', UI_TEXTS.text_na)}")
 
     if notification.get('attachments'):
-        st.markdown("#### ðŸ“Ž Anexos")
+        st.markdown("#### 📎 Anexos")
         for attach_info in notification['attachments']:
             unique_name_to_use = None
             original_name_to_use = None
@@ -1711,7 +1711,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
                         key=f"download_closed_{notification['id']}_{unique_name_to_use}"
                     )
                 else:
-                    st.write(f"Anexo: {original_name_to_use} (arquivo nÃ£o encontrado ou corrompido)")
+                    st.write(f"Anexo: {original_name_to_use} (arquivo não encontrado ou corrompido)")
 
     st.markdown("---")
 
@@ -1719,58 +1719,58 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
 @st_fragment
 def show_create_notification():
     """
-    Renderiza a pÃ¡gina para criar novas notificaÃ§Ãµes como um formulÃ¡rio multi-etapa.
-    Controla as etapas usando st.session_state e gerencia a persistÃªncia explÃ­cita de dados e a validaÃ§Ã£o.
+    Renderiza a página para criar novas notificações como um formulário multi-etapa.
+    Controla as etapas usando st.session_state e gerencia a persistência explícita de dados e a validação.
     """
-    st.markdown("<h1 class='main-header'>ðŸ“ Nova NotificaÃ§Ã£o (FormulÃ¡rio NNC)</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='main-header'>📝 Nova Notificação (Formulário NNC)</h1>", unsafe_allow_html=True)
     if not st.session_state.authenticated:
-        st.info("Para acompanhar o fluxo completo de uma notificaÃ§Ã£o (classificaÃ§Ã£o, execuÃ§Ã£o, aprovaÃ§Ã£o), faÃ§a login.")
+        st.info("Para acompanhar o fluxo completo de uma notificação (classificação, execução, aprovação), faça login.")
 
-    # Inicializa o estado do formulÃ¡rio se nÃ£o existir
+    # Inicializa o estado do formulário se não existir
     if 'form_step' not in st.session_state:
         _reset_form_state()
 
     current_data = st.session_state.create_form_data
 
-    # NOVO: LÃ³gica para a etapa de sucesso (Etapa 5)
+    # NOVO: Lógica para a etapa de sucesso (Etapa 5)
     if st.session_state.form_step == 5:
         st.balloons()
         st.markdown(r"""
         <div style="text-align: center; margin-top: 100px;">
             <h1 style="color: #2E86AB; font-size: 3em;">
-                âœ… NotificaÃ§Ã£o Enviada com Sucesso! ðŸ˜Š
+                ✅ Notificação Enviada com Sucesso! 😊
             </h1>
             <p style="font-size: 1.2em; color: #555;">
-                Obrigado pela sua participaÃ§Ã£o! Voltando para um novo formulÃ¡rio...
+                Obrigado pela sua participação! Voltando para um novo formulário...
             </p>
         </div>
         """, unsafe_allow_html=True)
         time_module.sleep(2)
-        _reset_form_state()  # Limpa o formulÃ¡rio para uma nova notificaÃ§Ã£o
-        st.session_state.form_step = 1 # Reinicia a aplicaÃ§Ã£o para a primeira etapa do formulÃ¡rio
-        st.rerun() # CORREÃ‡ÃƒO: ForÃ§a o re-render
-# Se nÃ£o estiver na etapa de sucesso, exibe as etapas normais do formulÃ¡rio
-    st.markdown(f"### Etapa {st.session_state.form_step}") # CORREÃ‡ÃƒO: Acessa diretamente
+        _reset_form_state()  # Limpa o formulário para uma nova notificação
+        st.session_state.form_step = 1 # Reinicia a aplicação para a primeira etapa do formulário
+        st.rerun() # CORREÇÃO: Força o re-render
+# Se não estiver na etapa de sucesso, exibe as etapas normais do formulário
+    st.markdown(f"### Etapa {st.session_state.form_step}") # CORREÇÃO: Acessa diretamente
 
-    if st.session_state.form_step == 1: # CORREÃ‡ÃƒO: Acessa diretamente
+    if st.session_state.form_step == 1: # CORREÇÃO: Acessa diretamente
         with st.container():
             st.markdown("""
             <div class="form-section">
-                <h3>ðŸ“‹ Etapa 1: Detalhes da OcorrÃªncia</h3>
-                <p>Preencha as informaÃ§Ãµes bÃ¡sicas sobre o evento ocorrido.</p>
+                <h3>📋 Etapa 1: Detalhes da Ocorrência</h3>
+                <p>Preencha as informações básicas sobre o evento ocorrido.</p>
             </div>
             """, unsafe_allow_html=True)
             current_data['title'] = st.text_input(
-                "TÃ­tulo da NotificaÃ§Ã£o*", value=current_data['title'], placeholder="Breve resumo da notificaÃ§Ã£o",
+                "Título da Notificação*", value=current_data['title'], placeholder="Breve resumo da notificação",
                 help="Descreva brevemente o evento ocorrido", key="create_title_state_refactored")
             current_data['location'] = st.text_input(
                 "Local do Evento*", value=current_data['location'],
-                placeholder="Ex: UTI - Leito 05, Centro CirÃºrgico - Sala 3",
+                placeholder="Ex: UTI - Leito 05, Centro Cirúrgico - Sala 3",
                 help="Especifique o local exato onde ocorreu o evento", key="create_location_state_refactored")
             col1, col2 = st.columns(2)
             with col1:
                 current_data['occurrence_date'] = st.date_input(
-                    "Data da OcorrÃªncia do Evento*", value=current_data['occurrence_date'],
+                    "Data da Ocorrência do Evento*", value=current_data['occurrence_date'],
                     help="Selecione a data em que o evento ocorreu", key="create_occurrence_date_state_refactored",
                     format="DD/MM/YYYY")
             with col2:
@@ -1778,7 +1778,7 @@ def show_create_notification():
                     "Hora Aproximada do Evento", value=current_data['occurrence_time'],
                     help="Hora aproximada em que o evento ocorreu.", key="create_event_time_state_refactored")
             
-            # NOVO: Lista de opÃ§Ãµes para Setor Notificante, incluindo o placeholder
+            # NOVO: Lista de opções para Setor Notificante, incluindo o placeholder
             reporting_dept_options = [UI_TEXTS.selectbox_default_department_select] + FORM_DATA.SETORES
             current_data['reporting_department'] = st.selectbox(
                 "Setor Notificante*",
@@ -1786,12 +1786,12 @@ def show_create_notification():
                 index=reporting_dept_options.index(current_data['reporting_department'])
                       if current_data['reporting_department'] in reporting_dept_options
                       else 0, # <-- O '0' agora aponta para o placeholder
-                help="Selecione o setor responsÃ¡vel por notificar o evento",
+                help="Selecione o setor responsável por notificar o evento",
                 key="create_reporting_dept_state_refactored"
             )
             current_data['reporting_department_complement'] = st.text_input(
                 "Complemento do Setor Notificante", value=current_data['reporting_department_complement'],
-                placeholder="InformaÃ§Ãµes adicionais do setor (opcional)",
+                placeholder="Informações adicionais do setor (opcional)",
                 help="Detalhes adicionais sobre o setor notificante (Ex: Equipe A, Sala 101)",
                 key="create_reporting_dept_comp_state_refactored")
             event_shift_options = [UI_TEXTS.selectbox_default_event_shift] + FORM_DATA.turnos
@@ -1802,58 +1802,58 @@ def show_create_notification():
                                                                                                            'event_shift'] in event_shift_options else 0,
                 help="Turno em que o evento ocorreu", key="create_event_shift_state_refactored")
             current_data['description'] = st.text_area(
-                "DescriÃ§Ã£o Detalhada do Evento*", value=current_data['description'],
-                placeholder="Descreva:\nâ€¢ O que aconteceu?\nâ€¢ Quando aconteceu?\nâ€¢ Onde aconteceu?\nâ€¢ Quem esteve envolvido?\nâ€¢ Como aconteceu?\nâ€¢ ConsequÃªncias observadas",
+                "Descrição Detalhada do Evento*", value=current_data['description'],
+                placeholder="Descreva:\n• O que aconteceu?\n• Quando aconteceu?\n• Onde aconteceu?\n• Quem esteve envolvido?\n• Como aconteceu?\n• Consequências observadas",
                 height=150,
                 key="create_description_state_refactored")
 
-            st.markdown("<span class='required-field'>* Campos obrigatÃ³rios</span>", unsafe_allow_html=True)
+            st.markdown("<span class='required-field'>* Campos obrigatórios</span>", unsafe_allow_html=True)
             st.markdown("---")
 
 
-    elif st.session_state.form_step == 2: # CORREÃ‡ÃƒO: Acessa diretamente
+    elif st.session_state.form_step == 2: # CORREÇÃO: Acessa diretamente
         with st.container():
             st.markdown("""
             <div class="form-section">
-                <h3>âš¡ Etapa 2: AÃ§Ãµes Imediatas</h3>
-                <p>Indique se alguma aÃ§Ã£o foi tomada imediatamente apÃ³s o evento.</p>
+                <h3>⚡ Etapa 2: Ações Imediatas</h3>
+                <p>Indique se alguma ação foi tomada imediatamente após o evento.</p>
             </div>
             """, unsafe_allow_html=True)
-            immediate_actions_taken_options = [UI_TEXTS.selectbox_default_immediate_actions_taken, "Sim", "NÃ£o"]
+            immediate_actions_taken_options = [UI_TEXTS.selectbox_default_immediate_actions_taken, "Sim", "Não"]
             current_data['immediate_actions_taken'] = st.selectbox(
-                "Foram tomadas aÃ§Ãµes imediatas?*", options=immediate_actions_taken_options,
+                "Foram tomadas ações imediatas?*", options=immediate_actions_taken_options,
                 index=immediate_actions_taken_options.index(current_data[
                                                                 'immediate_actions_taken']) if current_data[
                                                                                                    'immediate_actions_taken'] in immediate_actions_taken_options else 0,
-                key="immediate_actions_taken_state_refactored", help="Indique se alguma aÃ§Ã£o foi tomada...")
-            st.markdown("<span class='required-field'>* Campo obrigatÃ³rio</span>", unsafe_allow_html=True)
+                key="immediate_actions_taken_state_refactored", help="Indique se alguma ação foi tomada...")
+            st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
             if current_data['immediate_actions_taken'] == 'Sim':
                 st.markdown("""
                 <div class="conditional-field">
-                    <h4>ðŸ“ Detalhes das AÃ§Ãµes Imediatas</h4>
-                    <p>Descreva detalhadamente as aÃ§Ãµes que foram tomadas.</p>
+                    <h4>📝 Detalhes das Ações Imediatas</h4>
+                    <p>Descreva detalhadamente as ações que foram tomadas.</p>
                 </div>
                 """, unsafe_allow_html=True)
                 current_data['immediate_action_description'] = st.text_area(
-                    "DescriÃ§Ã£o detalhada da aÃ§Ã£o realizada*", value=current_data['immediate_action_description'],
-                    placeholder="Descreva:\nâ€¢ Quais aÃ§Ãµes foram tomadas?\nâ€¢ Por quem foram executadas?\nâ€¢ Quando foram realizadas?\nâ€¢ Resultados obtidos",
+                    "Descrição detalhada da ação realizada*", value=current_data['immediate_action_description'],
+                    placeholder="Descreva:\n• Quais ações foram tomadas?\n• Por quem foram executadas?\n• Quando foram realizadas?\n• Resultados obtidos",
                     height=150,
                     key="create_immediate_action_desc_state_refactored",
-                    help="ForneÃ§a um relato completo...")
-                st.markdown("<span class='required-field'>* Campo obrigatÃ³rio</span>", unsafe_allow_html=True)
+                    help="Forneça um relato completo...")
+                st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
             else:
                 current_data['immediate_action_description'] = ""
         st.markdown("---")
 
-    elif st.session_state.form_step == 3: # CORREÃ‡ÃƒO: Acessa diretamente
+    elif st.session_state.form_step == 3: # CORREÇÃO: Acessa diretamente
         with st.container():
             st.markdown("""
             <div class="form-section">
-                <h3>ðŸ¥ Etapa 3: Impacto no Paciente</h3>
+                <h3>🏥 Etapa 3: Impacto no Paciente</h3>
                 <p>Indique se o evento teve qualquer tipo de envolvimento ou impacto em um paciente.</p>
             </div>
             """, unsafe_allow_html=True)
-            patient_involved_options = [UI_TEXTS.selectbox_default_patient_involved, "Sim", "NÃ£o"]
+            patient_involved_options = [UI_TEXTS.selectbox_default_patient_involved, "Sim", "Não"]
             current_data['patient_involved'] = st.selectbox(
                 "O evento atingiu algum paciente?*", options=patient_involved_options,
                 index=patient_involved_options.index(current_data[
@@ -1861,46 +1861,46 @@ def show_create_notification():
                                                                                      'patient_involved'] in patient_involved_options else 0,
                 key="patient_involved_state_refactored",
                 help="Indique se o evento teve qualquer tipo de envolvimento...")
-            st.markdown("<span class='required-field'>* Campo obrigatÃ³rio</span>", unsafe_allow_html=True)
+            st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
             if current_data['patient_involved'] == 'Sim':
                 st.markdown("""
                 <div class="conditional-field">
-                    <h4>ðŸ¥ InformaÃ§Ãµes do Paciente Afetado</h4>
-                    <p>Preencha as informaÃ§Ãµes do paciente envolvido no evento.</p>
+                    <h4>🏥 Informações do Paciente Afetado</h4>
+                    <p>Preencha as informações do paciente envolvido no evento.</p>
                 </div>
                 """, unsafe_allow_html=True)
                 col5, col6 = st.columns(2)
                 with col5:
                     current_data['patient_id'] = st.text_input(
-                        "NÃºmero do Atendimento/ProntuÃ¡rio*", value=current_data['patient_id'],
+                        "Número do Atendimento/Prontuário*", value=current_data['patient_id'],
                         placeholder="Ex: 123456789", key="create_patient_id_refactored",
-                        help="NÃºmero de identificaÃ§Ã£o do paciente...")
+                        help="Número de identificação do paciente...")
                 with col6:
                     patient_outcome_obito_options = [UI_TEXTS.selectbox_default_patient_outcome_obito, "Sim",
-                                                     "NÃ£o"]
+                                                     "Não"]
                     current_data['patient_outcome_obito'] = st.selectbox(
-                        "O paciente evoluiu com Ã³bito?*", options=patient_outcome_obito_options,
+                        "O paciente evoluiu com óbito?*", options=patient_outcome_obito_options,
                         index=patient_outcome_obito_options.index(current_data['patient_outcome_obito']) if
                         current_data['patient_outcome_obito'] in patient_outcome_obito_options else 0,
                         key="create_patient_outcome_obito_refactored",
-                        help="Indique se o evento resultou diretamente no Ã³bito do paciente.")
-                st.markdown("<span class='required-field'>* Campos obrigatÃ³rios</span>", unsafe_allow_html=True)
+                        help="Indique se o evento resultou diretamente no óbito do paciente.")
+                st.markdown("<span class='required-field'>* Campos obrigatórios</span>", unsafe_allow_html=True)
             else:
                 current_data['patient_id'] = ""
                 current_data['patient_outcome_obito'] = UI_TEXTS.selectbox_default_patient_outcome_obito
         st.markdown("---")
 
-    elif st.session_state.form_step == 4: # CORREÃ‡ÃƒO: Acessa diretamente
+    elif st.session_state.form_step == 4: # CORREÇÃO: Acessa diretamente
         with st.container():
             st.markdown("""
             <div class="form-section">
-                <h3>ðŸ“„ Etapa 4: InformaÃ§Ãµes Adicionais e EvidÃªncias</h3>
-                <p>Complete as informaÃ§Ãµes adicionais e anexe documentos, se aplicÃ¡vel.</p>
+                <h3>📄 Etapa 4: Informações Adicionais e Evidências</h3>
+                <p>Complete as informações adicionais e anexe documentos, se aplicável.</p>
             </div>
             """, unsafe_allow_html=True)
             col7, col8 = st.columns(2)
             with col7:
-                # NOVO: Lista de opÃ§Ãµes para Setor Notificado, incluindo o placeholder
+                # NOVO: Lista de opções para Setor Notificado, incluindo o placeholder
                 notified_dept_options = [UI_TEXTS.selectbox_default_department_select] + FORM_DATA.SETORES
                 current_data['notified_department'] = st.selectbox(
                     "Setor Notificado*",
@@ -1908,26 +1908,26 @@ def show_create_notification():
                     index=notified_dept_options.index(current_data['notified_department'])
                           if current_data['notified_department'] in notified_dept_options
                           else 0, # <-- O '0' agora aponta para o placeholder
-                    help="Selecione o setor que serÃ¡ notificado sobre o evento",
+                    help="Selecione o setor que será notificado sobre o evento",
                     key="create_notified_dept_refactored"
                 )
             with col8:
                 current_data['notified_department_complement'] = st.text_input(
                     "Complemento do Setor Notificado", value=current_data['notified_department_complement'],
-                    placeholder="InformaÃ§Ãµes adicionais (opcional)",
+                    placeholder="Informações adicionais (opcional)",
                     help="Detalhes adicionais sobre o setor notificante (Ex: Equipe A, Sala 101)",
                     key="create_notified_dept_comp_refactored"
                 )
-            st.markdown("<span class='required-field'>* Campo obrigatÃ³rio (Setor Notificado)</span>",
+            st.markdown("<span class='required-field'>* Campo obrigatório (Setor Notificado)</span>",
                         unsafe_allow_html=True)
             current_data['additional_notes'] = st.text_area(
-                "ObservaÃ§Ãµes Adicionais", value=current_data['additional_notes'],
-                placeholder="Qualquer outra informaÃ§Ã£o que considere relevante.",
+                "Observações Adicionais", value=current_data['additional_notes'],
+                placeholder="Qualquer outra informação que considere relevante.",
                 height=100, key="additional_notes_refactored",
-                help="Adicione qualquer outra informaÃ§Ã£o relevante...")
+                help="Adicione qualquer outra informação relevante...")
             st.markdown("---")
 
-            st.markdown("###    Documentos e EvidÃªncias")
+            st.markdown("###    Documentos e Evidências")
             uploaded_files_list_widget = st.file_uploader(
                 "Anexar arquivos relacionados ao evento (Opcional)", type=None, accept_multiple_files=True,
                 help="Anexe fotos, documentos...", key="create_attachments_refactored"
@@ -1940,126 +1940,126 @@ def show_create_notification():
 
             st.markdown("---")
 
-    # DEFINIÃ‡ÃƒO DAS COLUNAS: ESTA LINHA PRECISA ESTAR AQUI!
+    # DEFINIÇÃO DAS COLUNAS: ESTA LINHA PRECISA ESTAR AQUI!
     col_prev, col_cancel_btn, col_next_submit = st.columns(3)
 
     with col_prev:
-        if st.session_state.form_step > 1 and st.session_state.form_step < 5: # CORREÃ‡ÃƒO: Acessa diretamente
-            if st.button("â—€ï¸ Voltar", key=f"step_back_btn_refactored_{st.session_state.form_step}", # CORREÃ‡ÃƒO: Acessa diretamente
+        if st.session_state.form_step > 1 and st.session_state.form_step < 5: # CORREÇÃO: Acessa diretamente
+            if st.button("◀️ Voltar", key=f"step_back_btn_refactored_{st.session_state.form_step}", # CORREÇÃO: Acessa diretamente
                          use_container_width=True):
                 st.session_state.form_step -= 1
-                st.rerun() # CORREÃ‡ÃƒO: ForÃ§a o re-render
+                st.rerun() # CORREÇÃO: Força o re-render
 
     with col_cancel_btn:
-        if st.session_state.form_step < 5: # CORREÃ‡ÃƒO: Acessa diretamente
-            if st.button("ðŸš« Cancelar NotificaÃ§Ã£o", key="step_cancel_btn_refactored",
+        if st.session_state.form_step < 5: # CORREÇÃO: Acessa diretamente
+            if st.button("🚫 Cancelar Notificação", key="step_cancel_btn_refactored",
                          use_container_width=True):
                 _reset_form_state()
-                st.rerun() # CORREÃ‡ÃƒO: ForÃ§a o re-render
+                st.rerun() # CORREÇÃO: Força o re-render
     with col_next_submit:
-        if st.session_state.form_step < 4: # CORREÃ‡ÃƒO: Acessa diretamente
-            if st.button(f"âž¡ï¸ PrÃ³ximo",
-                         key=f"step_next_btn_refactored_{st.session_state.form_step}", use_container_width=True): # CORREÃ‡ÃƒO: Acessa diretamente
+        if st.session_state.form_step < 4: # CORREÇÃO: Acessa diretamente
+            if st.button(f"➡️ Próximo",
+                         key=f"step_next_btn_refactored_{st.session_state.form_step}", use_container_width=True): # CORREÇÃO: Acessa diretamente
                 validation_errors = []
-                if st.session_state.form_step == 1: # CORREÃ‡ÃƒO: Acessa diretamente
+                if st.session_state.form_step == 1: # CORREÇÃO: Acessa diretamente
                     if not current_data['title'].strip(): validation_errors.append(
-                        'Etapa 1: TÃ­tulo da NotificaÃ§Ã£o Ã© obrigatÃ³rio.')
+                        'Etapa 1: Título da Notificação é obrigatório.')
                     if not current_data['description'].strip(): validation_errors.append(
-                        'Etapa 1: DescriÃ§Ã£o Detalhada Ã© obrigatÃ³ria.')
+                        'Etapa 1: Descrição Detalhada é obrigatória.')
                     if not current_data['location'].strip(): validation_errors.append(
-                        'Etapa 1: Local do Evento Ã© obrigatÃ³rio.')
+                        'Etapa 1: Local do Evento é obrigatório.')
                     if current_data['occurrence_date'] is None or not isinstance(current_data['occurrence_date'],
                                                                                  dt_date_class): validation_errors.append(
-                        'Etapa 1: Data da OcorrÃªncia Ã© obrigatÃ³ria.')
+                        'Etapa 1: Data da Ocorrência é obrigatória.')
                     if current_data['reporting_department'] == UI_TEXTS.selectbox_default_department_select: # <-- ALTERADO
-                        validation_errors.append('Etapa 1: Setor Notificante Ã© obrigatÃ³rio.')
+                        validation_errors.append('Etapa 1: Setor Notificante é obrigatório.')
                     if current_data['event_shift'] == UI_TEXTS.selectbox_default_event_shift: validation_errors.append(
-                        'Etapa 1: Turno do Evento Ã© obrigatÃ³rio.')
-                elif st.session_state.form_step == 2: # CORREÃ‡ÃƒO: Acessa diretamente
+                        'Etapa 1: Turno do Evento é obrigatório.')
+                elif st.session_state.form_step == 2: # CORREÇÃO: Acessa diretamente
                     if current_data[
                         'immediate_actions_taken'] == UI_TEXTS.selectbox_default_immediate_actions_taken: validation_errors.append(
-                        'Etapa 2: Ã‰ obrigatÃ³rio indicar se foram tomadas AÃ§Ãµes Imediatas (Sim/NÃ£o).')
+                        'Etapa 2: É obrigatório indicar se foram tomadas Ações Imediatas (Sim/Não).')
                     if current_data['immediate_actions_taken'] == "Sim" and not current_data[
                         'immediate_action_description'].strip(): validation_errors.append(
-                        "Etapa 2: DescriÃ§Ã£o das aÃ§Ãµes imediatas Ã© obrigatÃ³ria quando hÃ¡ aÃ§Ãµes imediatas.")
-                elif st.session_state.form_step == 3: # CORREÃ‡ÃƒO: Acessa diretamente
+                        "Etapa 2: Descrição das ações imediatas é obrigatória quando há ações imediatas.")
+                elif st.session_state.form_step == 3: # CORREÇÃO: Acessa diretamente
                     if current_data[
                         'patient_involved'] == UI_TEXTS.selectbox_default_patient_involved: validation_errors.append(
-                        'Etapa 3: Ã‰ obrigatÃ³rio indicar se o Paciente foi Afetado (Sim/NÃ£o).')
+                        'Etapa 3: É obrigatório indicar se o Paciente foi Afetado (Sim/Não).')
                     if current_data['patient_involved'] == "Sim":
                         if not current_data['patient_id'].strip(): validation_errors.append(
-                            "Etapa 3: NÃºmero do Atendimento/ProntuÃ¡rio Ã© obrigatÃ³rio quando paciente Ã© afetado.")
+                            "Etapa 3: Número do Atendimento/Prontuário é obrigatório quando paciente é afetado.")
                         if current_data[
                             'patient_outcome_obito'] == UI_TEXTS.selectbox_default_patient_outcome_obito: validation_errors.append(
-                            "Etapa 3: EvoluÃ§Ã£o para Ã³bito Ã© obrigatÃ³rio quando paciente Ã© afetado.")
+                            "Etapa 3: Evolução para óbito é obrigatório quando paciente é afetado.")
                 if validation_errors:
-                    st.error("âš ï¸ **Por favor, corrija os seguintes erros:**")
+                    st.error("⚠️ **Por favor, corrija os seguintes erros:**")
                     for error in validation_errors:
                         st.warning(error)
                 else:
                     st.session_state.form_step += 1
-                    st.rerun() # CORREÃ‡ÃƒO: ForÃ§a o re-render
+                    st.rerun() # CORREÇÃO: Força o re-render
 
-        elif st.session_state.form_step == 4: # CORREÃ‡ÃƒO: Acessa diretamente
+        elif st.session_state.form_step == 4: # CORREÇÃO: Acessa diretamente
             with st.form("submit_form_refactored_step4", clear_on_submit=False):
-                submit_button = st.form_submit_button("ðŸ“¤ Enviar NotificaÃ§Ã£o", use_container_width=True)
+                submit_button = st.form_submit_button("📤 Enviar Notificação", use_container_width=True)
 
                 if submit_button:
-                    st.subheader("Validando e Enviando NotificaÃ§Ã£o...")
+                    st.subheader("Validando e Enviando Notificação...")
                     validation_errors = []
-                    # Re-valida TODOS os campos obrigatÃ³rios de TODAS as etapas (1-4) antes do envio final
+                    # Re-valida TODOS os campos obrigatórios de TODAS as etapas (1-4) antes do envio final
                     if not current_data['title'].strip(): validation_errors.append(
-                        'Etapa 1: TÃ­tulo da NotificaÃ§Ã£o Ã© obrigatÃ³rio.')
+                        'Etapa 1: Título da Notificação é obrigatório.')
                     if not current_data['description'].strip(): validation_errors.append(
-                        'Etapa 1: DescriÃ§Ã£o Detalhada Ã© obrigatÃ³ria.')
+                        'Etapa 1: Descrição Detalhada é obrigatória.')
                     if not current_data['location'].strip(): validation_errors.append(
-                        'Etapa 1: Local do Evento Ã© obrigatÃ³rio.')
+                        'Etapa 1: Local do Evento é obrigatório.')
                     if current_data['occurrence_date'] is None or not isinstance(current_data['occurrence_date'],
                                                                                  dt_date_class): validation_errors.append(
-                        'Etapa 1: Data da OcorrÃªncia Ã© obrigatÃ³ria.')
+                        'Etapa 1: Data da Ocorrência é obrigatória.')
                     if not current_data['reporting_department'] or \
                        current_data['reporting_department'] == UI_TEXTS.selectbox_default_department_select: # <-- ALTERADO
-                        validation_errors.append("Etapa 1: Setor Notificante Ã© obrigatÃ³rio.")
+                        validation_errors.append("Etapa 1: Setor Notificante é obrigatório.")
                     if current_data['event_shift'] == UI_TEXTS.selectbox_default_event_shift: validation_errors.append(
-                        'Etapa 1: Turno do Evento Ã© obrigatÃ³rio.')
+                        'Etapa 1: Turno do Evento é obrigatório.')
                     if current_data[
                         'immediate_actions_taken'] == UI_TEXTS.selectbox_default_immediate_actions_taken: validation_errors.append(
-                        'Etapa 2: Ã‰ obrigatÃ³rio indicar se foram tomadas AÃ§Ãµes Imediatas (Sim/NÃ£o).')
+                        'Etapa 2: É obrigatório indicar se foram tomadas Ações Imediatas (Sim/Não).')
                     if current_data['immediate_actions_taken'] == "Sim" and not current_data[
                         'immediate_action_description'].strip(): validation_errors.append(
-                        "Etapa 2: DescriÃ§Ã£o das aÃ§Ãµes imediatas Ã© obrigatÃ³ria quando hÃ¡ aÃ§Ãµes imediatas.")
+                        "Etapa 2: Descrição das ações imediatas é obrigatória quando há ações imediatas.")
                     if current_data[
                         'patient_involved'] == UI_TEXTS.selectbox_default_patient_involved: validation_errors.append(
-                        'Etapa 3: Ã‰ obrigatÃ³rio indicar se o Paciente foi Afetado (Sim/NÃ£o).')
+                        'Etapa 3: É obrigatório indicar se o Paciente foi Afetado (Sim/Não).')
                     if current_data['patient_involved'] == "Sim":
                         if not current_data['patient_id'].strip(): validation_errors.append(
-                            "Etapa 3: NÃºmero do Atendimento/ProntuÃ¡rio Ã© obrigatÃ³rio quando paciente Ã© afetado.")
+                            "Etapa 3: Número do Atendimento/Prontuário é obrigatório quando paciente é afetado.")
                         if current_data[
                             'patient_outcome_obito'] == UI_TEXTS.selectbox_default_patient_outcome_obito: validation_errors.append(
-                            "Etapa 3: EvoluÃ§Ã£o para Ã³bito Ã© obrigatÃ³rio quando paciente Ã© afetado.")
+                            "Etapa 3: Evolução para óbito é obrigatório quando paciente é afetado.")
                     if not current_data['notified_department'] or \
                        current_data['notified_department'] == UI_TEXTS.selectbox_default_department_select: # <-- ALTERADO
-                        validation_errors.append("Etapa 4: Setor Notificado Ã© obrigatÃ³rio.")
+                        validation_errors.append("Etapa 4: Setor Notificado é obrigatório.")
                     if validation_errors:
-                        st.error("âš ï¸ **Por favor, corrija os seguintes erros antes de enviar:**")
+                        st.error("⚠️ **Por favor, corrija os seguintes erros antes de enviar:**")
                         for error in validation_errors:
                             st.warning(error)
                     else:
                         notification_data_to_save = current_data.copy()
                         uploaded_files_list = notification_data_to_save.pop('attachments', [])
                         try:
-                            # Chama a funÃ§Ã£o de criaÃ§Ã£o que agora interage com o DB
+                            # Chama a função de criação que agora interage com o DB
                             notification = create_notification(notification_data_to_save, uploaded_files_list)
-                            st.success(f"âœ… **NotificaÃ§Ã£o #{notification['id']} criada com sucesso!**")
+                            st.success(f"✅ **Notificação #{notification['id']} criada com sucesso!**")
                             st.info(
-                                "ðŸ“‹ Sua notificaÃ§Ã£o foi enviada para classificaÃ§Ã£o e serÃ¡ processada pela equipe responsÃ¡vel.")
-                            with st.expander("   Resumo da NotificaÃ§Ã£o Enviada", expanded=False):
+                                "📋 Sua notificação foi enviada para classificação e será processada pela equipe responsável.")
+                            with st.expander("   Resumo da Notificação Enviada", expanded=False):
                                 occurrence_datetime_summary = format_date_time_summary(
                                     notification_data_to_save.get('occurrence_date'),
                                     notification_data_to_save.get('occurrence_time')
                                 )
                                 st.write(f"**ID:** #{notification['id']}")
-                                st.write(f"**TÃ­tulo:** {notification_data_to_save.get('title', UI_TEXTS.text_na)}")
+                                st.write(f"**Título:** {notification_data_to_save.get('title', UI_TEXTS.text_na)}")
                                 st.write(f"**Local:** {notification_data_to_save.get('location', UI_TEXTS.text_na)}")
                                 st.write(f"**Data/Hora do Evento:** {occurrence_datetime_summary}")
                                 st.write(
@@ -2075,15 +2075,15 @@ def show_create_notification():
                                 notified_dept_display = f"{notified_department}{f' ({notified_complement})' if notified_complement else ''}"
                                 st.write(f"**Setor Notificado:** {notified_dept_display}")
                                 st.write(
-                                    f"**DescriÃ§Ã£o:** {notification_data_to_save.get('description', UI_TEXTS.text_na)[:200]}..." if len(
+                                    f"**Descrição:** {notification_data_to_save.get('description', UI_TEXTS.text_na)[:200]}..." if len(
                                         notification_data_to_save.get('description',
                                                                       '')) > 200 else notification_data_to_save.get(
                                         'description', UI_TEXTS.text_na))
                                 st.write(
-                                    f"**AÃ§Ãµes Imediatas Tomadas:** {notification_data_to_save.get('immediate_actions_taken', UI_TEXTS.text_na)}")
+                                    f"**Ações Imediatas Tomadas:** {notification_data_to_save.get('immediate_actions_taken', UI_TEXTS.text_na)}")
                                 if notification_data_to_save.get('immediate_actions_taken') == 'Sim':
                                     st.write(
-                                        f"**DescriÃ§Ã£o AÃ§Ãµes Imediatas:** {notification_data_to_save.get('immediate_action_description', UI_TEXTS.text_na)[:200]}..." if len(
+                                        f"**Descrição Ações Imediatas:** {notification_data_to_save.get('immediate_action_description', UI_TEXTS.text_na)[:200]}..." if len(
                                             notification_data_to_save.get('immediate_action_description',
                                                                           '')) > 200 else notification_data_to_save.get(
                                             'immediate_action_description', UI_TEXTS.text_na))
@@ -2091,14 +2091,14 @@ def show_create_notification():
                                     f"**Paciente Envolvido:** {notification_data_to_save.get('patient_involved', UI_TEXTS.text_na)}")
                                 if notification_data_to_save.get('patient_involved') == 'Sim':
                                     st.write(
-                                        f"**NÂ° Atendimento:** {notification_data_to_save.get('patient_id', UI_TEXTS.text_na)}")
+                                        f"**N° Atendimento:** {notification_data_to_save.get('patient_id', UI_TEXTS.text_na)}")
                                     outcome_text = 'Sim' if notification_data_to_save.get(
-                                        'patient_outcome_obito') is True else 'NÃ£o' if notification_data_to_save.get(
-                                        'patient_outcome_obito') is False else 'NÃ£o informado'
-                                    st.write(f"**Evoluiu para Ã³bito:** {outcome_text}")
+                                        'patient_outcome_obito') is True else 'Não' if notification_data_to_save.get(
+                                        'patient_outcome_obito') is False else 'Não informado'
+                                    st.write(f"**Evoluiu para óbito:** {outcome_text}")
                                 if notification_data_to_save.get('additional_notes'):
                                     st.write(
-                                        f"**ObservaÃ§Ãµes Adicionais:** {notification_data_to_save.get('additional_notes', UI_TEXTS.text_na)[:200]}..." if len(
+                                        f"**Observações Adicionais:** {notification_data_to_save.get('additional_notes', UI_TEXTS.text_na)[:200]}..." if len(
                                             notification_data_to_save.get('additional_notes',
                                                                           '')) > 200 else notification_data_to_save.get(
                                         'additional_notes', UI_TEXTS.text_na))
@@ -2108,11 +2108,11 @@ def show_create_notification():
                                 else:
                                     st.write("**Anexos:** Nenhum arquivo anexado.")
                             st.session_state.form_step = 5  # Muda para a etapa 5
-                            st.rerun() # CORREÃ‡ÃƒO: ForÃ§a o re-render
+                            st.rerun() # CORREÇÃO: Força o re-render
 
                         except Exception as e:
-                            st.error(f"âŒ Ocorreu um erro ao finalizar a notificaÃ§Ã£o: {e}")
-                            st.warning("Por favor, revise as informaÃ§Ãµes e tente enviar novamente.")
+                            st.error(f"❌ Ocorreu um erro ao finalizar a notificação: {e}")
+                            st.warning("Por favor, revise as informações e tente enviar novamente.")
 
 @st_fragment
 def show_classification():
@@ -2121,11 +2121,11 @@ def show_classification():
     and review the execution of completed actions by responsible parties.
     """
     if not check_permission('classificador'):
-        st.error("âŒ Acesso negado! VocÃª nÃ£o tem permissÃ£o para classificar notificaÃ§Ãµes.")
+        st.error("❌ Acesso negado! Você não tem permissão para classificar notificações.")
         return
-    st.markdown("<h1 class='main-header'>ðŸ” ClassificaÃ§Ã£o e RevisÃ£o de NotificaÃ§Ãµes</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='main-header'>🔍 Classificação e Revisão de Notificações</h1>", unsafe_allow_html=True)
     st.info(
-        "ðŸ“‹ Nesta Ã¡rea, vocÃª pode realizar a classificaÃ§Ã£o inicial de novas notificaÃ§Ãµes e revisar a execuÃ§Ã£o das aÃ§Ãµes concluÃ­das pelos responsÃ¡veis.")
+        "📋 Nesta área, você pode realizar a classificação inicial de novas notificações e revisar a execução das ações concluídas pelos responsáveis.")
 
     all_notifications = load_notifications()  # Carrega do DB
     pending_initial_classification = [n for n in all_notifications if n.get('status') == "pendente_classificacao"]
@@ -2135,23 +2135,23 @@ def show_classification():
 
     if not pending_initial_classification and not pending_execution_review and not closed_notifications:
         st.info(
-            "âœ… NÃ£o hÃ¡ notificaÃ§Ãµes pendentes de classificaÃ§Ã£o inicial, revisÃ£o de execuÃ§Ã£o ou encerradas no momento.")
+            "✅ Não há notificações pendentes de classificação inicial, revisão de execução ou encerradas no momento.")
         return
 
     tab_initial_classif, tab_review_exec, tab_closed_notifs = st.tabs(
-        [f"â³ Pendentes ClassificaÃ§Ã£o Inicial ({len(pending_initial_classification)})",
-         f"ðŸ› ï¸ RevisÃ£o de ExecuÃ§Ã£o ConcluÃ­da ({len(pending_execution_review)})",
-         f"âœ… NotificaÃ§Ãµes Encerradas ({len(closed_notifications)})"]
+        [f"⏳ Pendentes Classificação Inicial ({len(pending_initial_classification)})",
+         f"🛠️ Revisão de Execução Concluída ({len(pending_execution_review)})",
+         f"✅ Notificações Encerradas ({len(closed_notifications)})"]
     )
 
     with tab_initial_classif:
-        st.markdown("### NotificaÃ§Ãµes Aguardando ClassificaÃ§Ã£o Inicial")
+        st.markdown("### Notificações Aguardando Classificação Inicial")
         if not pending_initial_classification:
-            st.info("âœ… NÃ£o hÃ¡ notificaÃ§Ãµes aguardando classificaÃ§Ã£o inicial no momento.")
+            st.info("✅ Não há notificações aguardando classificação inicial no momento.")
         else:
-            st.markdown("#### ðŸ“‹ Selecionar NotificaÃ§Ã£o para ClassificaÃ§Ã£o Inicial")
+            st.markdown("#### 📋 Selecionar Notificação para Classificação Inicial")
             notification_options_initial = [UI_TEXTS.selectbox_default_notification_select] + [
-                f"#{n['id']} | Criada em: {n.get('created_at', UI_TEXTS.text_na)[:10]} | {n.get('title', 'Sem tÃ­tulo')[:60]}..."
+                f"#{n['id']} | Criada em: {n.get('created_at', UI_TEXTS.text_na)[:10]} | {n.get('title', 'Sem título')[:60]}..."
                 for n in pending_initial_classification
             ]
 
@@ -2166,11 +2166,11 @@ def show_classification():
                     st.session_state[selectbox_key_initial] = notification_options_initial[0]
 
             selected_option_initial = st.selectbox(
-                "Escolha uma notificaÃ§Ã£o para analisar e classificar inicial:",
+                "Escolha uma notificação para analisar e classificar inicial:",
                 options=notification_options_initial,
                 index=notification_options_initial.index(st.session_state[selectbox_key_initial]),
                 key=selectbox_key_initial,
-                help="Selecione na lista a notificaÃ§Ã£o pendente que vocÃª deseja classificar.")
+                help="Selecione na lista a notificação pendente que você deseja classificar.")
             notification_id_initial = None
             notification_initial = None
 
@@ -2183,11 +2183,11 @@ def show_classification():
                         notification_initial = next(
                             (n for n in all_notifications if n.get('id') == notification_id_initial), None)
                 except (IndexError, ValueError):
-                    st.error("Erro ao processar a seleÃ§Ã£o da notificaÃ§Ã£o para classificaÃ§Ã£o inicial.")
+                    st.error("Erro ao processar a seleção da notificação para classificação inicial.")
                     notification_initial = None
             if notification_id_initial and (
                     st.session_state.get('current_initial_classification_id') != notification_id_initial):
-                # Se uma nova notificaÃ§Ã£o foi selecionada, inicializa seu estado de classificaÃ§Ã£o
+                # Se uma nova notificação foi selecionada, inicializa seu estado de classificação
                 st.session_state.initial_classification_state = st.session_state.get('initial_classification_state', {})
                 st.session_state.initial_classification_state[notification_id_initial] = {
                     'step': 1,
@@ -2207,7 +2207,7 @@ def show_classification():
                         'requires_approval': UI_TEXTS.selectbox_default_requires_approval,
                         'approver_selecionado': UI_TEXTS.selectbox_default_approver,
                         'executores_selecionados': [],
-                        # Adicionados para ediÃ§Ã£o do setor notificado
+                        # Adicionados para edição do setor notificado
                         'temp_notified_department': notification_initial.get(
                             'notified_department') if notification_initial else None,
                         'temp_notified_department_complement': notification_initial.get(
@@ -2217,7 +2217,7 @@ def show_classification():
                 st.session_state.current_initial_classification_id = notification_id_initial
                 if 'current_review_classification_id' in st.session_state: st.session_state.pop(
                     'current_review_classification_id')
-                st.rerun() # CORREÃ‡ÃƒO: ForÃ§a o re-render
+                st.rerun() # CORREÇÃO: Força o re-render
 
             current_classification_state = st.session_state.initial_classification_state.get(notification_id_initial,
                                                                                              {})
@@ -2226,14 +2226,14 @@ def show_classification():
 
             if notification_initial:
                 st.markdown(
-                    f"### NotificaÃ§Ã£o Selecionada para ClassificaÃ§Ã£o Inicial: #{notification_initial.get('id', UI_TEXTS.text_na)}")
+                    f"### Notificação Selecionada para Classificação Inicial: #{notification_initial.get('id', UI_TEXTS.text_na)}")
                 with st.expander(
-                        f"ðŸ“„ Detalhes Reportados Originalmente (NotificaÃ§Ã£o #{notification_initial.get('id', UI_TEXTS.text_na)})",
+                        f"📄 Detalhes Reportados Originalmente (Notificação #{notification_initial.get('id', UI_TEXTS.text_na)})",
                         expanded=False):
                     col1, col2 = st.columns(2)
                     with col1:
-                        st.markdown("**ðŸ“ InformaÃ§Ãµes BÃ¡sicas**")
-                        st.write(f"**TÃ­tulo:** {notification_initial.get('title', UI_TEXTS.text_na)}")
+                        st.markdown("**📝 Informações Básicas**")
+                        st.write(f"**Título:** {notification_initial.get('title', UI_TEXTS.text_na)}")
                         st.write(f"**Local:** {notification_initial.get('location', UI_TEXTS.text_na)}")
                         occurrence_datetime_summary = format_date_time_summary(
                             notification_initial.get('occurrence_date'), notification_initial.get('occurrence_time'))
@@ -2243,36 +2243,36 @@ def show_classification():
                         reporting_complement = notification_initial.get('reporting_department_complement')
                         reporting_dept_display = f"{reporting_department}{f' ({reporting_complement})' if reporting_complement else ''}"
                         st.write(f"**Setor Notificante:** {reporting_dept_display}")
-                        # --- Setor Notificado na visualizaÃ§Ã£o original ---
+                        # --- Setor Notificado na visualização original ---
                         notified_department = notification_initial.get('notified_department', UI_TEXTS.text_na)
                         notified_complement = notification_initial.get('notified_department_complement')
                         notified_dept_display = f"{notified_department}{f' ({notified_complement})' if notified_complement else ''}"
                         st.write(f"**Setor Notificado:** {notified_dept_display}")
-                        # --- FIM DA ADIÃ‡ÃƒO: Setor Notificado na visualizaÃ§Ã£o original ---
+                        # --- FIM DA ADIÇÃO: Setor Notificado na visualização original ---
                         if notification_initial.get('immediate_actions_taken') and notification_initial.get(
                                 'immediate_action_description'):
                             st.info(
-                                f"**AÃ§Ãµes Imediatas Reportadas:** {notification_initial.get('immediate_action_description', UI_TEXTS.text_na)[:300]}...")
+                                f"**Ações Imediatas Reportadas:** {notification_initial.get('immediate_action_description', UI_TEXTS.text_na)[:300]}...")
                     with col2:
-                        st.markdown("**ðŸ“Š Detalhes de Paciente e ObservaÃ§Ãµes Iniciais**")
+                        st.markdown("**📊 Detalhes de Paciente e Observações Iniciais**")
                         st.write(
-                            f"**Paciente Envolvido:** {'Sim' if notification_initial.get('patient_involved') else 'NÃ£o'}")
+                            f"**Paciente Envolvido:** {'Sim' if notification_initial.get('patient_involved') else 'Não'}")
                         if notification_initial.get('patient_involved'):
-                            st.write(f"**ProntuÃ¡rio:** {notification_initial.get('patient_id', UI_TEXTS.text_na)}")
+                            st.write(f"**Prontuário:** {notification_initial.get('patient_id', UI_TEXTS.text_na)}")
                             outcome = notification_initial.get('patient_outcome_obito')
                             if outcome is True:
-                                st.write("**Evoluiu para Ã“bito:** Sim")
+                                st.write("**Evoluiu para Óbito:** Sim")
                             elif outcome is False:
-                                st.write("**Evoluiu para Ã“bito:** NÃ£o")
+                                st.write("**Evoluiu para Óbito:** Não")
                             else:
-                                st.write("**Evoluiu para Ã“bito:** NÃ£o informado")
-                    st.markdown("**ðŸ“ DescriÃ§Ã£o Detalhada do Evento**")
+                                st.write("**Evoluiu para Óbito:** Não informado")
+                    st.markdown("**📝 Descrição Detalhada do Evento**")
                     st.info(notification_initial.get('description', UI_TEXTS.text_na))
                     if notification_initial.get('additional_notes'):
-                        st.markdown("**â„¹ï¸ ObservaÃ§Ãµes Adicionais do Notificante**")
+                        st.markdown("**ℹ️ Observações Adicionais do Notificante**")
                         st.info(notification_initial.get('additional_notes', UI_TEXTS.text_na))
                     if notification_initial.get('attachments'):
-                        st.markdown("**ðŸ“Ž Anexos**")
+                        st.markdown("**📎 Anexos**")
                         for attach_info in notification_initial['attachments']:
                             unique_name_to_use = None
                             original_name_to_use = None
@@ -2294,79 +2294,79 @@ def show_classification():
                                         key=f"download_init_{notification_initial['id']}_{unique_name_to_use}"
                                     )
                                 else:
-                                    st.write(f"Anexo: {original_name_to_use} (arquivo nÃ£o encontrado ou corrompido)")
+                                    st.write(f"Anexo: {original_name_to_use} (arquivo não encontrado ou corrompido)")
                 st.markdown("---")
-# --- Renderiza a etapa atual do formulÃ¡rio de classificaÃ§Ã£o inicial ---
+# --- Renderiza a etapa atual do formulário de classificação inicial ---
                 if current_step == 1:
                     with st.container():
                         st.markdown("""
                              <div class="form-section">
-                                 <h3>ðŸ“‹ Etapa 1: Aceite da NotificaÃ§Ã£o</h3>
-                                 <p>Analise os detalhes da notificaÃ§Ã£o e decida se ela procede para classificaÃ§Ã£o.</p>
+                                 <h3>📋 Etapa 1: Aceite da Notificação</h3>
+                                 <p>Analise os detalhes da notificação e decida se ela procede para classificação.</p>
                              </div>
                              """, unsafe_allow_html=True)
                         procede_options = [UI_TEXTS.selectbox_default_procede_classification, "Sim",
-                                           "NÃ£o"]
+                                           "Não"]
                         current_data['procede'] = st.selectbox(
-                            "ApÃ³s anÃ¡lise, a notificaÃ§Ã£o procede e deve ser classificada?*",
+                            "Após análise, a notificação procede e deve ser classificada?*",
                             options=procede_options,
                             index=procede_options.index(
                                 current_data.get('procede', UI_TEXTS.selectbox_default_procede_classification)),
                             key=f"procede_select_{notification_id_initial}_step1_initial_refactored",
-                            help="Selecione 'Sim' para classificar a notificaÃ§Ã£o ou 'NÃ£o' para rejeitÃ¡-la.")
-                        st.markdown("<span class='required-field'>* Campo obrigatÃ³rio</span>", unsafe_allow_html=True)
-                        if current_data['procede'] == "NÃ£o":
+                            help="Selecione 'Sim' para classificar a notificação ou 'Não' para rejeitá-la.")
+                        st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
+                        if current_data['procede'] == "Não":
                             current_data['motivo_rejeicao'] = st.text_area(
-                                "Justificativa para RejeiÃ§Ã£o*", value=current_data.get('motivo_rejeicao', ''),
+                                "Justificativa para Rejeição*", value=current_data.get('motivo_rejeicao', ''),
                                 key=f"motivo_rejeicao_{notification_id_initial}_step1_initial_refactored",
-                                help="Explique detalhadamente por que esta notificaÃ§Ã£o serÃ¡ rejeitada.").strip()
+                                help="Explique detalhadamente por que esta notificação será rejeitada.").strip()
                         else:
                             current_data['motivo_rejeicao'] = ""
                 elif current_step == 2:
                     with st.container():
                         st.markdown("""
                              <div class="form-section">
-                                 <h3>ðŸ“˜ Etapa 2: ClassificaÃ§Ã£o NNC, Dano e Prioridade</h3>
-                                 <p>ForneÃ§a a classificaÃ§Ã£o de NÃ£o Conformidade, o nÃ­vel de dano (se aplicÃ¡vel) e defina a prioridade.</p>
+                                 <h3>📘 Etapa 2: Classificação NNC, Dano e Prioridade</h3>
+                                 <p>Forneça a classificação de Não Conformidade, o nível de dano (se aplicável) e defina a prioridade.</p>
                              </div>
                              """, unsafe_allow_html=True)
                         classificacao_nnc_options = [
                                                         UI_TEXTS.selectbox_default_classificacao_nnc] + FORM_DATA.classificacao_nnc
                         current_data['classificacao_nnc'] = st.selectbox(
-                            "ClassificaÃ§Ã£o:*", options=classificacao_nnc_options,
+                            "Classificação:*", options=classificacao_nnc_options,
                             index=classificacao_nnc_options.index(
                                 current_data.get('classificacao_nnc', UI_TEXTS.selectbox_default_classificacao_nnc)),
                             key=f"class_nnc_{notification_id_initial}_step2_initial_refactored",
-                            help="Selecione o tipo de classificaÃ§Ã£o principal do evento.")
-                        st.markdown("<span class='required-field'>* Campo obrigatÃ³rio</span>", unsafe_allow_html=True)
+                            help="Selecione o tipo de classificação principal do evento.")
+                        st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
                         if current_data['classificacao_nnc'] == "Evento com dano":
                             nivel_dano_options = [UI_TEXTS.selectbox_default_nivel_dano] + FORM_DATA.niveis_dano
                             current_data['nivel_dano'] = st.selectbox(
-                                "NÃ­vel de Dano ao Paciente:*", options=nivel_dano_options,
+                                "Nível de Dano ao Paciente:*", options=nivel_dano_options,
                                 index=nivel_dano_options.index(
                                     current_data.get('nivel_dano', UI_TEXTS.selectbox_default_nivel_dano)),
                                 key=f"dano_nivel_{notification_id_initial}_step2_initial_refactored",
-                                help="Selecione o nÃ­vel de dano ao paciente.")
+                                help="Selecione o nível de dano ao paciente.")
                             st.markdown(
-                                "<span class='required-field'>* Campo obrigatÃ³rio quando Evento com Dano</span>",
+                                "<span class='required-field'>* Campo obrigatório quando Evento com Dano</span>",
                                 unsafe_allow_html=True)
                         else:
                             current_data['nivel_dano'] = UI_TEXTS.selectbox_default_nivel_dano
                         prioridades_options = [UI_TEXTS.selectbox_default_prioridade_resolucao] + FORM_DATA.prioridades
                         current_data['prioridade_selecionada'] = st.selectbox(
-                            "Prioridade de ResoluÃ§Ã£o:*", options=prioridades_options,
+                            "Prioridade de Resolução:*", options=prioridades_options,
                             index=prioridades_options.index(
                                 current_data.get('prioridade_selecionada',
                                                  UI_TEXTS.selectbox_default_prioridade_resolucao)),
                             key=f"prioridade_select_{notification_id_initial}_step2_initial_refactored",
-                            help="Defina a prioridade para investigaÃ§Ã£o e resoluÃ§Ã£o do evento.")
-                        st.markdown("<span class='required-field'>* Campo obrigatÃ³rio</span>", unsafe_allow_html=True)
+                            help="Defina a prioridade para investigação e resolução do evento.")
+                        st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
                 elif current_step == 3:
                     with st.container():
                         st.markdown("""
                              <div class="form-section">
-                                 <h3>âš ï¸ Etapa 3: Eventos Especiais (Never Event / Sentinela)</h3>
-                                 <p>Identifique se o evento se enquadra em categorias de alta relevÃ¢ncia para a seguranÃ§a do paciente.</p>
+                                 <h3>⚠️ Etapa 3: Eventos Especiais (Never Event / Sentinela)</h3>
+                                 <p>Identifique se o evento se enquadra em categorias de alta relevância para a segurança do paciente.</p>
                              </div>
                              """, unsafe_allow_html=True)
                         never_event_options = [UI_TEXTS.selectbox_default_never_event] + FORM_DATA.never_events + [
@@ -2385,24 +2385,24 @@ def show_classification():
                             format_func=lambda
                                 x: UI_TEXTS.selectbox_never_event_na_text if x == UI_TEXTS.text_na else x,
                             key=f"never_event_select_{notification_id_initial}_step3_initial_refactored",
-                            help="Selecione se o evento se enquadra como um Never Event. Utilize 'Selecione uma opÃ§Ã£o...' caso nÃ£o se aplique ou nÃ£o haja um Never Event identificado."
+                            help="Selecione se o evento se enquadra como um Never Event. Utilize 'Selecione uma opção...' caso não se aplique ou não haja um Never Event identificado."
                         )
-                        st.markdown("<span class='required-field'>* Campo obrigatÃ³rio</span>", unsafe_allow_html=True)
-                        evento_sentinela_options = [UI_TEXTS.selectbox_default_evento_sentinela, "Sim", "NÃ£o"]
+                        st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
+                        evento_sentinela_options = [UI_TEXTS.selectbox_default_evento_sentinela, "Sim", "Não"]
                         current_data['evento_sentinela_sim_nao'] = st.selectbox(
                             "Evento Sentinela?*", options=evento_sentinela_options,
                             index=evento_sentinela_options.index(
                                 current_data.get('evento_sentinela_sim_nao',
                                                  UI_TEXTS.selectbox_default_evento_sentinela)),
                             key=f"is_sentinel_event_select_{notification_id_initial}_step3_initial_refactored",
-                            help="Indique se o evento Ã© considerado um Evento Sentinela.")
-                        st.markdown("<span class='required-field'>* Campo obrigatÃ³rio</span>", unsafe_allow_html=True)
+                            help="Indique se o evento é considerado um Evento Sentinela.")
+                        st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
                 elif current_step == 4:
                     with st.container():
                         st.markdown("""
                              <div class="form-section">
-                                 <h3> categorizaÃ§Ã£o do evento (Tipo Principal e EspecificaÃ§Ã£o)</h3>
-                                 <p>Classifique o evento pelo tipo principal e especifique, se necessÃ¡rio.</p>
+                                 <h3> categorização do evento (Tipo Principal e Especificação)</h3>
+                                 <p>Classifique o evento pelo tipo principal e especifique, se necessário.</p>
                              </div>
                              """, unsafe_allow_html=True)
                         tipo_evento_principal_options = [UI_TEXTS.selectbox_default_tipo_principal] + list(
@@ -2412,11 +2412,11 @@ def show_classification():
                             index=tipo_evento_principal_options.index(
                                 current_data.get('tipo_evento_principal_selecionado',
                                                  UI_TEXTS.selectbox_default_tipo_principal)),
-                            key="event_type_main_refactored", help="ClassificaÃ§Ã£o do tipo principal de evento.")
-                        st.markdown("<span class='required-field'>* Campo obrigatÃ³rio</span>", unsafe_allow_html=True)
+                            key="event_type_main_refactored", help="Classificação do tipo principal de evento.")
+                        st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
                         sub_options = FORM_DATA.tipos_evento_principal.get(
                             current_data.get('tipo_evento_principal_selecionado'), [])
-                        if current_data.get('tipo_evento_principal_selecionado') in ["ClÃ­nico", "NÃ£o-clÃ­nico",
+                        if current_data.get('tipo_evento_principal_selecionado') in ["Clínico", "Não-clínico",
                                                                                      "Ocupacional"] and sub_options:
                             multiselect_display_options = [UI_TEXTS.multiselect_instruction_placeholder] + sub_options
                             default_sub_selection = current_data.get('tipo_evento_sub_selecionado', [])
@@ -2429,24 +2429,24 @@ def show_classification():
                                 options=multiselect_display_options,
                                 default=default_sub_selection,
                                 key=f"event_type_sub_select_{notification_id_initial}_step4_initial_refactored",
-                                help="Selecione as sub-categorias aplicÃ¡veis.")
+                                help="Selecione as sub-categorias aplicáveis.")
                             current_data['tipo_evento_sub_selecionado'] = [
                                 opt for opt in selected_sub_raw if
                                 opt != UI_TEXTS.multiselect_instruction_placeholder
                             ]
                             current_data['tipo_evento_sub_texto_livre'] = ""
-                        elif current_data.get('tipo_evento_principal_selecionado') in ["Queixa tÃ©cnica", "Outros"]:
+                        elif current_data.get('tipo_evento_principal_selecionado') in ["Queixa técnica", "Outros"]:
                             label_text = f"Especifique o tipo '{current_data['tipo_evento_principal_selecionado']}'*" if \
                                 current_data[
                                     'tipo_evento_principal_selecionado'] == "Outros" else f"Especifique o tipo '{current_data['tipo_evento_principal_selecionado']}':"
                             current_data['tipo_evento_sub_texto_livre'] = st.text_input(
                                 label_text, value=current_data.get('tipo_evento_sub_texto_livre', ''),
                                 key=f"event_type_sub_text_{notification_id_initial}_step4_initial_refactored",
-                                help="Descreva o tipo de evento 'Queixa TÃ©cnica' ou 'Outro'.")
+                                help="Descreva o tipo de evento 'Queixa Técnica' ou 'Outro'.")
                             current_data['tipo_evento_sub_selecionado'] = []
                             if current_data.get('tipo_evento_principal_selecionado') == "Outros":
                                 st.markdown(
-                                    "<span class='required-field'>* Campo obrigatÃ³rio quando Tipo Principal Ã© 'Outros'</span>",
+                                    "<span class='required-field'>* Campo obrigatório quando Tipo Principal é 'Outros'</span>",
                                     unsafe_allow_html=True)
                         else:
                             current_data['tipo_evento_sub_selecionado'] = []
@@ -2455,8 +2455,8 @@ def show_classification():
                     with st.container():
                         st.markdown("""
                             <div class="form-section">
-                                <h3>ðŸŒ Etapa 5: ClassificaÃ§Ã£o OMS</h3>
-                                <p>Classifique o evento de acordo com a ClassificaÃ§Ã£o Internacional de SeguranÃ§a do Paciente da OMS.</p>
+                                <h3>🌐 Etapa 5: Classificação OMS</h3>
+                                <p>Classifique o evento de acordo com a Classificação Internacional de Segurança do Paciente da OMS.</p>
                             </div>
                             """, unsafe_allow_html=True)
                         oms_options = FORM_DATA.classificacao_oms
@@ -2469,37 +2469,37 @@ def show_classification():
                             options=multiselect_display_options,
                             default=default_oms_selection,
                             key=f"oms_classif_{notification_id_initial}_step5_initial_refactored",
-                            help="Selecione um ou mais tipos de incidente da ClassificaÃ§Ã£o da OMS.")
+                            help="Selecione um ou mais tipos de incidente da Classificação da OMS.")
 
                         current_data['classificacao_oms_selecionada'] = [
                             opt for opt in selected_oms_raw if opt != UI_TEXTS.multiselect_instruction_placeholder
                         ]
-                        st.markdown("<span class='required-field'>* Campo obrigatÃ³rio (selecionar ao menos um)</span>",
+                        st.markdown("<span class='required-field'>* Campo obrigatório (selecionar ao menos um)</span>",
                                     unsafe_allow_html=True)
                 elif current_step == 6:
                     with st.container():
                         st.markdown("""
                              <div class="form-section">
-                                 <h3>ðŸ“„ Etapa 6: ObservaÃ§Ãµes da ClassificaÃ§Ã£o</h3>
-                                 <p>Adicione quaisquer observaÃ§Ãµes relevantes sobre a classificaÃ§Ã£o do evento.</p>
+                                 <h3>📄 Etapa 6: Observações da Classificação</h3>
+                                 <p>Adicione quaisquer observações relevantes sobre a classificação do evento.</p>
                              </div>
                              """, unsafe_allow_html=True)
                         current_data['observacoes_classificacao'] = st.text_area(
-                            "ObservaÃ§Ãµes da ClassificaÃ§Ã£o (opcional)",
+                            "Observações da Classificação (opcional)",
                             value=current_data.get('observacoes_classificacao', ''),
                             key=f"obs_classif_{notification_id_initial}_step6_initial_refactored",
-                            help="Adicione observaÃ§Ãµes relevantes sobre a classificaÃ§Ã£o do evento.").strip()
+                            help="Adicione observações relevantes sobre a classificação do evento.").strip()
                 elif current_step == 7:
                     with st.container():
                         st.markdown("""
                              <div class="form-section">
-                                 <h3>ðŸ‘¥ Etapa 7: AtribuiÃ§Ã£o e Fluxo PÃ³s-ClassificaÃ§Ã£o</h3>
-                                 <p>Defina quem serÃ¡ responsÃ¡vel pela execuÃ§Ã£o das aÃ§Ãµes e se aprovaÃ§Ã£o superior Ã© necessÃ¡ria.</p>
+                                 <h3>👥 Etapa 7: Atribuição e Fluxo Pós-Classificação</h3>
+                                 <p>Defina quem será responsável pela execução das ações e se aprovação superior é necessária.</p>
                              </div>
                              """, unsafe_allow_html=True)
-# --- Resumo da NotificaÃ§Ã£o Original ---
-                        st.markdown("#### ðŸ“ Resumo da NotificaÃ§Ã£o Original")
-                        st.write(f"**TÃ­tulo Original:** {notification_initial.get('title', UI_TEXTS.text_na)}")
+# --- Resumo da Notificação Original ---
+                        st.markdown("#### 📝 Resumo da Notificação Original")
+                        st.write(f"**Título Original:** {notification_initial.get('title', UI_TEXTS.text_na)}")
                         st.write(f"**Local Original:** {notification_initial.get('location', UI_TEXTS.text_na)}")
                         original_occurrence_datetime_summary = format_date_time_summary(
                             notification_initial.get('occurrence_date'), notification_initial.get('occurrence_time'))
@@ -2513,26 +2513,26 @@ def show_classification():
                         original_notified_complement = notification_initial.get('notified_department_complement')
                         original_notified_dept_display = f"{original_notified_department}{f' ({original_notified_complement})' if original_notified_complement else ''}"
                         st.write(f"**Setor Notificado Original:** {original_notified_dept_display}")
-                        patient_involved_display = 'Sim' if notification_initial.get('patient_involved') else 'NÃ£o'
+                        patient_involved_display = 'Sim' if notification_initial.get('patient_involved') else 'Não'
                         if notification_initial.get('patient_involved'):
                             patient_id_display = notification_initial.get('patient_id', UI_TEXTS.text_na)
                             patient_outcome_obito_display = "Sim" if notification_initial.get(
-                                'patient_outcome_obito') is True else "NÃ£o" if notification_initial.get(
+                                'patient_outcome_obito') is True else "Não" if notification_initial.get(
                                 'patient_outcome_obito') is False else UI_TEXTS.text_na
                             st.write(
-                                f"**Paciente Envolvido Original:** {patient_involved_display} (ID: {patient_id_display}, Ã“bito: {patient_outcome_obito_display})")
+                                f"**Paciente Envolvido Original:** {patient_involved_display} (ID: {patient_id_display}, Óbito: {patient_outcome_obito_display})")
                         else:
                             st.write(f"**Paciente Envolvido Original:** {patient_involved_display}")
                         st.write(
-                            f"**DescriÃ§Ã£o Original:** {notification_initial.get('description', UI_TEXTS.text_na)[:200]}...")  # Trunca para um resumo conciso
+                            f"**Descrição Original:** {notification_initial.get('description', UI_TEXTS.text_na)[:200]}...")  # Trunca para um resumo conciso
                         st.markdown("---")
-# --- EdiÃ§Ã£o do Setor Notificado ---
-                        st.markdown("#### ðŸ¢ Ajustar Setor Notificado")
+# --- Edição do Setor Notificado ---
+                        st.markdown("#### 🏢 Ajustar Setor Notificado")
                         st.info(
-                            "VocÃª pode ajustar o setor que receberÃ¡ esta notificaÃ§Ã£o e seu complemento, se necessÃ¡rio.")
+                            "Você pode ajustar o setor que receberá esta notificação e seu complemento, se necessário.")
 
-                        # Inicializa os valores selecionados com os dados da notificaÃ§Ã£o original ou o que jÃ¡ estÃ¡ no estado temporÃ¡rio
-                        # Prioriza o que estÃ¡ no current_data do state, depois a notificaÃ§Ã£o original
+                        # Inicializa os valores selecionados com os dados da notificação original ou o que já está no estado temporário
+                        # Prioriza o que está no current_data do state, depois a notificação original
                         initial_notified_department = current_data.get('temp_notified_department')
                         if initial_notified_department is None and notification_initial:
                             initial_notified_department = notification_initial.get('notified_department')
@@ -2547,15 +2547,15 @@ def show_classification():
                             index=notified_dept_options_classif.index(
                                 initial_notified_department) if initial_notified_department in notified_dept_options_classif else 0,
                             key=f"classifier_notified_dept_{notification_id_initial}_refactored",
-                            help="Selecione o setor que serÃ¡ o responsÃ¡vel principal por receber e gerenciar esta notificaÃ§Ã£o."
+                            help="Selecione o setor que será o responsável principal por receber e gerenciar esta notificação."
                         )
                         current_data['temp_notified_department_complement'] = st.text_input(
                             "Complemento do Setor Notificado",
                             value=initial_notified_department_complement,
-                            placeholder="InformaÃ§Ãµes adicionais (opcional)",
+                            placeholder="Informações adicionais (opcional)",
                             key=f"classifier_notified_dept_comp_{notification_id_initial}_refactored",
                             help="Detalhes adicionais sobre o setor notificado (Ex: Equipe A, Sala 101).")
-                        st.markdown("<span class='required-field'>* Campo obrigatÃ³rio</span>", unsafe_allow_html=True)
+                        st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
                         st.markdown("---")
 
                         executors = get_users_by_role('executor')
@@ -2578,25 +2578,25 @@ def show_classification():
                             options=executor_display_options,
                             default=default_executor_selection,
                             key=f"executors_multiselect_{notification_id_initial}_step7_initial_refactored",
-                            help="Selecione os usuÃ¡rios que serÃ£o responsÃ¡veis pela execuÃ§Ã£o das aÃ§Ãµes corretivas/preventivas.")
+                            help="Selecione os usuários que serão responsáveis pela execução das ações corretivas/preventivas.")
                         current_data['executores_selecionados'] = [
                             opt for opt in selected_executor_names_raw if
                             opt != UI_TEXTS.multiselect_instruction_placeholder
                         ]
 
                         st.markdown(
-                            "<span class='required-field'>* Campo obrigatÃ³rio (selecionar ao menos um executor)</span>",
+                            "<span class='required-field'>* Campo obrigatório (selecionar ao menos um executor)</span>",
                             unsafe_allow_html=True)
                         st.markdown("---")
-                        requires_approval_options = [UI_TEXTS.selectbox_default_requires_approval, "Sim", "NÃ£o"]
+                        requires_approval_options = [UI_TEXTS.selectbox_default_requires_approval, "Sim", "Não"]
                         current_data['requires_approval'] = st.selectbox(
-                            "Requer AprovaÃ§Ã£o Superior apÃ³s ExecuÃ§Ã£o?*",
+                            "Requer Aprovação Superior após Execução?*",
                             options=requires_approval_options,
                             index=requires_approval_options.index(
                                 current_data.get('requires_approval', UI_TEXTS.selectbox_default_requires_approval)),
                             key=f"requires_approval_select_{notification_id_initial}_step7_initial_refactored",
-                            help="Indique se esta notificaÃ§Ã£o, apÃ³s o execuÃ§Ã£o das aÃ§Ãµes, precisa ser aprovada por um usuÃ¡rio com a funÃ§Ã£o 'aprovador'.")
-                        st.markdown("<span class='required-field'>* Campo obrigatÃ³rio</span>", unsafe_allow_html=True)
+                            help="Indique se esta notificação, após o execução das ações, precisa ser aprovada por um usuário com a função 'aprovador'.")
+                        st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
                         approvers = get_users_by_role('aprovador')
                         approver_options = {
                             f"{a.get('name', UI_TEXTS.text_na)} ({a.get('username', UI_TEXTS.text_na)})": a['id']
@@ -2606,30 +2606,30 @@ def show_classification():
                             approver_options.keys())
                         if current_data['requires_approval'] == 'Sim':
                             selected_approver_name = st.selectbox(
-                                "Selecionar Aprovador ResponsÃ¡vel:*",
+                                "Selecionar Aprovador Responsável:*",
                                 options=approver_select_options,
                                 index=approver_select_options.index(next(
                                     (name for name, uid in approver_options.items() if
                                      uid == current_data.get('approver_selecionado')),
                                     UI_TEXTS.selectbox_default_approver)),
                                 key=f"approver_select_{notification_id_initial}_step7_initial_refactored",
-                                help="Selecione o usuÃ¡rio 'aprovador' que serÃ¡ responsÃ¡vel pela aprovaÃ§Ã£o final.")
+                                help="Selecione o usuário 'aprovador' que será responsável pela aprovação final.")
                             current_data['approver_selecionado'] = approver_options.get(selected_approver_name)
                             st.markdown(
-                                "<span class='required-field'>* Campo obrigatÃ³rio quando requer aprovaÃ§Ã£o</span>",
+                                "<span class='required-field'>* Campo obrigatório quando requer aprovação</span>",
                                 unsafe_allow_html=True)
                         else:
                             current_data['approver_selecionado'] = UI_TEXTS.selectbox_default_approver
                         st.markdown("---")
-                        st.markdown("#### âœ… Resumo da ClassificaÃ§Ã£o Final")
-                        st.write(f"**ClassificaÃ§Ã£o NNC:** {current_data.get('classificacao_nnc', UI_TEXTS.text_na)}")
+                        st.markdown("#### ✅ Resumo da Classificação Final")
+                        st.write(f"**Classificação NNC:** {current_data.get('classificacao_nnc', UI_TEXTS.text_na)}")
                         if current_data.get('classificacao_nnc') == "Evento com dano" and current_data.get(
                                 'nivel_dano') != UI_TEXTS.selectbox_default_nivel_dano:
-                            st.write(f"**NÃ­vel de Dano:** {current_data.get('nivel_dano', UI_TEXTS.text_na)}")
+                            st.write(f"**Nível de Dano:** {current_data.get('nivel_dano', UI_TEXTS.text_na)}")
                         st.write(f"**Prioridade:** {current_data.get('prioridade_selecionada', UI_TEXTS.text_na)}")
                         st.write(f"**Never Event:** {current_data.get('never_event_selecionado', UI_TEXTS.text_na)}")
                         st.write(
-                            f"**Evento Sentinela:** {'Sim' if current_data.get('evento_sentinela_sim_nao') == 'Sim' else 'NÃ£o'}")
+                            f"**Evento Sentinela:** {'Sim' if current_data.get('evento_sentinela_sim_nao') == 'Sim' else 'Não'}")
                         st.write(
                             f"**Tipo Principal:** {current_data.get('tipo_evento_principal_selecionado', UI_TEXTS.text_na)}")
                         sub_type_display = ''
@@ -2638,11 +2638,11 @@ def show_classification():
                         elif current_data.get('tipo_evento_sub_texto_livre'):
                             sub_type_display = current_data.get('tipo_evento_sub_texto_livre')
                         if sub_type_display:
-                            st.write(f"**EspecificaÃ§Ã£o:** {sub_type_display}")
+                            st.write(f"**Especificação:** {sub_type_display}")
                         st.write(
-                            f"**ClassificaÃ§Ã£o OMS:** {', '.join(current_data.get('classificacao_oms_selecionada', [UI_TEXTS.text_na]))}")
+                            f"**Classificação OMS:** {', '.join(current_data.get('classificacao_oms_selecionada', [UI_TEXTS.text_na]))}")
                         st.write(
-                            f"**ObservaÃ§Ãµes:** {current_data.get('observacoes_classificacao') or UI_TEXTS.text_na}")
+                            f"**Observações:** {current_data.get('observacoes_classificacao') or UI_TEXTS.text_na}")
                         st.write(
                             f"**Setor Notificado (Ajustado):** {current_data.get('temp_notified_department', UI_TEXTS.text_na)}")
                         if current_data.get('temp_notified_department_complement'):
@@ -2650,191 +2650,191 @@ def show_classification():
                                 f"**Complemento Setor Notificado (Ajustado):** {current_data.get('temp_notified_department_complement')}")
                         displayed_executors = [name for name, uid in executor_options.items() if
                                                uid in current_data.get('executores_selecionados', [])]
-                        st.write(f"**Executores AtribuÃ­dos:** {', '.join(displayed_executors) or 'Nenhum'}")
+                        st.write(f"**Executores Atribuídos:** {', '.join(displayed_executors) or 'Nenhum'}")
                         requires_approval_display = current_data.get('requires_approval', UI_TEXTS.text_na)
-                        st.write(f"**Requer AprovaÃ§Ã£o:** {requires_approval_display}")
+                        st.write(f"**Requer Aprovação:** {requires_approval_display}")
                         if requires_approval_display == 'Sim':
                             approver_name_display = next((name for name, uid in approver_options.items() if
                                                           uid == current_data.get('approver_selecionado')),
                                                          UI_TEXTS.selectbox_default_approver)
-                            st.write(f"**Aprovador AtribuÃ­do:** {approver_name_display}")
+                            st.write(f"**Aprovador Atribuído:** {approver_name_display}")
                 col_prev_initial, col_cancel_initial, col_next_submit_initial = st.columns(3)
 
                 with col_prev_initial:
-                    if current_step > 1 and current_step <= 7 and current_data.get('procede') != 'NÃ£o':
-                        if st.button("â—€ï¸ Voltar", use_container_width=True,
+                    if current_step > 1 and current_step <= 7 and current_data.get('procede') != 'Não':
+                        if st.button("◀️ Voltar", use_container_width=True,
                                      key=f"back_btn_{notification_id_initial}_step{current_step}_initial_refactored"):
                             current_classification_state['step'] -= 1
                             st.session_state.initial_classification_state[
                                 notification_id_initial] = current_classification_state
-                            st.rerun() # CORREÃ‡ÃƒO: ForÃ§a o re-render
+                            st.rerun() # CORREÇÃO: Força o re-render
                 with col_cancel_initial:
                     if current_step <= 7:
-                        if st.button("ðŸš« Cancelar ClassificaÃ§Ã£o", use_container_width=True,
+                        if st.button("🚫 Cancelar Classificação", use_container_width=True,
                                      key=f"cancel_btn_{notification_id_initial}_step{current_step}_initial_refactored"):
                             st.session_state.initial_classification_state.pop(notification_id_initial,
                                                                               None)
                             st.session_state.pop('current_initial_classification_id', None)
-                            st.info(f"A classificaÃ§Ã£o inicial da notificaÃ§Ã£o #{notification_id_initial} foi cancelada.")
-                            st.rerun() # CORREÃ‡ÃƒO: ForÃ§a o re-render
+                            st.info(f"A classificação inicial da notificação #{notification_id_initial} foi cancelada.")
+                            st.rerun() # CORREÇÃO: Força o re-render
                 with col_next_submit_initial:
-                    if current_step < 7 and current_data.get('procede') != 'NÃ£o':
-                        if st.button(f"âž¡ï¸ PrÃ³ximo",
+                    if current_step < 7 and current_data.get('procede') != 'Não':
+                        if st.button(f"➡️ Próximo",
                                      key=f"next_btn_{notification_id_initial}_step{current_step}_initial_refactored",
                                      use_container_width=True):
                             validation_errors = []
                             if current_step == 1:
                                 if current_data.get('procede') != 'Sim': validation_errors.append(
-                                    'Etapa 1: Para avanÃ§ar, a notificaÃ§Ã£o deve proceder (selecione \'Sim\').')
+                                    'Etapa 1: Para avançar, a notificação deve proceder (selecione \'Sim\').')
                             elif current_step == 2:
                                 if current_data.get(
                                         'classificacao_nnc') == UI_TEXTS.selectbox_default_classificacao_nnc: validation_errors.append(
-                                    "Etapa 2: ClassificaÃ§Ã£o NNC Ã© obrigatÃ³ria.")
+                                    "Etapa 2: Classificação NNC é obrigatória.")
                                 if current_data.get('classificacao_nnc') == "Evento com dano" and current_data.get(
                                         'nivel_dano') == UI_TEXTS.selectbox_default_nivel_dano: validation_errors.append(
-                                    "Etapa 2: NÃ­vel de dano Ã© obrigatÃ³rio para evento com dano.")
+                                    "Etapa 2: Nível de dano é obrigatório para evento com dano.")
                                 if current_data.get(
                                         'prioridade_selecionada') == UI_TEXTS.selectbox_default_prioridade_resolucao: validation_errors.append(
-                                    "Etapa 2: Prioridade de ResoluÃ§Ã£o Ã© obrigatÃ³ria.")
+                                    "Etapa 2: Prioridade de Resolução é obrigatória.")
                             elif current_step == 3:
                                 if current_data.get(
                                         'never_event_selecionado') == UI_TEXTS.selectbox_default_never_event: validation_errors.append(
-                                    "Etapa 3: Never Event Ã© obrigatÃ³rio (selecione 'N/A' se nÃ£o se aplica).")
+                                    "Etapa 3: Never Event é obrigatório (selecione 'N/A' se não se aplica).")
                                 if current_data.get(
                                         'evento_sentinela_sim_nao') == UI_TEXTS.selectbox_default_evento_sentinela: validation_errors.append(
-                                    "Etapa 3: Evento Sentinela Ã© obrigatÃ³rio (Sim/NÃ£o).")
-                            ### INÃCIO DA CORREÃ‡ÃƒO: LÃ³gica de validaÃ§Ã£o da Etapa 4
+                                    "Etapa 3: Evento Sentinela é obrigatório (Sim/Não).")
+                            ### INÍCIO DA CORREÇÃO: Lógica de validação da Etapa 4
                             elif current_step == 4:
                                 if current_data.get(
                                         'tipo_evento_principal_selecionado') == UI_TEXTS.selectbox_default_tipo_principal:
-                                    validation_errors.append("Etapa 4: Tipo Principal de Evento Ã© obrigatÃ³rio.")
-                                # MODIFICAÃ‡ÃƒO AQUI: Verifica se o tipo principal requer sub-especificaÃ§Ã£o e se nenhuma foi selecionada.
-                                elif current_data.get('tipo_evento_principal_selecionado') in ["ClÃ­nico", "NÃ£o-clÃ­nico",
+                                    validation_errors.append("Etapa 4: Tipo Principal de Evento é obrigatório.")
+                                # MODIFICAÇÃO AQUI: Verifica se o tipo principal requer sub-especificação e se nenhuma foi selecionada.
+                                elif current_data.get('tipo_evento_principal_selecionado') in ["Clínico", "Não-clínico",
                                                                                                "Ocupacional"] and not current_data.get(
                                     'tipo_evento_sub_selecionado'):
                                     validation_errors.append(
-                                        "Etapa 4: Ã‰ obrigatÃ³rio selecionar ao menos uma EspecificaÃ§Ã£o do Evento.")
+                                        "Etapa 4: É obrigatório selecionar ao menos uma Especificação do Evento.")
                                 elif current_data.get(
                                         'tipo_evento_principal_selecionado') == 'Outros' and not current_data.get(
                                     'tipo_evento_sub_texto_livre'):
-                                    validation_errors.append("Etapa 4: A especificaÃ§Ã£o do tipo 'Outros' Ã© obrigatÃ³ria.")
+                                    validation_errors.append("Etapa 4: A especificação do tipo 'Outros' é obrigatória.")
                                 elif current_data.get(
-                                        'tipo_evento_principal_selecionado') == 'Queixa tÃ©cnica' and not current_data.get(
+                                        'tipo_evento_principal_selecionado') == 'Queixa técnica' and not current_data.get(
                                     'tipo_evento_sub_texto_livre'):
                                     validation_errors.append(
-                                        "Etapa 4: A especificaÃ§Ã£o do tipo 'Queixa tÃ©cnica' Ã© obrigatÃ³ria.")
-                            ### FIM DA CORREÃ‡ÃƒO
+                                        "Etapa 4: A especificação do tipo 'Queixa técnica' é obrigatória.")
+                            ### FIM DA CORREÇÃO
                             elif current_step == 5:
                                 if not current_data.get('classificacao_oms_selecionada'): validation_errors.append(
-                                    "Etapa 5: ClassificaÃ§Ã£o OMS Ã© obrigatÃ³ria (selecione ao menos um item).")
+                                    "Etapa 5: Classificação OMS é obrigatória (selecione ao menos um item).")
 
                             if validation_errors:
-                                st.error("âš ï¸ **Por favor, corrija os seguintes erros para avanÃ§ar:**")
+                                st.error("⚠️ **Por favor, corrija os seguintes erros para avançar:**")
                                 for error in validation_errors: st.warning(error)
                             else:
                                 current_classification_state['step'] += 1
                                 st.session_state.initial_classification_state[
                                     notification_id_initial] = current_classification_state
-                                st.rerun() # CORREÃ‡ÃƒO: ForÃ§a o re-render
+                                st.rerun() # CORREÇÃO: Força o re-render
                     is_final_classification_submit_step_initial = current_step == 7 and current_data.get(
                         'procede') == 'Sim'
-                    is_rejection_submit_step_initial = current_step == 1 and current_data.get('procede') == 'NÃ£o'
+                    is_rejection_submit_step_initial = current_step == 1 and current_data.get('procede') == 'Não'
                     if is_final_classification_submit_step_initial or is_rejection_submit_step_initial:
                         with st.form(
                                 key=f"final_classification_submit_form_{notification_id_initial}_step{current_step}_initial_refactored",
                                 clear_on_submit=False):
-                            submit_button_label = "âŒ Rejeitar NotificaÃ§Ã£o" if is_rejection_submit_step_initial else "ðŸ“¤ Enviar ClassificaÃ§Ã£o Final"
+                            submit_button_label = "❌ Rejeitar Notificação" if is_rejection_submit_step_initial else "📤 Enviar Classificação Final"
                             submit_final_action = st.form_submit_button(
                                 submit_button_label, use_container_width=True
                             )
                             if submit_final_action:
-                                st.subheader("Processando sua decisÃ£o final...")
+                                st.subheader("Processando sua decisão final...")
                                 validation_errors = []
                                 if is_rejection_submit_step_initial:
                                     if not current_data.get('motivo_rejeicao'): validation_errors.append(
-                                        "Justificativa de rejeiÃ§Ã£o Ã© obrigatÃ³ria.")
+                                        "Justificativa de rejeição é obrigatória.")
                                 elif is_final_classification_submit_step_initial:
                                     if current_data.get('procede') != 'Sim': validation_errors.append(
-                                        'Erro interno: Status "procede" invÃ¡lido para finalizaÃ§Ã£o.')
+                                        'Erro interno: Status "procede" inválido para finalização.')
                                     if current_data.get(
                                             'classificacao_nnc') == UI_TEXTS.selectbox_default_classificacao_nnc: validation_errors.append(
-                                        "Etapa 2: ClassificaÃ§Ã£o NNC Ã© obrigatÃ³ria.")
+                                        "Etapa 2: Classificação NNC é obrigatória.")
                                     if current_data.get('classificacao_nnc') == "Evento com dano" and current_data.get(
                                             'nivel_dano') == UI_TEXTS.selectbox_default_nivel_dano: validation_errors.append(
-                                        "Etapa 2: NÃ­vel de dano Ã© obrigatÃ³rio para evento com dano.")
+                                        "Etapa 2: Nível de dano é obrigatório para evento com dano.")
                                     if current_data.get(
                                             'prioridade_selecionada') == UI_TEXTS.selectbox_default_prioridade_resolucao: validation_errors.append(
-                                        "Etapa 2: Prioridade de ResoluÃ§Ã£o Ã© obrigatÃ³ria.")
+                                        "Etapa 2: Prioridade de Resolução é obrigatória.")
                                     if current_data.get(
                                             'never_event_selecionado') == UI_TEXTS.selectbox_default_never_event: validation_errors.append(
-                                        "Etapa 3: Never Event Ã© obrigatÃ³rio (selecione 'N/A' se nÃ£o se aplica).")
+                                        "Etapa 3: Never Event é obrigatório (selecione 'N/A' se não se aplica).")
                                     if current_data.get(
                                             'evento_sentinela_sim_nao') == UI_TEXTS.selectbox_default_evento_sentinela: validation_errors.append(
-                                        "Etapa 3: Evento Sentinela Ã© obrigatÃ³rio (Sim/NÃ£o).")
+                                        "Etapa 3: Evento Sentinela é obrigatório (Sim/Não).")
                                     if current_data.get(
                                             'tipo_evento_principal_selecionado') == UI_TEXTS.selectbox_default_tipo_principal: validation_errors.append(
-                                        "Etapa 4: Tipo Principal de Evento Ã© obrigatÃ³rio.")
-                                    if current_data.get('tipo_evento_principal_selecionado') in ["ClÃ­nico",
-                                                                                                 "NÃ£o-clÃ­nico",
+                                        "Etapa 4: Tipo Principal de Evento é obrigatório.")
+                                    if current_data.get('tipo_evento_principal_selecionado') in ["Clínico",
+                                                                                                 "Não-clínico",
                                                                                                  "Ocupacional"] and not current_data.get(
                                         'tipo_evento_sub_selecionado'):
                                         validation_errors.append(
-                                            "Etapa 4: Ã‰ obrigatÃ³rio selecionar ao menos uma EspecificaÃ§Ã£o do Evento.")
+                                            "Etapa 4: É obrigatório selecionar ao menos uma Especificação do Evento.")
                                     elif current_data.get(
                                             'tipo_evento_principal_selecionado') == 'Outros' and not current_data.get(
                                         'tipo_evento_sub_texto_livre'):
                                         validation_errors.append(
-                                            "Etapa 4: A especificaÃ§Ã£o do tipo 'Outros' Ã© obrigatÃ³ria.")
+                                            "Etapa 4: A especificação do tipo 'Outros' é obrigatória.")
                                     elif current_data.get(
-                                            'tipo_evento_principal_selecionado') == 'Queixa tÃ©cnica' and not current_data.get(
+                                            'tipo_evento_principal_selecionado') == 'Queixa técnica' and not current_data.get(
                                         'tipo_evento_sub_texto_livre'):
                                         validation_errors.append(
-                                            "Etapa 4: A especificaÃ§Ã£o do tipo 'Queixa tÃ©cnica' Ã© obrigatÃ³ria.")
+                                            "Etapa 4: A especificação do tipo 'Queixa técnica' é obrigatória.")
                                     if not current_data.get('classificacao_oms_selecionada'): validation_errors.append(
-                                        "Etapa 5: ClassificaÃ§Ã£o OMS Ã© obrigatÃ³ria (selecione ao menos um item).")
-                                    # ValidaÃ§Ã£o do Setor Notificado Ajustado
+                                        "Etapa 5: Classificação OMS é obrigatória (selecione ao menos um item).")
+                                    # Validação do Setor Notificado Ajustado
                                     if not current_data.get('temp_notified_department') or \
                                        current_data['temp_notified_department'] == UI_TEXTS.selectbox_default_department_select:
-                                        validation_errors.append("Etapa 7: Ã‰ obrigatÃ³rio definir o Setor Notificado.")
+                                        validation_errors.append("Etapa 7: É obrigatório definir o Setor Notificado.")
                                     if not current_data.get('executores_selecionados'): validation_errors.append(
-                                        "Etapa 7: Ã‰ obrigatÃ³rio atribuir ao menos um Executor ResponsÃ¡vel.")
+                                        "Etapa 7: É obrigatório atribuir ao menos um Executor Responsável.")
                                     if current_data.get(
                                             'requires_approval') == UI_TEXTS.selectbox_default_requires_approval: validation_errors.append(
-                                        "Etapa 7: Ã‰ obrigatÃ³rio indicar se requer AprovaÃ§Ã£o Superior (Sim/NÃ£o).")
+                                        "Etapa 7: É obrigatório indicar se requer Aprovação Superior (Sim/Não).")
                                     if current_data.get('requires_approval') == "Sim" and (
                                             current_data.get('approver_selecionado') is None or current_data.get(
                                         'approver_selecionado') == UI_TEXTS.selectbox_default_approver): validation_errors.append(
-                                        "Etapa 7: Ã‰ obrigatÃ³rio selecionar o Aprovador ResponsÃ¡vel quando requer aprovaÃ§Ã£o.")
+                                        "Etapa 7: É obrigatório selecionar o Aprovador Responsável quando requer aprovação.")
                                 if validation_errors:
-                                    st.error("âš ï¸ **Por favor, corrija os seguintes erros antes de enviar:**")
+                                    st.error("⚠️ **Por favor, corrija os seguintes erros antes de enviar:**")
                                     for error in validation_errors: st.warning(error)
                                     st.stop()
                                 else:
-                                    user_name = st.session_state.user.get('name', 'UsuÃ¡rio')
+                                    user_name = st.session_state.user.get('name', 'Usuário')
                                     user_username = st.session_state.user.get('username', UI_TEXTS.text_na)
                                     if is_rejection_submit_step_initial:
                                         updates = {
                                             "status": "rejeitada",
-                                            "classification": None,  # Limpa classificaÃ§Ã£o
+                                            "classification": None,  # Limpa classificação
                                             "executors": [],  # Limpa executores
                                             "approver": None,  # Limpa aprovador
-                                            "rejection_classification": {  # Adiciona motivo da rejeiÃ§Ã£o
+                                            "rejection_classification": {  # Adiciona motivo da rejeição
                                                 "reason": current_data.get('motivo_rejeicao'),
                                                 "classified_by": user_username,
                                                 "timestamp": datetime.now().isoformat()
                                             }
                                         }
                                         update_notification(notification_id_initial, updates)  # Atualiza no DB
-                                        add_history_entry(  # Adiciona histÃ³rico no DB
-                                            notification_id_initial, "NotificaÃ§Ã£o rejeitada na ClassificaÃ§Ã£o Inicial",
+                                        add_history_entry(  # Adiciona histórico no DB
+                                            notification_id_initial, "Notificação rejeitada na Classificação Inicial",
                                             user_name,
-                                            f"Motivo da rejeiÃ§Ã£o: {current_data.get('motivo_rejeicao', '')[:200]}..." if len(
+                                            f"Motivo da rejeição: {current_data.get('motivo_rejeicao', '')[:200]}..." if len(
                                                 current_data.get('motivo_rejeicao',
-                                                                 '')) > 200 else f"Motivo da rejeiÃ§Ã£o: {current_data.get('motivo_rejeicao', '')}"
+                                                                 '')) > 200 else f"Motivo da rejeição: {current_data.get('motivo_rejeicao', '')}"
                                         )
-                                        st.success(f"âœ… NotificaÃ§Ã£o #{notification_id_initial} rejeitada com sucesso!")
+                                        st.success(f"✅ Notificação #{notification_id_initial} rejeitada com sucesso!")
                                         st.info(
-                                            "VocÃª serÃ¡ redirecionado para a lista atualizada de notificaÃ§Ãµes pendentes.")
+                                            "Você será redirecionado para a lista atualizada de notificações pendentes.")
                                     elif is_final_classification_submit_step_initial:
                                         # Recalculate executor_options here to ensure it's fresh
                                         all_executors_list_for_map = get_users_by_role('executor')
@@ -2870,12 +2870,12 @@ def show_classification():
                                             "never_event": current_data.get('never_event_selecionado'),
                                             "is_sentinel_event": True if current_data.get(
                                                 'evento_sentinela_sim_nao') == "Sim" else False if current_data.get(
-                                                'evento_sentinela_sim_nao') == "NÃ£o" else None,
+                                                'evento_sentinela_sim_nao') == "Não" else None,
                                             "oms": current_data.get('classificacao_oms_selecionada'),
                                             "event_type_main": current_data.get('tipo_evento_principal_selecionado'),
                                             "event_type_sub": current_data.get(
                                                 'tipo_evento_sub_selecionado') if current_data.get(
-                                                'tipo_evento_principal_selecionado') in ["ClÃ­nico", "NÃ£o-clÃ­nico",
+                                                'tipo_evento_principal_selecionado') in ["Clínico", "Não-clínico",
                                                                                          "Ocupacional"] else (
                                                 [current_data.get('tipo_evento_sub_texto_livre')] if current_data.get(
                                                     'tipo_evento_sub_texto_livre') else []),
@@ -2884,7 +2884,7 @@ def show_classification():
                                             "classification_timestamp": datetime.now().isoformat(),
                                             "requires_approval": True if current_data.get(
                                                 'requires_approval') == "Sim" else False if current_data.get(
-                                                'requires_approval') == "NÃ£o" else None,
+                                                'requires_approval') == "Não" else None,
                                             "deadline_date": deadline_date_calculated  # ADDED DEADLINE DATE
                                         }
                                         updates = {
@@ -2900,12 +2900,12 @@ def show_classification():
                                                 'temp_notified_department_complement')
                                         }
                                         update_notification(notification_id_initial, updates)  # Atualiza no DB
-                                        details_hist = f"ClassificaÃ§Ã£o NNC: {classification_data_to_save['nnc']}, Prioridade: {classification_data_to_save.get('prioridade', UI_TEXTS.text_na)}"
+                                        details_hist = f"Classificação NNC: {classification_data_to_save['nnc']}, Prioridade: {classification_data_to_save.get('prioridade', UI_TEXTS.text_na)}"
                                         if classification_data_to_save["nnc"] == "Evento com dano" and \
                                                 classification_data_to_save["nivel_dano"]:
-                                            details_hist += f", NÃ­vel Dano: {classification_data_to_save['nivel_dano']}"
+                                            details_hist += f", Nível Dano: {classification_data_to_save['nivel_dano']}"
                                         details_hist += f", Never Event: {classification_data_to_save.get('never_event', UI_TEXTS.text_na)}"
-                                        details_hist += f", Evento Sentinela: {'Sim' if classification_data_to_save.get('is_sentinel_event') else 'NÃ£o'}"
+                                        details_hist += f", Evento Sentinela: {'Sim' if classification_data_to_save.get('is_sentinel_event') else 'Não'}"
                                         details_hist += f", Tipo Principal: {classification_data_to_save.get('event_type_main', UI_TEXTS.text_na)}"
                                         sub_detail = classification_data_to_save.get('event_type_sub')
                                         if sub_detail:
@@ -2915,9 +2915,9 @@ def show_classification():
                                             else:
                                                 details_hist += f" ({str(sub_detail)[:100]}...)" if len(
                                                     str(sub_detail)) > 100 else f" ({str(sub_detail)})"
-                                        details_hist += f", Requer AprovaÃ§Ã£o: {'Sim' if classification_data_to_save.get('requires_approval') else 'NÃ£o'}"
-                                        # Melhoria para exibir nomes de executores no histÃ³rico
-                                        all_users = load_users()  # Recarrega todos os usuÃ¡rios para ter os nomes
+                                        details_hist += f", Requer Aprovação: {'Sim' if classification_data_to_save.get('requires_approval') else 'Não'}"
+                                        # Melhoria para exibir nomes de executores no histórico
+                                        all_users = load_users()  # Recarrega todos os usuários para ter os nomes
                                         exec_ids_in_updates = updates.get('executors', [])
                                         exec_names_for_history = [
                                             u.get('name', UI_TEXTS.text_na) for u in all_users
@@ -2930,38 +2930,38 @@ def show_classification():
                                                 (a.get('name', UI_TEXTS.text_na) for a in approvers_list_hist if
                                                  a.get('id') == updates.get('approver')), UI_TEXTS.text_na)
                                             details_hist += f", Aprovador: {approver_name_hist}"
-                                        # Adiciona o setor notificado (ajustado ou original) ao histÃ³rico
+                                        # Adiciona o setor notificado (ajustado ou original) ao histórico
                                         notified_dept_hist = updates.get('notified_department', UI_TEXTS.text_na)
                                         notified_comp_hist = updates.get('notified_department_complement', '')
                                         details_hist += f", Setor Notificado: {notified_dept_hist}"
                                         if notified_comp_hist:
                                             details_hist += f" ({notified_comp_hist})"
-                                        add_history_entry(  # Adiciona histÃ³rico no DB
-                                            notification_id_initial, "NotificaÃ§Ã£o classificada e atribuÃ­da",
+                                        add_history_entry(  # Adiciona histórico no DB
+                                            notification_id_initial, "Notificação classificada e atribuída",
                                             user_name, details_hist
                                         )
                                         st.success(
-                                            f"âœ… NotificaÃ§Ã£o #{notification_id_initial} classificada e atribuÃ­da com sucesso!")
+                                            f"✅ Notificação #{notification_id_initial} classificada e atribuída com sucesso!")
                                         st.info(
-                                            "A notificaÃ§Ã£o foi movida para a fase de execuÃ§Ã£o e atribuÃ­da aos responsÃ¡veis.")
+                                            "A notificação foi movida para a fase de execução e atribuída aos responsáveis.")
                                     st.session_state.initial_classification_state.pop(notification_id_initial,
                                                                                       None)
                                     st.session_state.pop('current_initial_classification_id', None)
-                                    st.rerun() # CORREÃ‡ÃƒO: ForÃ§a o re-render
+                                    st.rerun() # CORREÇÃO: Força o re-render
 
             else:
                 if pending_initial_classification:
-                    st.info(f"ðŸ‘† Selecione uma notificaÃ§Ã£o da lista acima para visualizar e iniciar a classificaÃ§Ã£o.")
+                    st.info(f"👆 Selecione uma notificação da lista acima para visualizar e iniciar a classificação.")
 
     with tab_review_exec:
-        st.markdown("### NotificaÃ§Ãµes Aguardando RevisÃ£o da ExecuÃ§Ã£o")
+        st.markdown("### Notificações Aguardando Revisão da Execução")
 
         if not pending_execution_review:
-            st.info("âœ… NÃ£o hÃ¡ notificaÃ§Ãµes aguardando revisÃ£o da execuÃ§Ã£o no momento.")
+            st.info("✅ Não há notificações aguardando revisão da execução no momento.")
         else:
-            st.markdown("#### ðŸ“‹ Selecionar NotificaÃ§Ã£o para RevisÃ£o")
+            st.markdown("#### 📋 Selecionar Notificação para Revisão")
             notification_options_review = [UI_TEXTS.selectbox_default_notification_select] + [
-                f"#{n['id']} | Classificada em: {n.get('classification', {}).get('classification_timestamp', UI_TEXTS.text_na)[:10]} | {n.get('title', 'Sem tÃ­tulo')[:60]}..."
+                f"#{n['id']} | Classificada em: {n.get('classification', {}).get('classification_timestamp', UI_TEXTS.text_na)[:10]} | {n.get('title', 'Sem título')[:60]}..."
                 for n in pending_execution_review
             ]
 
@@ -2976,11 +2976,11 @@ def show_classification():
                     st.session_state[selectbox_key_review] = notification_options_review[0]
 
             selected_option_review = st.selectbox(
-                "Escolha uma notificaÃ§Ã£o para revisar a execuÃ§Ã£o:",
+                "Escolha uma notificação para revisar a execução:",
                 options=notification_options_review,
                 index=notification_options_review.index(st.session_state[selectbox_key_review]),
                 key=selectbox_key_review,
-                help="Selecione na lista a notificaÃ§Ã£o cuja execuÃ§Ã£o vocÃª deseja revisar.")
+                help="Selecione na lista a notificação cuja execução você deseja revisar.")
             notification_id_review = None
             notification_review = None
 
@@ -2993,7 +2993,7 @@ def show_classification():
                         notification_review = next(
                             (n for n in all_notifications if n.get('id') == notification_id_review), None)
                 except (IndexError, ValueError):
-                    st.error("Erro ao processar a seleÃ§Ã£o da notificaÃ§Ã£o para revisÃ£o.")
+                    st.error("Erro ao processar a seleção da notificação para revisão.")
                     notification_review = None
             if notification_id_review and (
                     st.session_state.get('current_review_classification_id') != notification_id_review):
@@ -3007,20 +3007,20 @@ def show_classification():
                 if 'current_initial_classification_id' in st.session_state: st.session_state.pop(
                     'current_initial_classification_id')
 
-                st.rerun() # CORREÃ‡ÃƒO: ForÃ§a o re-render
+                st.rerun() # CORREÇÃO: Força o re-render
 
             current_review_data = st.session_state.review_classification_state.get(notification_id_review or 0, {})
             if notification_review is not None:
                 st.markdown(
-                    f"### NotificaÃ§Ã£o Selecionada para RevisÃ£o de ExecuÃ§Ã£o: #{notification_review.get('id', UI_TEXTS.text_na)}")
+                    f"### Notificação Selecionada para Revisão de Execução: #{notification_review.get('id', UI_TEXTS.text_na)}")
 
-                # Obter informaÃ§Ãµes de prazo para o card
+                # Obter informações de prazo para o card
                 raw_classification_data = notification_review.get('classification')
                 if isinstance(raw_classification_data, dict):
                     classif_info = raw_classification_data
                 else:
-                    # Se nÃ£o for um dicionÃ¡rio (ex: None, ou um tipo inesperado como string/lista de dados antigos),
-                    # o tratamos como um dicionÃ¡rio vazio para evitar o AttributeError.
+                    # Se não for um dicionário (ex: None, ou um tipo inesperado como string/lista de dados antigos),
+                    # o tratamos como um dicionário vazio para evitar o AttributeError.
                     classif_info = {}
 
                 deadline_date_str = classif_info.get('deadline_date')
@@ -3029,12 +3029,12 @@ def show_classification():
                 concluded_timestamp_str = (notification_review.get('conclusion') or {}).get('timestamp')
 # Determinar o status do prazo (cor do texto)
                 deadline_status = get_deadline_status(deadline_date_str, concluded_timestamp_str)
-                # Determinar a classe do cartÃ£o (fundo) com APENAS DOIS STATUS
+                # Determinar a classe do cartão (fundo) com APENAS DOIS STATUS
                 card_class = ""
                 if deadline_status['class'] == "deadline-ontrack" or deadline_status['class'] == "deadline-duesoon":
-                    card_class = "card-prazo-dentro"  # SerÃ¡ verde para "No Prazo" e "Prazo PrÃ³ximo"
+                    card_class = "card-prazo-dentro"  # Será verde para "No Prazo" e "Prazo Próximo"
                 elif deadline_status['class'] == "deadline-overdue":
-                    card_class = "card-prazo-fora"  # SerÃ¡ vermelho para "Atrasada"
+                    card_class = "card-prazo-fora"  # Será vermelho para "Atrasada"
 # Renderizar o card com o estilo apropriado
                 st.markdown(f"""
                     <div class="notification-card {card_class}">
@@ -3044,30 +3044,30 @@ def show_classification():
                     </div>
                     """, unsafe_allow_html=True)
 
-                st.markdown("#### ðŸ“‹ Detalhes para RevisÃ£o")
+                st.markdown("#### 📋 Detalhes para Revisão")
                 col_rev1, col_rev2 = st.columns(2)
                 with col_rev1:
-                    st.markdown("**ðŸ“ Evento Reportado Original**")
-                    st.write(f"**TÃ­tulo:** {notification_review.get('title', UI_TEXTS.text_na)}")
+                    st.markdown("**📝 Evento Reportado Original**")
+                    st.write(f"**Título:** {notification_review.get('title', UI_TEXTS.text_na)}")
                     st.write(f"**Local:** {notification_review.get('location', UI_TEXTS.text_na)}")
                     occurrence_datetime_summary = format_date_time_summary(notification_review.get('occurrence_date'),
                                                                            notification_review.get('occurrence_time'))
-                    st.write(f"**Data/Hora OcorrÃªncia:** {occurrence_datetime_summary}")
+                    st.write(f"**Data/Hora Ocorrência:** {occurrence_datetime_summary}")
                     st.write(
                         f"**Setor Notificante:** {notification_review.get('reporting_department', UI_TEXTS.text_na)}")
                     if notification_review.get('immediate_actions_taken') and notification_review.get(
                             'immediate_action_description'):
                         st.info(
-                            f"**AÃ§Ãµes Imediatas Reportadas:** {notification_review.get('immediate_action_description', UI_TEXTS.text_na)[:300]}...")
+                            f"**Ações Imediatas Reportadas:** {notification_review.get('immediate_action_description', UI_TEXTS.text_na)[:300]}...")
                 with col_rev2:
-                    st.markdown("**â±ï¸ InformaÃ§Ãµes de GestÃ£o e ClassificaÃ§Ã£o**")
-                    classif_review = classif_info # JÃ¡ Ã© um dicionÃ¡rio seguro
-                    st.write(f"**ClassificaÃ§Ã£o NNC:** {classif_review.get('nnc', UI_TEXTS.text_na)}")
+                    st.markdown("**⏱️ Informações de Gestão e Classificação**")
+                    classif_review = classif_info # Já é um dicionário seguro
+                    st.write(f"**Classificação NNC:** {classif_review.get('nnc', UI_TEXTS.text_na)}")
                     if classif_review.get('nivel_dano'): st.write(
-                        f"**NÃ­vel de Dano:** {classif_review.get('nivel_dano', UI_TEXTS.text_na)}")
+                        f"**Nível de Dano:** {classif_review.get('nivel_dano', UI_TEXTS.text_na)}")
                     st.write(f"**Prioridade:** {classif_review.get('prioridade', UI_TEXTS.text_na)}")
                     st.write(f"**Never Event:** {classif_review.get('never_event', UI_TEXTS.text_na)}")
-                    st.write(f"**Evento Sentinela:** {'Sim' if classif_review.get('is_sentinel_event') else 'NÃ£o'}")
+                    st.write(f"**Evento Sentinela:** {'Sim' if classif_review.get('is_sentinel_event') else 'Não'}")
                     st.write(f"**Tipo Principal:** {classif_review.get('event_type_main', UI_TEXTS.text_na)}")
                     sub_type_display_review = ''
                     if classif_review.get('event_type_sub'):
@@ -3075,25 +3075,25 @@ def show_classification():
                             sub_type_display_review = ', '.join(classif_review['event_type_sub'])
                         else:
                             sub_type_display_review = str(classif_review['event_type_sub'])
-                    if sub_type_display_review: st.write(f"**EspecificaÃ§Ã£o:** {sub_type_display_review}")
-                    st.write(f"**ClassificaÃ§Ã£o OMS:** {', '.join(classif_review.get('oms', [UI_TEXTS.text_na]))}")
+                    if sub_type_display_review: st.write(f"**Especificação:** {sub_type_display_review}")
+                    st.write(f"**Classificação OMS:** {', '.join(classif_review.get('oms', [UI_TEXTS.text_na]))}")
                     st.write(
-                        f"**Requer AprovaÃ§Ã£o Superior (Classif. Inicial):** {'Sim' if classif_review.get('requires_approval') else 'NÃ£o'}")
+                        f"**Requer Aprovação Superior (Classif. Inicial):** {'Sim' if classif_review.get('requires_approval') else 'Não'}")
                     st.write(f"**Classificado por:** {classif_review.get('classificador', UI_TEXTS.text_na)}")
-# ExibiÃ§Ã£o do Prazo e Status na RevisÃ£o
+# Exibição do Prazo e Status na Revisão
                     if deadline_date_str:
                         deadline_date_formatted = datetime.fromisoformat(deadline_date_str).strftime('%d/%m/%Y')
                         st.markdown(
-                            f"**Prazo de ConclusÃ£o:** {deadline_date_formatted} (<span class='{deadline_status['class']}'>{deadline_status['text']}</span>)",
+                            f"**Prazo de Conclusão:** {deadline_date_formatted} (<span class='{deadline_status['class']}'>{deadline_status['text']}</span>)",
                             unsafe_allow_html=True)
                     else:
-                        st.write(f"**Prazo de ConclusÃ£o:** {UI_TEXTS.deadline_days_nan}")
+                        st.write(f"**Prazo de Conclusão:** {UI_TEXTS.deadline_days_nan}")
                 st.markdown("---")
-                st.markdown("#### âš¡ AÃ§Ãµes Executadas pelos ResponsÃ¡veis")
+                st.markdown("#### ⚡ Ações Executadas pelos Responsáveis")
                 if notification.get('actions'):
                     for action in sorted(notification['actions'], key=lambda x: x.get('timestamp', '')):
-                        action_type = "ðŸ CONCLUSÃƒO (Executor)" if action.get(
-                            'final_action_by_executor') else "ðŸ“ AÃ‡ÃƒO Registrada"
+                        action_type = "🏁 CONCLUSÃO (Executor)" if action.get(
+                            'final_action_by_executor') else "📝 AÇÃO Registrada"
                         action_timestamp = action.get('timestamp', UI_TEXTS.text_na)
                         if action_timestamp != UI_TEXTS.text_na:
                             try:
@@ -3106,13 +3106,13 @@ def show_classification():
                                    <br>
                                    <em>{action.get('description', UI_TEXTS.text_na)}</em>
                                    """, unsafe_allow_html=True)
-                        # Exibir evidÃªncias se disponÃ­vel e for uma aÃ§Ã£o final
+                        # Exibir evidências se disponível e for uma ação final
                         if action.get('final_action_by_executor'):
                             evidence_desc = action.get('evidence_description', '').strip()
                             evidence_atts = action.get('evidence_attachments', [])
                             if evidence_desc or evidence_atts:
                                 st.markdown(f"""<div class='evidence-section'>""", unsafe_allow_html=True)
-                                st.markdown("<h6>EvidÃªncias da ConclusÃ£o:</h6>", unsafe_allow_html=True)
+                                st.markdown("<h6>Evidências da Conclusão:</h6>", unsafe_allow_html=True)
                                 if evidence_desc:
                                     st.info(evidence_desc)
                                 if evidence_atts:
@@ -3123,7 +3123,7 @@ def show_classification():
                                             file_content = get_attachment_data(unique_name)
                                             if file_content:
                                                 st.download_button(
-                                                    label=f"Baixar EvidÃªncia: {original_name}",
+                                                    label=f"Baixar Evidência: {original_name}",
                                                     data=file_content,
                                                     file_name=original_name,
                                                     mime="application/octet-stream",
@@ -3131,26 +3131,26 @@ def show_classification():
                                                 )
                                             else:
                                                 st.write(
-                                                    f"Anexo: {original_name} (arquivo nÃ£o encontrado ou corrompido)")
+                                                    f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
                                 st.markdown(f"""</div>""", unsafe_allow_html=True)
                         st.markdown("---")
                 else:
-                    st.warning("âš ï¸ Nenhuma aÃ§Ã£o foi registrada pelos executores para esta notificaÃ§Ã£o ainda.")
+                    st.warning("⚠️ Nenhuma ação foi registrada pelos executores para esta notificação ainda.")
                 users_review = get_users_by_role('executor')
-                # Mapeia nomes de exibiÃ§Ã£o para IDs de usuÃ¡rio para executores
+                # Mapeia nomes de exibição para IDs de usuário para executores
                 executor_name_to_id_map_review = {
                     f"{u.get('name', UI_TEXTS.text_na)} ({u.get('username', UI_TEXTS.text_na)})": u['id']
                     for u in users_review
                 }
-                # Pega os nomes de exibiÃ§Ã£o dos executores atribuÃ­dos
+                # Pega os nomes de exibição dos executores atribuídos
                 executor_names_review = [
                     name for name, uid in executor_name_to_id_map_review.items()
                     if uid in notification_review.get('executors', [])
                 ]
                 st.markdown(
-                    f"**ðŸ‘¥ Executores AtribuÃ­dos Originalmente:** {', '.join(executor_names_review) or 'Nenhum'}")
+                    f"**👥 Executores Atribuídos Originalmente:** {', '.join(executor_names_review) or 'Nenhum'}")
                 if notification_review.get('attachments'):
-                    st.markdown("#### ðŸ“Ž Anexos")
+                    st.markdown("#### 📎 Anexos")
                     for attach_info in notification_review['attachments']:
                         unique_name_to_use = None
                         original_name_to_use = None
@@ -3172,41 +3172,41 @@ def show_classification():
                                     key=f"download_review_{notification_review['id']}_{unique_name_to_use}"
                                 )
                             else:
-                                st.write(f"Anexo: {original_name_to_use} (arquivo nÃ£o encontrado ou corrompido)")
+                                st.write(f"Anexo: {original_name_to_use} (arquivo não encontrado ou corrompido)")
                 st.markdown("---")
                 with st.form(key=f"review_decision_form_{notification_id_review}_refactored", clear_on_submit=False):
-                    st.markdown("### ðŸŽ¯ DecisÃ£o de RevisÃ£o da ExecuÃ§Ã£o")
-                    decision_options = [UI_TEXTS.selectbox_default_decisao_revisao, "Aceitar ConclusÃ£o",
-                                        "Rejeitar ConclusÃ£o"]
+                    st.markdown("### 🎯 Decisão de Revisão da Execução")
+                    decision_options = [UI_TEXTS.selectbox_default_decisao_revisao, "Aceitar Conclusão",
+                                        "Rejeitar Conclusão"]
                     current_review_data['decision'] = st.selectbox(
-                        "DecisÃ£o:*", options=decision_options,
+                        "Decisão:*", options=decision_options,
                         key=f"review_decision_{notification_id_review}_refactored",
                         index=decision_options.index(
                             current_review_data.get('decision', UI_TEXTS.selectbox_default_decisao_revisao)),
-                        help="Selecione 'Aceitar ConclusÃ£o' se a execuÃ§Ã£o foi satisfatÃ³ria ou 'Rejeitar ConclusÃ£o' para devolvÃª-la para correÃ§Ã£o/revisÃ£o.")
-                    st.markdown("<span class='required-field'>* Campo obrigatÃ³rio</span>", unsafe_allow_html=True)
-                    if current_review_data['decision'] == "Rejeitar ConclusÃ£o":
+                        help="Selecione 'Aceitar Conclusão' se a execução foi satisfatória ou 'Rejeitar Conclusão' para devolvê-la para correção/revisão.")
+                    st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
+                    if current_review_data['decision'] == "Rejeitar Conclusão":
                         st.markdown("""
                            <div class="conditional-field">
-                               <h4>ðŸ“ Detalhes da RejeiÃ§Ã£o</h4>
-                               <p>Explique por que a execuÃ§Ã£o foi rejeitada e o que precisa ser feito.</p>
+                               <h4>📝 Detalhes da Rejeição</h4>
+                               <p>Explique por que a execução foi rejeitada e o que precisa ser feito.</p>
                            </div>
                            """, unsafe_allow_html=True)
                         current_review_data['rejection_reason_review'] = st.text_area(
-                            "Justificativa para RejeiÃ§Ã£o da ConclusÃ£o*",
+                            "Justificativa para Rejeição da Conclusão*",
                             value=current_review_data.get('rejection_reason_review', ''),
                             key=f"rejection_reason_review_{notification_id_review}_refactored",
-                            help="Descreva os motivos da rejeiÃ§Ã£o e as aÃ§Ãµes corretivas necessÃ¡rias.").strip()
-                        st.markdown("<span class='required-field'>* Campo obrigatÃ³rio ao rejeitar</span>",
+                            help="Descreva os motivos da rejeição e as ações corretivas necessárias.").strip()
+                        st.markdown("<span class='required-field'>* Campo obrigatório ao rejeitar</span>",
                                     unsafe_allow_html=True)
                     else:
                         current_review_data['rejection_reason_review'] = ""
                     current_review_data['notes'] = st.text_area(
-                        "ObservaÃ§Ãµes da RevisÃ£o (opcional)",
+                        "Observações da Revisão (opcional)",
                         value=current_review_data.get('notes', ''),
                         key=f"review_notes_{notification_id_review}_refactored",
-                        help="Adicione quaisquer observaÃ§Ãµes relevantes sobre a revisÃ£o da execuÃ§Ã£o.").strip()
-                    submit_button_review = st.form_submit_button("âœ”ï¸ Confirmar DecisÃ£o",
+                        help="Adicione quaisquer observações relevantes sobre a revisão da execução.").strip()
+                    submit_button_review = st.form_submit_button("✔️ Confirmar Decisão",
                                                                  use_container_width=True)
 
                     if submit_button_review:
@@ -3214,28 +3214,28 @@ def show_classification():
                                                                         UI_TEXTS.selectbox_default_decisao_revisao)
                         validation_errors = []
                         if review_decision_state == UI_TEXTS.selectbox_default_decisao_revisao: validation_errors.append(
-                            "Ã‰ obrigatÃ³rio selecionar a decisÃ£o da revisÃ£o (Aceitar/Rejeitar).")
-                        if review_decision_state == "Rejeitar ConclusÃ£o" and not current_review_data.get(
+                            "É obrigatório selecionar a decisão da revisão (Aceitar/Rejeitar).")
+                        if review_decision_state == "Rejeitar Conclusão" and not current_review_data.get(
                                 'rejection_reason_review'): validation_errors.append(
-                            "Justificativa para RejeiÃ§Ã£o da ConclusÃ£o Ã© obrigatÃ³ria.")
+                            "Justificativa para Rejeição da Conclusão é obrigatória.")
                         if validation_errors:
-                            st.error("âš ï¸ **Por favor, corrija os seguintes erros:**")
+                            st.error("⚠️ **Por favor, corrija os seguintes erros:**")
                             for error in validation_errors: st.warning(error)
                             st.stop()
                         else:
-                            user_name = st.session_state.user.get('name', 'UsuÃ¡rio')
+                            user_name = st.session_state.user.get('name', 'Usuário')
                             user_username = st.session_state.user.get('username', UI_TEXTS.text_na)
                             review_notes = current_review_data.get('notes')
                             review_details_to_save = {
-                                'decision': review_decision_state.replace(' ConclusÃ£o', ''),
+                                'decision': review_decision_state.replace(' Conclusão', ''),
                                 'reviewed_by': user_username,
                                 'timestamp': datetime.now().isoformat(),
                                 'notes': review_notes or None
                             }
-                            if review_decision_state == "Rejeitar ConclusÃ£o":
+                            if review_decision_state == "Rejeitar Conclusão":
                                 review_details_to_save['rejection_reason'] = current_review_data.get(
                                     'rejection_reason_review')
-                            if review_decision_state == "Aceitar ConclusÃ£o":
+                            if review_decision_state == "Aceitar Conclusão":
                                 original_classification = notification_review.get('classification', {})
                                 requires_approval_after_execution = original_classification.get('requires_approval')
                                 if requires_approval_after_execution is True:
@@ -3245,43 +3245,43 @@ def show_classification():
                                         'review_execution': review_details_to_save
                                     }
                                     add_history_entry(
-                                        notification_id_review, "RevisÃ£o de ExecuÃ§Ã£o: ConclusÃ£o Aceita",
+                                        notification_id_review, "Revisão de Execução: Conclusão Aceita",
                                         user_name,
-                                        f"ExecuÃ§Ã£o aceita pelo classificador. Encaminhada para aprovaÃ§Ã£o superior." + (
+                                        f"Execução aceita pelo classificador. Encaminhada para aprovação superior." + (
                                             f" Obs: {review_notes}" if review_notes else ""))
                                     st.success(
-                                        f"âœ… ExecuÃ§Ã£o da NotificaÃ§Ã£o #{notification_id_review} aceita! Encaminhada para aprovaÃ§Ã£o superior.")
+                                        f"✅ Execução da Notificação #{notification_id_review} aceita! Encaminhada para aprovação superior.")
                                 else:
                                     new_status = 'aprovada'
                                     updates = {
                                         'status': new_status,
                                         'review_execution': review_details_to_save,
-                                        'conclusion': {  # Conclui direto se nÃ£o precisa de aprovaÃ§Ã£o
+                                        'conclusion': {  # Conclui direto se não precisa de aprovação
                                             'concluded_by': user_username,
-                                            'notes': review_notes or "ExecuÃ§Ã£o revisada e aceita pelo classificador.",
+                                            'notes': review_notes or "Execução revisada e aceita pelo classificador.",
                                             'timestamp': datetime.now().isoformat(),
                                             'status_final': 'aprovada'
                                         },
-                                        'approver': None  # Remove aprovador se nÃ£o precisa de aprovaÃ§Ã£o
+                                        'approver': None  # Remove aprovador se não precisa de aprovação
                                     }
                                     add_history_entry(
-                                        notification_id_review, "RevisÃ£o de ExecuÃ§Ã£o: ConclusÃ£o Aceita e Finalizada",
+                                        notification_id_review, "Revisão de Execução: Conclusão Aceita e Finalizada",
                                         user_name,
-                                        f"ExecuÃ§Ã£o revisada e aceita pelo classificador. Ciclo de gestÃ£o do evento concluÃ­do (nÃ£o requeria aprovaÃ§Ã£o superior)." + (
+                                        f"Execução revisada e aceita pelo classificador. Ciclo de gestão do evento concluído (não requeria aprovação superior)." + (
                                             f" Obs: {review_notes}" if review_notes else ""))
                                     st.success(
-                                        f"âœ… ExecuÃ§Ã£o da NotificaÃ§Ã£o #{notification_id_review} revisada e aceita. NotificaÃ§Ã£o concluÃ­da!")
-                            elif review_decision_state == "Rejeitar ConclusÃ£o":
+                                        f"✅ Execução da Notificação #{notification_id_review} revisada e aceita. Notificação concluída!")
+                            elif review_decision_state == "Rejeitar Conclusão":
                                 new_status = 'pendente_classificacao'  # Retorna para classif. inicial
                                 updates = {
                                     'status': new_status,
                                     'approver': None,
                                     'executors': [],
                                     'classification': None,
-                                    'review_execution': None,  # Limpa revisÃ£o
+                                    'review_execution': None,  # Limpa revisão
                                     'approval': None,
                                     'conclusion': None,
-                                    'rejection_execution_review': {  # Adiciona o motivo da rejeiÃ§Ã£o da execuÃ§Ã£o
+                                    'rejection_execution_review': {  # Adiciona o motivo da rejeição da execução
                                         'reason': current_review_data.get('rejection_reason_review'),
                                         'reviewed_by': user_username,
                                         'timestamp': datetime.now().isoformat()
@@ -3289,33 +3289,33 @@ def show_classification():
                                 }
                                 add_history_entry(
                                     notification_id_review,
-                                    "RevisÃ£o de ExecuÃ§Ã£o: ConclusÃ£o Rejeitada e ReclassificaÃ§Ã£o NecessÃ¡ria",
+                                    "Revisão de Execução: Conclusão Rejeitada e Reclassificação Necessária",
                                     user_name,
-                                    f"ExecuÃ§Ã£o rejeitada. NotificaÃ§Ã£o movida para classificaÃ§Ã£o inicial para reanÃ¡lise e reatribuiÃ§Ã£o. Motivo: {current_review_data.get('rejection_reason_review', '')[:150]}..." if len(
+                                    f"Execução rejeitada. Notificação movida para classificação inicial para reanálise e reatribuição. Motivo: {current_review_data.get('rejection_reason_review', '')[:150]}..." if len(
                                         current_review_data.get('rejection_reason_review',
-                                                                '')) > 150 else f"ExecuÃ§Ã£o rejeitada. NotificaÃ§Ã£o movida para classificaÃ§Ã£o inicial para reanÃ¡lise e reatribuiÃ§Ã£o. Motivo: {current_review_data.get('rejection_reason_review', '')}" + (
+                                                                '')) > 150 else f"Execução rejeitada. Notificação movida para classificação inicial para reanálise e reatribuição. Motivo: {current_review_data.get('rejection_reason_review', '')}" + (
                                         f" Obs: {review_notes}" if review_notes else ""))
                                 st.warning(
-                                    f"âš ï¸ ExecuÃ§Ã£o da NotificaÃ§Ã£o #{notification_id_review} rejeitada! Devolvida para classificaÃ§Ã£o inicial para reanÃ¡lise e reatribuiÃ§Ã£o.")
+                                    f"⚠️ Execução da Notificação #{notification_id_review} rejeitada! Devolvida para classificação inicial para reanálise e reatribuição.")
                                 st.info(
-                                    "A notificaÃ§Ã£o foi movida para o status 'pendente_classificacao' e aparecerÃ¡ na aba 'Pendentes ClassificaÃ§Ã£o Inicial' para que a equipe de classificaÃ§Ã£o possa reclassificÃ¡-la e redefinir o fluxo.")
+                                    "A notificação foi movida para o status 'pendente_classificacao' e aparecerá na aba 'Pendentes Classificação Inicial' para que a equipe de classificação possa reclassificá-la e redefinir o fluxo.")
                             update_notification(notification_id_review, updates)  # Atualiza no DB
                             st.session_state.review_classification_state.pop(notification_id_review, None)
                             st.session_state.pop('current_review_classification_id', None)
-                            st.rerun() # CORREÃ‡ÃƒO: ForÃ§a o re-render
+                            st.rerun() # CORREÇÃO: Força o re-render
             else:
                 if pending_execution_review:
-                    st.info(f"ðŸ‘† Selecione uma notificaÃ§Ã£o da lista acima para revisar a execuÃ§Ã£o concluÃ­da.")
+                    st.info(f"👆 Selecione uma notificação da lista acima para revisar a execução concluída.")
     with tab_closed_notifs:
-        st.markdown("### NotificaÃ§Ãµes Encerradas")
+        st.markdown("### Notificações Encerradas")
 
         if not closed_notifications:
-            st.info("âœ… NÃ£o hÃ¡ notificaÃ§Ãµes encerradas no momento.")
+            st.info("✅ Não há notificações encerradas no momento.")
         else:
-            st.info(f"Total de notificaÃ§Ãµes encerradas: {len(closed_notifications)}.")
+            st.info(f"Total de notificações encerradas: {len(closed_notifications)}.")
 
             search_query = st.text_input(
-                "ðŸ”Ž Buscar NotificaÃ§Ã£o Encerrada (TÃ­tulo, DescriÃ§Ã£o, ID):",
+                "🔎 Buscar Notificação Encerrada (Título, Descrição, ID):",
                 key="closed_notif_search_input",
                 placeholder="Ex: 'queda paciente', '12345', 'medicamento errado'"
             ).lower()
@@ -3332,10 +3332,10 @@ def show_classification():
 
             if not filtered_closed_notifications:
                 st.warning(
-                    "âš ï¸ Nenhuma notificaÃ§Ã£o encontrada com os critÃ©rios de busca especificados.")
+                    "⚠️ Nenhuma notificação encontrada com os critérios de busca especificados.")
             else:
                 filtered_closed_notifications.sort(key=lambda x: x.get('created_at', ''), reverse=True)
-                st.markdown(f"**NotificaÃ§Ãµes Encontradas ({len(filtered_closed_notifications)})**:")
+                st.markdown(f"**Notificações Encontradas ({len(filtered_closed_notifications)})**:")
                 for notification in filtered_closed_notifications:
                     status_class = f"status-{notification.get('status', UI_TEXTS.text_na).replace('_', '-')}"
                     created_at_str = notification.get('created_at', UI_TEXTS.text_na)
@@ -3355,7 +3355,7 @@ def show_classification():
                     elif notification.get('rejection_approval') and (notification.get('rejection_approval') or {}).get(
                             'rejected_by'):
                         concluded_by = (notification.get('rejection_approval') or {}).get('rejected_by')
-# Determinar o status do prazo para notificaÃ§Ãµes encerradas
+# Determinar o status do prazo para notificações encerradas
                     raw_classification_data = notification.get('classification')
                     if isinstance(raw_classification_data, dict):
                         classif_info_closed = raw_classification_data
@@ -3364,7 +3364,7 @@ def show_classification():
                     deadline_date_str_closed = classif_info_closed.get('deadline_date')
 # Acessa 'timestamp' de 'conclusion' de forma segura
                     concluded_timestamp_str = (notification.get('conclusion') or {}).get('timestamp')
-                    # Verificar se a conclusÃ£o foi dentro ou fora do prazo
+                    # Verificar se a conclusão foi dentro ou fora do prazo
                     deadline_status = get_deadline_status(deadline_date_str_closed, concluded_timestamp_str)
                     card_class = ""
                     if deadline_status['class'] == "deadline-ontrack" or deadline_status['class'] == "deadline-duesoon":
@@ -3375,29 +3375,29 @@ def show_classification():
                             <div class="notification-card {card_class}">
                                 <h4>#{notification.get('id', UI_TEXTS.text_na)} - {notification.get('title', UI_TEXTS.text_na)}</h4>
                                 <p><strong>Status Final:</strong> <span class="{status_class}">{notification.get('status', UI_TEXTS.text_na).replace('_', ' ').title()}</span></p>
-                                <p><strong>Encerrada por:</strong> {concluded_by} | <strong>Data de CriaÃ§Ã£o:</strong> {created_at_str}</p>
+                                <p><strong>Encerrada por:</strong> {concluded_by} | <strong>Data de Criação:</strong> {created_at_str}</p>
                                 <p><strong>Prazo:</strong> {deadline_status['text']}</p>
                             </div>
                             """, unsafe_allow_html=True)
                     with st.expander(
-                            f"ðŸ‘ï¸ Visualizar Detalhes - NotificaÃ§Ã£o #{notification.get('id', UI_TEXTS.text_na)}"):
+                            f"👁️ Visualizar Detalhes - Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
                         display_notification_full_details(notification, st.session_state.user.get('id'),
                                                           st.session_state.user.get('username'))
 
 @st_fragment
 def show_execution():
-    """Renderiza a pÃ¡gina para executores visualizarem notificaÃ§Ãµes atribuÃ­das e registrarem aÃ§Ãµes."""
+    """Renderiza a página para executores visualizarem notificações atribuídas e registrarem ações."""
     if not check_permission('executor'):
-        st.error("âŒ Acesso negado! VocÃª nÃ£o tem permissÃ£o para executar notificaÃ§Ãµes.")
+        st.error("❌ Acesso negado! Você não tem permissão para executar notificações.")
         return
-    st.markdown("<h1 class='main-header'>âš¡ ExecuÃ§Ã£o de NotificaÃ§Ãµes</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='main-header'>⚡ Execução de Notificações</h1>", unsafe_allow_html=True)
     st.info(
-        "Nesta pÃ¡gina, vocÃª pode visualizar as notificaÃ§Ãµes atribuÃ­das a vocÃª, registrar as aÃ§Ãµes executadas e marcar sua parte como concluÃ­da.")
+        "Nesta página, você pode visualizar as notificações atribuídas a você, registrar as ações executadas e marcar sua parte como concluída.")
     all_notifications = load_notifications()  # Carrega do DB
     user_id_logged_in = st.session_state.user.get('id')
     user_username_logged_in = st.session_state.user.get('username')
 
-    all_users = load_users()  # Carrega usuÃ¡rios do DB
+    all_users = load_users()  # Carrega usuários do DB
     display_name_to_id_map = {
         f"{user.get('name', UI_TEXTS.text_na)} ({user.get('username', UI_TEXTS.text_na)})": user['id']
         for user in all_users
@@ -3408,11 +3408,11 @@ def show_execution():
     for notification in all_notifications:
         is_assigned_to_current_user = False
         assigned_executors_raw = notification.get('executors', [])
-        for executor_entry in assigned_executors_raw:  # assigned_executors_raw agora Ã© uma lista de IDs inteiros
+        for executor_entry in assigned_executors_raw:  # assigned_executors_raw agora é uma lista de IDs inteiros
             if isinstance(executor_entry, int) and executor_entry == user_id_logged_in:
                 is_assigned_to_current_user = True
                 break
-            # Remover ou ajustar a lÃ³gica para o caso de string se os IDs estiverem sempre em int
+            # Remover ou ajustar a lógica para o caso de string se os IDs estiverem sempre em int
             # elif isinstance(executor_entry, str):
             #     resolved_id = display_name_to_id_map.get(executor_entry)
             #     if resolved_id == user_id_logged_in:
@@ -3425,19 +3425,19 @@ def show_execution():
     closed_my_exec_notifications = [
         n for n in all_notifications
         if n.get('status') in closed_statuses and user_id_logged_in in n.get('executors', [])
-        # IDs dos executores sÃ£o inteiros
+        # IDs dos executores são inteiros
     ]
 
     if not user_active_notifications and not closed_my_exec_notifications:
-        st.info("âœ… NÃ£o hÃ¡ notificaÃ§Ãµes ativas atribuÃ­das a vocÃª no momento. Verifique com seu gestor ou classificador.")
+        st.info("✅ Não há notificações ativas atribuídas a você no momento. Verifique com seu gestor ou classificador.")
         return
 
-    st.success(f"VocÃª tem {len(user_active_notifications)} notificaÃ§Ã£o(es) atribuÃ­da(s) aguardando ou em execuÃ§Ã£o.")
+    st.success(f"Você tem {len(user_active_notifications)} notificação(es) atribuída(s) aguardando ou em execução.")
     tab_active_notifications, tab_closed_my_exec_notifs = st.tabs(
-        ["ðŸ”„ NotificaÃ§Ãµes AtribuÃ­das (Ativas)", f"âœ… Minhas AÃ§Ãµes Encerradas ({len(closed_my_exec_notifications)})"]
+        ["🔄 Notificações Atribuídas (Ativas)", f"✅ Minhas Ações Encerradas ({len(closed_my_exec_notifications)})"]
     )
     with tab_active_notifications:
-        st.markdown("### NotificaÃ§Ãµes Aguardando ou Em ExecuÃ§Ã£o")
+        st.markdown("### Notificações Aguardando ou Em Execução")
         priority_order = {p: i for i, p in enumerate(FORM_DATA.prioridades)}
         user_active_notifications.sort(key=lambda x: (
             priority_order.get(x.get('classification', {}).get('prioridade', 'Baixa'), len(FORM_DATA.prioridades)),
@@ -3448,7 +3448,7 @@ def show_execution():
             status_class = f"status-{notification.get('status', UI_TEXTS.text_na).replace('_', '-')}"
             classif_info = notification.get('classification') or {}
             prioridade_display = classif_info.get('prioridade', UI_TEXTS.text_na)
-            prioridade_display = prioridade_display if prioridade_display != 'Selecionar' else f"{UI_TEXTS.text_na} (NÃ£o Classificado)"
+            prioridade_display = prioridade_display if prioridade_display != 'Selecionar' else f"{UI_TEXTS.text_na} (Não Classificado)"
             deadline_date_str = classif_info.get('deadline_date')
             concluded_timestamp_str = (notification.get('conclusion') or {}).get('timestamp')
 
@@ -3466,20 +3466,20 @@ def show_execution():
                         <p><strong>Local do Evento:</strong> {notification.get('location', UI_TEXTS.text_na)} | <strong>Prioridade:</strong> {prioridade_display} <strong class='{deadline_status['class']}'>Prazo: {deadline_status['text']}</strong></p>
                     </div>
                     """, unsafe_allow_html=True)
-# --- NOVO CARD EXPANSÃVEL: Detalhes Completos da NotificaÃ§Ã£o e ClassificaÃ§Ã£o ---
+# --- NOVO CARD EXPANSÍVEL: Detalhes Completos da Notificação e Classificação ---
             with st.expander(
-                    f"âœ¨ Ver Detalhes Completos e ClassificaÃ§Ã£o - NotificaÃ§Ã£o #{notification.get('id', UI_TEXTS.text_na)}"):
+                    f"✨ Ver Detalhes Completos e Classificação - Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
                 display_notification_full_details(notification, user_id_logged_in, user_username_logged_in)
-            # --- FIM DO NOVO CARD EXPANSÃVEL ---
-# NOVO: Card para exibir aÃ§Ãµes recentes para esta notificaÃ§Ã£o
+            # --- FIM DO NOVO CARD EXPANSÍVEL ---
+# NOVO: Card para exibir ações recentes para esta notificação
             if notification.get('actions'):
-                st.markdown("#### âš¡ HistÃ³rico de AÃ§Ãµes Realizadas")
+                st.markdown("#### ⚡ Histórico de Ações Realizadas")
                 with st.expander(
-                        f"Ver histÃ³rico de aÃ§Ãµes para NotificaÃ§Ã£o #{notification.get('id', UI_TEXTS.text_na)}"):
+                        f"Ver histórico de ações para Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
                     sorted_actions = sorted(notification['actions'], key=lambda x: x.get('timestamp', ''))
                     for action in sorted_actions:
-                        action_type = "ðŸ CONCLUSÃƒO (Executor)" if action.get(
-                            'final_action_by_executor') else "   AÃ‡ÃƒO Registrada"
+                        action_type = "🏁 CONCLUSÃO (Executor)" if action.get(
+                            'final_action_by_executor') else "   AÇÃO Registrada"
                         action_timestamp = action.get('timestamp', UI_TEXTS.text_na)
                         if action_timestamp != UI_TEXTS.text_na:
                             try:
@@ -3490,7 +3490,7 @@ def show_execution():
                         if user_id_logged_in and action.get('executor_id') == user_id_logged_in:
                             st.markdown(f"""
                             <div class='my-action-entry-card'>
-                                <strong>{action_type}</strong> - por <strong>VOCÃŠ ({action.get('executor_name', UI_TEXTS.text_na)})</strong> em {action_timestamp}
+                                <strong>{action_type}</strong> - por <strong>VOCÊ ({action.get('executor_name', UI_TEXTS.text_na)})</strong> em {action_timestamp}
                                 <br>
                                 <em>{action.get('description', UI_TEXTS.text_na)}</em>
                             </div>
@@ -3503,13 +3503,13 @@ def show_execution():
                                 <em>{action.get('description', UI_TEXTS.text_na)}</em>
                             </div>
                             """, unsafe_allow_html=True)
-# Exibir evidÃªncias se disponÃ­vel e for uma aÃ§Ã£o final
+# Exibir evidências se disponível e for uma ação final
                         if action.get('final_action_by_executor'):
                             evidence_desc = action.get('evidence_description', '').strip()
                             evidence_atts = action.get('evidence_attachments', [])
                             if evidence_desc or evidence_atts:
                                 st.markdown(f"""<div class='evidence-section'>""", unsafe_allow_html=True)
-                                st.markdown("<h6>EvidÃªncias da ConclusÃ£o:</h6>", unsafe_allow_html=True)
+                                st.markdown("<h6>Evidências da Conclusão:</h6>", unsafe_allow_html=True)
                                 if evidence_desc:
                                     st.info(evidence_desc)
                                 if evidence_atts:
@@ -3520,7 +3520,7 @@ def show_execution():
                                             file_content = get_attachment_data(unique_name)
                                             if file_content:
                                                 st.download_button(
-                                                    label=f"Baixar EvidÃªncia: {original_name}",
+                                                    label=f"Baixar Evidência: {original_name}",
                                                     data=file_content,
                                                     file_name=original_name,
                                                     mime="application/octet-stream",
@@ -3528,13 +3528,13 @@ def show_execution():
                                                 )
                                             else:
                                                 st.write(
-                                                    f"Anexo: {original_name} (arquivo nÃ£o encontrado ou corrompido)")
+                                                    f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
                                 st.markdown(f"""</div>""", unsafe_allow_html=True)
                         st.markdown("---")
-            # FIM DO NOVO CARD DE HISTÃ“RICO DE AÃ‡Ã•ES
+            # FIM DO NOVO CARD DE HISTÓRICO DE AÇÕES
             executor_has_already_concluded_their_part = False
             if user_id_logged_in:
-                # Agora buscando as aÃ§Ãµes do DB
+                # Agora buscando as ações do DB
                 notif_actions = get_notification_actions(notification.get('id'))
                 for action_entry in notif_actions:
                     if action_entry.get('executor_id') == user_id_logged_in and action_entry.get(
@@ -3548,74 +3548,74 @@ def show_execution():
                 st.session_state[action_choice_key] = UI_TEXTS.selectbox_default_acao_realizar
             if executor_has_already_concluded_their_part:
                 st.info(
-                    f"âœ… Sua parte na execuÃ§Ã£o da NotificaÃ§Ã£o #{notification.get('id')} jÃ¡ foi concluÃ­da. VocÃª nÃ£o pode adicionar mais aÃ§Ãµes para esta notificaÃ§Ã£o.")
+                    f"✅ Sua parte na execução da Notificação #{notification.get('id')} já foi concluída. Você não pode adicionar mais ações para esta notificação.")
             else:
-                st.markdown("### ðŸ“ Registrar AÃ§Ã£o Executada ou Concluir Sua Parte")
-                action_type_choice_options = [UI_TEXTS.selectbox_default_acao_realizar, "Registrar AÃ§Ã£o",
+                st.markdown("### 📝 Registrar Ação Executada ou Concluir Sua Parte")
+                action_type_choice_options = [UI_TEXTS.selectbox_default_acao_realizar, "Registrar Ação",
                                               "Concluir Minha Parte"]
 
                 st.selectbox(
-                    "Qual aÃ§Ã£o deseja realizar?*", options=action_type_choice_options,
+                    "Qual ação deseja realizar?*", options=action_type_choice_options,
                     key=action_choice_key,
                     index=action_type_choice_options.index(st.session_state[action_choice_key]),
-                    help="Selecione 'Registrar AÃ§Ã£o' para adicionar um passo ao histÃ³rico ou 'Concluir Minha Parte' para finalizar sua execuÃ§Ã£o."
+                    help="Selecione 'Registrar Ação' para adicionar um passo ao histórico ou 'Concluir Minha Parte' para finalizar sua execução."
                 )
                 with st.form(f"action_form_{notification.get('id', UI_TEXTS.text_na)}_refactored",
                              clear_on_submit=False):
-                    st.markdown("<span class='required-field'>* Campo obrigatÃ³rio</span>", unsafe_allow_html=True)
+                    st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
                     action_description_state = st.text_area(
-                        "DescriÃ§Ã£o detalhada da aÃ§Ã£o realizada*",
+                        "Descrição detalhada da ação realizada*",
                         value=st.session_state.get(
                             f"exec_action_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored", ""),
-                        placeholder="Descreva:\nâ€¢ O QUÃŠ foi feito?\nâ€¢ POR QUÃŠ foi feito (qual o objetivo)?\nâ€¢ ONDE foi realizado?\nâ€¢ QUANDO foi realizado (data/hora)?\nâ€¢ QUEM executou (se aplicÃ¡vel)?\nâ€¢ COMO foi executado (passos, mÃ©todos)?\nâ€¢ QUANTO CUSTOU (recursos, tempo)?\nâ€¢ QUÃƒO FREQUENTE (se for uma aÃ§Ã£o contÃ­nua)?",
+                        placeholder="Descreva:\n• O QUÊ foi feito?\n• POR QUÊ foi feito (qual o objetivo)?\n• ONDE foi realizado?\n• QUANDO foi realizado (data/hora)?\n• QUEM executou (se aplicável)?\n• COMO foi executado (passos, métodos)?\n• QUANTO CUSTOU (recursos, tempo)?\n• QUÃO FREQUENTE (se for uma ação contínua)?",
                         height=180,
                         key=f"exec_action_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored",
-                        help="ForneÃ§a um relato completo e estruturado da aÃ§Ã£o executada ou da conclusÃ£o da sua parte, utilizando os pontos do 5W3H como guia."
+                        help="Forneça um relato completo e estruturado da ação executada ou da conclusão da sua parte, utilizando os pontos do 5W3H como guia."
                     ).strip()
                     evidence_description_state = ""
                     uploaded_evidence_files = []
                     if st.session_state[action_choice_key] == "Concluir Minha Parte":
                         st.markdown("""
                            <div class="conditional-field">
-                               <h4>âœ… EvidÃªncias da Tratativa</h4>
-                               <p>Descreva e anexe as evidÃªncias da tratativa realizada para esta notificaÃ§Ã£o.</p>
+                               <h4>✅ Evidências da Tratativa</h4>
+                               <p>Descreva e anexe as evidências da tratativa realizada para esta notificação.</p>
                            </div>
                            """, unsafe_allow_html=True)
                         evidence_description_state = st.text_area(
-                            "DescriÃ§Ã£o da EvidÃªncia (Opcional)",
+                            "Descrição da Evidência (Opcional)",
                             value=st.session_state.get(
                                 f"exec_evidence_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored", ""),
-                            placeholder="Descreva o resultado da tratativa, evidÃªncias de conclusÃ£o, etc.",
+                            placeholder="Descreva o resultado da tratativa, evidências de conclusão, etc.",
                             height=100,
                             key=f"exec_evidence_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored"
                         ).strip()
                         uploaded_evidence_files = st.file_uploader(
-                            "Anexar arquivos de EvidÃªncia (Opcional)", type=None, accept_multiple_files=True,
+                            "Anexar arquivos de Evidência (Opcional)", type=None, accept_multiple_files=True,
                             key=f"exec_evidence_attachments_{notification.get('id', UI_TEXTS.text_na)}_refactored"
                         )
 
-                    submit_button = st.form_submit_button("âœ”ï¸ Confirmar AÃ§Ã£o",
+                    submit_button = st.form_submit_button("✔️ Confirmar Ação",
                                                           use_container_width=True)
                     st.markdown("---")
 
                     if submit_button:
                         validation_errors = []
                         if st.session_state[action_choice_key] == UI_TEXTS.selectbox_default_acao_realizar:
-                            validation_errors.append("Ã‰ obrigatÃ³rio selecionar o tipo de aÃ§Ã£o (Registrar ou Concluir).")
+                            validation_errors.append("É obrigatório selecionar o tipo de ação (Registrar ou Concluir).")
                         if not action_description_state:
-                            validation_errors.append("A descriÃ§Ã£o detalhada da aÃ§Ã£o Ã© obrigatÃ³ria.")
+                            validation_errors.append("A descrição detalhada da ação é obrigatória.")
                         if validation_errors:
-                            st.error("âš ï¸ **Por favor, corrija os seguintes erros:**")
+                            st.error("⚠️ **Por favor, corrija os seguintes erros:**")
                             for error in validation_errors: st.warning(error)
                         else:
-                            # Recarrega a notificaÃ§Ã£o para ter a versÃ£o mais atualizada antes de modificar
+                            # Recarrega a notificação para ter a versão mais atualizada antes de modificar
                             current_notification_in_list = next(
                                 (n for n in load_notifications() if n.get('id') == notification.get('id')), None)
                             if not current_notification_in_list:
                                 st.error(
-                                    "Erro interno: NotificaÃ§Ã£o nÃ£o encontrada na lista principal para atualizaÃ§Ã£o.")
+                                    "Erro interno: Notificação não encontrada na lista principal para atualização.")
                             else:
-                                # Re-verificaÃ§Ã£o de conclusÃ£o final do executor diretamente no DB
+                                # Re-verificação de conclusão final do executor diretamente no DB
                                 recheck_executor_already_concluded = False
                                 notif_actions_db = get_notification_actions(notification.get('id'))
                                 for existing_action_recheck in notif_actions_db:
@@ -3626,10 +3626,10 @@ def show_execution():
                                         break
                                 if recheck_executor_already_concluded:
                                     st.error(
-                                        "âŒ Sua parte nesta notificaÃ§Ã£o jÃ¡ foi marcada como concluÃ­da anteriormente. OperaÃ§Ã£o abortada.")
+                                        "❌ Sua parte nesta notificação já foi marcada como concluída anteriormente. Operação abortada.")
                                     st.session_state[action_choice_key] = UI_TEXTS.selectbox_default_acao_realizar
                                     _clear_execution_form_state(notification['id'])
-                                    st.rerun() # CORREÃ‡ÃƒO: ForÃ§a o re-render
+                                    st.rerun() # CORREÇÃO: Força o re-render
                                 else:
                                     saved_evidence_attachments = []
                                     if st.session_state[
@@ -3651,20 +3651,20 @@ def show_execution():
                                         'evidence_attachments': saved_evidence_attachments if st.session_state[
                                             action_choice_key] == "Concluir Minha Parte" else None
                                     }
-# Adiciona a aÃ§Ã£o no banco de dados
+# Adiciona a ação no banco de dados
                                     add_notification_action(notification['id'], action_data_to_add)
-                                    if st.session_state[action_choice_key] == "Registrar AÃ§Ã£o":
+                                    if st.session_state[action_choice_key] == "Registrar Ação":
                                         if current_notification_in_list.get('status') == 'classificada':
                                             # Atualiza o status no DB
                                             update_notification(notification['id'], {'status': 'em_execucao'})
                                         add_history_entry(notification['id'],
-                                                          "AÃ§Ã£o registrada (ExecuÃ§Ã£o)",
+                                                          "Ação registrada (Execução)",
                                                           user_username_logged_in,
-                                                          f"Registrou aÃ§Ã£o: {action_description_state[:100]}..." if len(
-                                                              action_description_state) > 100 else f"Registrou aÃ§Ã£o: {action_description_state}")
-                                        st.toast("âœ… AÃ§Ã£o registrada com sucesso!", icon="ðŸŽ‰")
+                                                          f"Registrou ação: {action_description_state[:100]}..." if len(
+                                                              action_description_state) > 100 else f"Registrou ação: {action_description_state}")
+                                        st.toast("✅ Ação registrada com sucesso!", icon="🎉")
                                     elif st.session_state[action_choice_key] == "Concluir Minha Parte":
-                                        # Recarrega as aÃ§Ãµes para ter a lista atualizada do DB
+                                        # Recarrega as ações para ter a lista atualizada do DB
                                         all_actions_for_notif = get_notification_actions(notification['id'])
                                         all_assigned_executors_ids = set(
                                             current_notification_in_list.get('executors', []))
@@ -3677,22 +3677,22 @@ def show_execution():
                                         if all_executors_concluded:
                                             updates_to_status['status'] = 'revisao_classificador_execucao'
                                             st.toast(
-                                                "âœ… Todos os executores concluÃ­ram suas partes. NotificaÃ§Ã£o encaminhada para revisÃ£o!",
-                                                icon="ðŸ")
+                                                "✅ Todos os executores concluíram suas partes. Notificação encaminhada para revisão!",
+                                                icon="🏁")
                                         else:
-                                            st.toast("âœ… Sua execuÃ§Ã£o foi concluÃ­da nesta notificaÃ§Ã£o!", icon="âœ…")
-                                        history_details = f"Executor {user_username_logged_in} concluiu sua parte das aÃ§Ãµes."
+                                            st.toast("✅ Sua execução foi concluída nesta notificação!", icon="✅")
+                                        history_details = f"Executor {user_username_logged_in} concluiu sua parte das ações."
                                         add_history_entry(
                                             notification['id'],
-                                            "ExecuÃ§Ã£o concluÃ­da (por executor)",
+                                            "Execução concluída (por executor)",
                                             user_username_logged_in,
                                             history_details
                                         )
-# Atualiza apenas o status se necessÃ¡rio
+# Atualiza apenas o status se necessário
                                         if updates_to_status:
                                             update_notification(notification['id'], updates_to_status)
                                         st.success(
-                                            f"âœ… Sua execuÃ§Ã£o foi concluÃ­da nesta notificaÃ§Ã£o! Status atual: '{current_notification_in_list['status'].replace('_', ' ').title()}'.")
+                                            f"✅ Sua execução foi concluída nesta notificação! Status atual: '{current_notification_in_list['status'].replace('_', ' ').title()}'.")
                                         if not all_executors_concluded:
                                             users_list_exec = load_users()
                                             remaining_executors_ids = list(
@@ -3701,13 +3701,13 @@ def show_execution():
                                                                          users_list_exec if
                                                                          u.get('id') in remaining_executors_ids]
                                             st.info(
-                                                f"Aguardando conclusÃ£o dos seguintes executores: {', '.join(remaining_executors_names) or 'Nenhum'}.")
+                                                f"Aguardando conclusão dos seguintes executores: {', '.join(remaining_executors_names) or 'Nenhum'}.")
                                         elif all_executors_concluded:
                                             st.info(
-                                                f"Todos os executores concluÃ­ram suas partes. A notificaÃ§Ã£o foi enviada para revisÃ£o final pelo classificador.\n\nEvidÃªncia da tratativa:\n{evidence_description_state}\n\nAnexos: {len(saved_evidence_attachments) if saved_evidence_attachments else 0}")
+                                                f"Todos os executores concluíram suas partes. A notificação foi enviada para revisão final pelo classificador.\n\nEvidência da tratativa:\n{evidence_description_state}\n\nAnexos: {len(saved_evidence_attachments) if saved_evidence_attachments else 0}")
                                     _clear_execution_form_state(notification['id'])
-                                    st.rerun() # CORREÃ‡ÃƒO: ForÃ§a o re-render
-                with st.expander("ðŸ‘¥ Adicionar Executor Adicional"):
+                                    st.rerun() # CORREÇÃO: Força o re-render
+                with st.expander("👥 Adicionar Executor Adicional"):
                     with st.form(f"add_executor_form_{notification.get('id', UI_TEXTS.text_na)}_refactored",
                                  clear_on_submit=True):
                         executors = get_users_by_role('executor')
@@ -3726,7 +3726,7 @@ def show_execution():
                                 options=add_executor_display_options,
                                 index=add_executor_display_options.index(default_add_executor_selection[0]),
                                 key=f"add_executor_select_exec_{notification.get('id', UI_TEXTS.text_na)}_form_refactored",
-                                help="Selecione o usuÃ¡rio executor que serÃ¡ adicionado a esta notificaÃ§Ã£o."
+                                help="Selecione o usuário executor que será adicionado a esta notificação."
                             )
                             new_executor_name_to_add = (
                                 new_executor_name_to_add_raw
@@ -3734,49 +3734,49 @@ def show_execution():
                                 else None
                             )
 
-                            st.markdown("<span class='required-field'>* Campo obrigatÃ³rio</span>",
+                            st.markdown("<span class='required-field'>* Campo obrigatório</span>",
                                         unsafe_allow_html=True)
-                            submit_button = st.form_submit_button("âž• Adicionar Executor",
+                            submit_button = st.form_submit_button("➕ Adicionar Executor",
                                                                   use_container_width=True)
                             if submit_button:
                                 if new_executor_name_to_add:
                                     new_executor_id = executor_options[new_executor_name_to_add]
-                                    # Recarrega a notificaÃ§Ã£o para ter a versÃ£o mais atualizada antes de modificar
+                                    # Recarrega a notificação para ter a versão mais atualizada antes de modificar
                                     current_notification_in_list = next(
                                         (n for n in load_notifications() if n.get('id') == notification.get('id')), None)
                                     if current_notification_in_list:
-                                        # Adiciona o novo executor Ã  lista existente (no Python)
+                                        # Adiciona o novo executor à lista existente (no Python)
                                         updated_executors = current_notification_in_list.get('executors', []) + [
                                             new_executor_id]
                                         # Atualiza no DB
                                         update_notification(notification.get('id'), {'executors': updated_executors})
 
                                         add_history_entry(
-                                            notification.get('id'), "Executor adicionado (durante execuÃ§Ã£o)",
+                                            notification.get('id'), "Executor adicionado (durante execução)",
                                             user_username_logged_in,
                                             f"Adicionado o executor: {new_executor_name_to_add}"
                                         )
                                         st.success(
-                                            f"âœ… {new_executor_name_to_add} adicionado como executor para esta notificaÃ§Ã£o.")
-                                        st.rerun() # CORREÃ‡ÃƒO: ForÃ§a o re-render
+                                            f"✅ {new_executor_name_to_add} adicionado como executor para esta notificação.")
+                                        st.rerun() # CORREÇÃO: Força o re-render
                                     else:
-                                        st.error("Erro: NotificaÃ§Ã£o nÃ£o encontrada para adicionar executor.")
+                                        st.error("Erro: Notificação não encontrada para adicionar executor.")
                                 else:
-                                    st.error("âš ï¸ Por favor, selecione um executor para adicionar.")
+                                    st.error("⚠️ Por favor, selecione um executor para adicionar.")
                         else:
-                            st.info("NÃ£o hÃ¡ executores adicionais disponÃ­veis para atribuiÃ§Ã£o no momento.")
+                            st.info("Não há executores adicionais disponíveis para atribuição no momento.")
     with tab_closed_my_exec_notifs:
-        st.markdown("### Minhas AÃ§Ãµes Encerradas")
+        st.markdown("### Minhas Ações Encerradas")
         if not closed_my_exec_notifications:
-            st.info("âœ… NÃ£o hÃ¡ notificaÃ§Ãµes encerradas em que vocÃª estava envolvido como executor no momento.")
+            st.info("✅ Não há notificações encerradas em que você estava envolvido como executor no momento.")
         else:
             st.info(
-                f"Total de notificaÃ§Ãµes encerradas em que vocÃª estava envolvido: {len(closed_my_exec_notifications)}.")
+                f"Total de notificações encerradas em que você estava envolvido: {len(closed_my_exec_notifications)}.")
 
             search_query_exec_closed = st.text_input(
-                "ðŸ”Ž Buscar em Minhas AÃ§Ãµes Encerradas (TÃ­tulo, DescriÃ§Ã£o, ID):",
+                "🔎 Buscar em Minhas Ações Encerradas (Título, Descrição, ID):",
                 key="closed_exec_notif_search_input",
-                placeholder="Ex: 'reparo', '987', 'instalaÃ§Ã£o'"
+                placeholder="Ex: 'reparo', '987', 'instalação'"
             ).lower()
             filtered_closed_my_exec_notifications = []
             if search_query_exec_closed:
@@ -3790,11 +3790,11 @@ def show_execution():
                 filtered_closed_my_exec_notifications = closed_my_exec_notifications
             if not filtered_closed_my_exec_notifications:
                 st.warning(
-                    "âš ï¸ Nenhuma notificaÃ§Ã£o encontrada com os critÃ©rios de busca especificados em suas aÃ§Ãµes encerradas.")
+                    "⚠️ Nenhuma notificação encontrada com os critérios de busca especificados em suas ações encerradas.")
             else:
                 filtered_closed_my_exec_notifications.sort(key=lambda x: x.get('created_at', ''), reverse=True)
 
-                st.markdown(f"**NotificaÃ§Ãµes Encontradas ({len(filtered_closed_my_exec_notifications)})**:")
+                st.markdown(f"**Notificações Encontradas ({len(filtered_closed_my_exec_notifications)})**:")
                 for notification in filtered_closed_my_exec_notifications:
                     status_class = f"status-{notification.get('status', UI_TEXTS.text_na).replace('_', '-')}"
                     created_at_str = notification.get('created_at', UI_TEXTS.text_na)
@@ -3827,25 +3827,25 @@ def show_execution():
                             <div class="notification-card {card_class}">
                                 <h4>#{notification.get('id', UI_TEXTS.text_na)} - {notification.get('title', UI_TEXTS.text_na)}</h4>
                                 <p><strong>Status Final:</strong> <span class="{status_class}">{notification.get('status', UI_TEXTS.text_na).replace('_', ' ').title()}</span></p>
-                                <p><strong>Encerrada por:</strong> {concluded_by} | <strong>Data de CriaÃ§Ã£o:</strong> {created_at_str}</p>
+                                <p><strong>Encerrada por:</strong> {concluded_by} | <strong>Data de Criação:</strong> {created_at_str}</p>
                                 <p><strong>Prazo:</strong> {deadline_status['text']}</p>
                             </div>
                             """, unsafe_allow_html=True)
                     with st.expander(
-                            f"  ï¸ Visualizar Detalhes - NotificaÃ§Ã£o #{notification.get('id', UI_TEXTS.text_na)}"):
+                            f"  ️ Visualizar Detalhes - Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
                         display_notification_full_details(notification, user_id_logged_in, user_username_logged_in)
 
 
 @st_fragment
 def show_approval():
-    """Renderiza a pÃ¡gina para aprovadores revisarem e aprovarem/rejeitarem notificaÃ§Ãµes."""
+    """Renderiza a página para aprovadores revisarem e aprovarem/rejeitarem notificações."""
     if not check_permission('aprovador'):
-        st.error("âŒ Acesso negado! VocÃª nÃ£o tem permissÃ£o para aprovar notificaÃ§Ãµes.")
+        st.error("❌ Acesso negado! Você não tem permissão para aprovar notificações.")
         return
 
-    st.markdown("<h1 class='main-header'>âœ… AprovaÃ§Ã£o de NotificaÃ§Ãµes</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='main-header'>✅ Aprovação de Notificações</h1>", unsafe_allow_html=True)
     st.info(
-        "ðŸ“‹ Analise as notificaÃ§Ãµes que foram concluÃ­das pelos executores e revisadas/aceitas pelo classificador, e que requerem sua aprovaÃ§Ã£o final.")
+        "📋 Analise as notificações que foram concluídas pelos executores e revisadas/aceitas pelo classificador, e que requerem sua aprovação final.")
     all_notifications = load_notifications()  # Carrega do DB
     user_id_logged_in = st.session_state.user.get('id')
     user_username_logged_in = st.session_state.user.get('username')
@@ -3864,13 +3864,13 @@ def show_approval():
     ]
 
     if not pending_approval and not closed_my_approval_notifications:
-        st.info("âœ… NÃ£o hÃ¡ notificaÃ§Ãµes aguardando sua aprovaÃ§Ã£o ou que foram encerradas por vocÃª no momento.")
+        st.info("✅ Não há notificações aguardando sua aprovação ou que foram encerradas por você no momento.")
         return
 
-    st.success(f"â³ VocÃª tem {len(pending_approval)} notificaÃ§Ã£o(es) aguardando sua aprovaÃ§Ã£o.")
+    st.success(f"⏳ Você tem {len(pending_approval)} notificação(es) aguardando sua aprovação.")
 
     tab_pending_approval, tab_closed_my_approval_notifs = st.tabs(
-        ["â³ Aguardando Minha AprovaÃ§Ã£o", f"âœ… Minhas AprovaÃ§Ãµes Encerradas ({len(closed_my_approval_notifications)})"]
+        ["⏳ Aguardando Minha Aprovação", f"✅ Minhas Aprovações Encerradas ({len(closed_my_approval_notifications)})"]
     )
 
     with tab_pending_approval:
@@ -3886,9 +3886,9 @@ def show_approval():
             status_class = f"status-{notification.get('status', UI_TEXTS.text_na).replace('_', '-')}"
             classif_info = notification.get('classification') or {}
             prioridade_display = classif_info.get('prioridade', UI_TEXTS.text_na)
-            prioridade_display = prioridade_display if prioridade_display != 'Selecionar' else f"{UI_TEXTS.text_na} (NÃ£o Classificado)"
+            prioridade_display = prioridade_display if prioridade_display != 'Selecionar' else f"{UI_TEXTS.text_na} (Não Classificado)"
 
-            # Obter informaÃ§Ãµes de prazo para o card
+            # Obter informações de prazo para o card
             deadline_date_str = classif_info.get('deadline_date')
 
                         # Acessa 'timestamp' de 'conclusion' de forma segura
@@ -3896,12 +3896,12 @@ def show_approval():
 
             # Determinar o status do prazo (cor do texto)
             deadline_status = get_deadline_status(deadline_date_str, concluded_timestamp_str)
-            # Determinar a classe do cartÃ£o (fundo) com APENAS DOIS STATUS
+            # Determinar a classe do cartão (fundo) com APENAS DOIS STATUS
             card_class = ""
             if deadline_status['class'] == "deadline-ontrack" or deadline_status['class'] == "deadline-duesoon":
-                card_class = "card-prazo-dentro"  # SerÃ¡ verde para "No Prazo" e "Prazo PrÃ³ximo"
+                card_class = "card-prazo-dentro"  # Será verde para "No Prazo" e "Prazo Próximo"
             elif deadline_status['class'] == "deadline-overdue":
-                card_class = "card-prazo-fora"  # SerÃ¡ vermelho para "Atrasada"
+                card_class = "card-prazo-fora"  # Será vermelho para "Atrasada"
             st.markdown(f"""
                     <div class="notification-card {card_class}">
                         <h4>#{notification.get('id', UI_TEXTS.text_na)} - {notification.get('title', UI_TEXTS.text_na)}</h4>
@@ -3910,47 +3910,47 @@ def show_approval():
                     </div>
                     """, unsafe_allow_html=True)
             with st.expander(
-                    f"ðŸ“‹ AnÃ¡lise Completa e DecisÃ£o - NotificaÃ§Ã£o #{notification.get('id', UI_TEXTS.text_na)}",
+                    f"📋 Análise Completa e Decisão - Notificação #{notification.get('id', UI_TEXTS.text_na)}",
                     expanded=True):
-                st.markdown("### ðŸ§ Detalhes para AnÃ¡lise de AprovaÃ§Ã£o")
+                st.markdown("### 🧐 Detalhes para Análise de Aprovação")
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.markdown("**ðŸ“ Evento Original Reportado**")
-                    st.write(f"**TÃ­tulo:** {notification.get('title', UI_TEXTS.text_na)}")
+                    st.markdown("**📝 Evento Original Reportado**")
+                    st.write(f"**Título:** {notification.get('title', UI_TEXTS.text_na)}")
                     st.write(f"**Local:** {notification.get('location', UI_TEXTS.text_na)}")
                     occurrence_datetime_summary = format_date_time_summary(notification.get('occurrence_date'),
                                                                            notification.get('occurrence_time'))
-                    st.write(f"**Data/Hora OcorrÃªncia:** {occurrence_datetime_summary}")
+                    st.write(f"**Data/Hora Ocorrência:** {occurrence_datetime_summary}")
                     st.write(f"**Setor Notificante:** {notification.get('reporting_department', UI_TEXTS.text_na)}")
                     if notification.get('immediate_actions_taken') and notification.get(
                             'immediate_action_description'):
                         st.info(
-                            f"**AÃ§Ãµes Imediatas Reportadas:** {notification.get('immediate_action_description', UI_TEXTS.text_na)[:300]}...")
+                            f"**Ações Imediatas Reportadas:** {notification.get('immediate_action_description', UI_TEXTS.text_na)[:300]}...")
                 with col2:
-                    st.markdown("**â±ï¸ InformaÃ§Ãµes de GestÃ£o e ClassificaÃ§Ã£o**")
+                    st.markdown("**⏱️ Informações de Gestão e Classificação**")
                     classif = notification.get('classification', {})
                     never_event_display = classif.get('never_event', UI_TEXTS.text_na)
                     st.write(f"**Never Event:** {never_event_display}")
                     sentinel_display = 'Sim' if classif.get('is_sentinel_event') else (
-                        'NÃ£o' if classif.get('is_sentinel_event') is False else UI_TEXTS.text_na)
+                        'Não' if classif.get('is_sentinel_event') is False else UI_TEXTS.text_na)
                     st.write(f"**Evento Sentinela:** {sentinel_display}")
-                    st.write(f"**ClassificaÃ§Ã£o NNC:** {classif.get('nnc', UI_TEXTS.text_na)}")
+                    st.write(f"**Classificação NNC:** {classif.get('nnc', UI_TEXTS.text_na)}")
                     if classif.get('nivel_dano'): st.write(
-                        f"**NÃ­vel de Dano:** {classif.get('nivel_dano', UI_TEXTS.text_na)}")
+                        f"**Nível de Dano:** {classif.get('nivel_dano', UI_TEXTS.text_na)}")
                     event_type_main_display = classif.get('event_type_main', UI_TEXTS.text_na)
                     st.write(f"**Tipo Principal:** {event_type_main_display}")
                     event_type_sub_display = classif.get('event_type_sub')
                     if event_type_sub_display:
                         if isinstance(event_type_sub_display, list):
                             st.write(
-                                f"**EspecificaÃ§Ã£o:** {', '.join(event_type_sub_display)[:100]}..." if len(', '.join(
-                                    event_type_sub_display)) > 100 else f"**EspecificaÃ§Ã£o:** {', '.join(event_type_sub_display)}")
+                                f"**Especificação:** {', '.join(event_type_sub_display)[:100]}..." if len(', '.join(
+                                    event_type_sub_display)) > 100 else f"**Especificação:** {', '.join(event_type_sub_display)}")
                         else:
-                            st.write(f"**EspecificaÃ§Ã£o:** {str(event_type_sub_display)[:100]}..." if len(
-                                str(event_type_sub_display)) > 100 else f"**EspecificaÃ§Ã£o:** {str(event_type_sub_display)}")
-                    st.write(f"**ClassificaÃ§Ã£o OMS:** {', '.join(classif.get('oms', [UI_TEXTS.text_na]))}")
+                            st.write(f"**Especificação:** {str(event_type_sub_display)[:100]}..." if len(
+                                str(event_type_sub_display)) > 100 else f"**Especificação:** {str(event_type_sub_display)}")
+                    st.write(f"**Classificação OMS:** {', '.join(classif.get('oms', [UI_TEXTS.text_na]))}")
                     st.write(
-                        f"**Requer AprovaÃ§Ã£o Superior (Classif. Inicial):** {'Sim' if classif.get('requires_approval') else 'NÃ£o'}")
+                        f"**Requer Aprovação Superior (Classif. Inicial):** {'Sim' if classif.get('requires_approval') else 'Não'}")
                     st.write(f"**Classificado por:** {classif.get('classificador', UI_TEXTS.text_na)}")
                     classification_timestamp_str = classif.get('classification_timestamp', UI_TEXTS.text_na)
                     if classification_timestamp_str != UI_TEXTS.text_na:
@@ -3961,36 +3961,36 @@ def show_approval():
                         except ValueError:
                             pass
                         st.write(f"**Classificado em:** {classification_timestamp_str}")
-# ExibiÃ§Ã£o do Prazo e Status na AprovaÃ§Ã£o
+# Exibição do Prazo e Status na Aprovação
                     if deadline_date_str:
                         deadline_date_formatted = datetime.fromisoformat(deadline_date_str).strftime('%d/%m/%Y')
                         st.markdown(
-                            f"**Prazo de ConclusÃ£o:** {deadline_date_formatted} (<span class='{deadline_status['class']}'>{deadline_status['text']}</span>)",
+                            f"**Prazo de Conclusão:** {deadline_date_formatted} (<span class='{deadline_status['class']}'>{deadline_status['text']}</span>)",
                             unsafe_allow_html=True)
                     else:
-                        st.write(f"**Prazo de ConclusÃ£o:** {UI_TEXTS.deadline_days_nan}")
-                st.markdown("**ðŸ“ DescriÃ§Ã£o Completa do Evento**")
+                        st.write(f"**Prazo de Conclusão:** {UI_TEXTS.deadline_days_nan}")
+                st.markdown("**📝 Descrição Completa do Evento**")
                 st.info(notification.get('description', UI_TEXTS.text_na))
                 if classif.get('notes'):
-                    st.markdown("**ðŸ“‹ OrientaÃ§Ãµes / ObservaÃ§Ãµes do Classificador (ClassificaÃ§Ã£o Inicial)**")
+                    st.markdown("**📋 Orientações / Observações do Classificador (Classificação Inicial)**")
                     st.info(classif.get('notes', UI_TEXTS.text_na))
-                if notification.get('patient_involved'):  # Se patient_involved Ã© True
-                    st.markdown("**ðŸ¥ InformaÃ§Ãµes do Paciente Afetado**")
-                    st.write(f"**NÂ° Atendimento/ProntuÃ¡rio:** {notification.get('patient_id', UI_TEXTS.text_na)}")
+                if notification.get('patient_involved'):  # Se patient_involved é True
+                    st.markdown("**🏥 Informações do Paciente Afetado**")
+                    st.write(f"**N° Atendimento/Prontuário:** {notification.get('patient_id', UI_TEXTS.text_na)}")
                     outcome = notification.get('patient_outcome_obito')
                     if outcome is not None:
-                        st.write(f"**Evoluiu com Ã³bito?** {'Sim' if outcome is True else 'NÃ£o'}")
+                        st.write(f"**Evoluiu com óbito?** {'Sim' if outcome is True else 'Não'}")
                     else:
-                        st.write("**Evoluiu com Ã³bito?** NÃ£o informado")
+                        st.write("**Evoluiu com óbito?** Não informado")
                 if notification.get('additional_notes'):
-                    st.markdown("**â„¹ï¸ ObservaÃ§Ãµes Adicionais do Notificante**")
+                    st.markdown("**ℹ️ Observações Adicionais do Notificante**")
                     st.info(notification.get('additional_notes', UI_TEXTS.text_na))
                 st.markdown("---")
-                st.markdown("#### âš¡ AÃ§Ãµes Executadas pelos ResponsÃ¡veis")
+                st.markdown("#### ⚡ Ações Executadas pelos Responsáveis")
                 if notification.get('actions'):
                     for action in sorted(notification['actions'], key=lambda x: x.get('timestamp', '')):
-                        action_type = "ðŸ CONCLUSÃƒO (Executor)" if action.get(
-                            'final_action_by_executor') else "ðŸ“ AÃ‡ÃƒO Registrada"
+                        action_type = "🏁 CONCLUSÃO (Executor)" if action.get(
+                            'final_action_by_executor') else "📝 AÇÃO Registrada"
                         action_timestamp = action.get('timestamp', UI_TEXTS.text_na)
                         if action_timestamp != UI_TEXTS.text_na:
                             try:
@@ -4003,13 +4003,13 @@ def show_approval():
                             <br>
                             <em>{action.get('description', UI_TEXTS.text_na)}</em>
                             """, unsafe_allow_html=True)
-                        # Exibir evidÃªncias se disponÃ­vel e for uma aÃ§Ã£o final
+                        # Exibir evidências se disponível e for uma ação final
                         if action.get('final_action_by_executor'):
                             evidence_desc = action.get('evidence_description', '').strip()
                             evidence_atts = action.get('evidence_attachments', [])
                             if evidence_desc or evidence_atts:
                                 st.markdown(f"""<div class='evidence-section'>""", unsafe_allow_html=True)
-                                st.markdown("<h6>EvidÃªncias da ConclusÃ£o:</h6>", unsafe_allow_html=True)
+                                st.markdown("<h6>Evidências da Conclusão:</h6>", unsafe_allow_html=True)
                                 if evidence_desc:
                                     st.info(evidence_desc)
                                 if evidence_atts:
@@ -4020,34 +4020,34 @@ def show_approval():
                                             file_content = get_attachment_data(unique_name)
                                             if file_content:
                                                 st.download_button(
-                                                    label=f"Baixar EvidÃªncia: {original_name}",
+                                                    label=f"Baixar Evidência: {original_name}",
                                                     data=file_content,
                                                     file_name=original_name,
                                                     mime="application/octet-stream",
                                                     key=f"download_action_evidence_approval_{notification['id']}_{unique_name}"
                                                 )
                                             else:
-                                                st.write(f"Anexo: {original_name} (arquivo nÃ£o encontrado ou corrompido)")
+                                                st.write(f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
                                 st.markdown(f"""</div>""", unsafe_allow_html=True)
                         st.markdown("---")
                 else:
-                    st.warning("âš ï¸ Nenhuma aÃ§Ã£o foi registrada pelos executores para esta notificaÃ§Ã£o ainda.")
+                    st.warning("⚠️ Nenhuma ação foi registrada pelos executores para esta notificação ainda.")
                 users_exec = get_users_by_role('executor')
-                # Mapeia nomes de exibiÃ§Ã£o para IDs de usuÃ¡rio para executores
+                # Mapeia nomes de exibição para IDs de usuário para executores
                 executor_name_to_id_map_approval = {
                     f"{u.get('name', UI_TEXTS.text_na)} ({u.get('username', UI_TEXTS.text_na)})": u['id']
                     for u in users_exec
                 }
-                # Pega os nomes de exibiÃ§Ã£o dos executores atribuÃ­dos
+                # Pega os nomes de exibição dos executores atribuídos
                 executor_names_approval = [
                     name for name, uid in executor_name_to_id_map_approval.items()
                     if uid in notification.get('executors', [])
                 ]
-                st.markdown(f"**ðŸ‘¥ Executores AtribuÃ­dos:** {', '.join(executor_names_approval) or 'Nenhum'}")
+                st.markdown(f"**👥 Executores Atribuídos:** {', '.join(executor_names_approval) or 'Nenhum'}")
                 review_exec_info = notification.get('review_execution', {})
                 if review_exec_info:
                     st.markdown("---")
-                    st.markdown("#### ðŸ› ï¸ Resultado da RevisÃ£o do Classificador")
+                    st.markdown("#### 🛠️ Resultado da Revisão do Classificador")
                     review_decision_display = review_exec_info.get('decision', UI_TEXTS.text_na)
                     reviewed_by_display = review_exec_info.get('reviewed_by', UI_TEXTS.text_na)
                     review_timestamp_str = review_exec_info.get('timestamp', UI_TEXTS.text_na)
@@ -4057,17 +4057,17 @@ def show_approval():
                                 '%d/%m/%Y %H:%M:%S')
                         except ValueError:
                             pass
-                        st.write(f"**DecisÃ£o da RevisÃ£o:** {review_decision_display}")
+                        st.write(f"**Decisão da Revisão:** {review_decision_display}")
                     st.write(f"**Revisado por (Classificador):** {reviewed_by_display} em {review_timestamp_str}")
                     if review_decision_display == 'Rejeitada' and review_exec_info.get('rejection_reason'):
                         st.write(
-                            f"**Motivo da RejeiÃ§Ã£o:** {review_exec_info.get('rejection_reason', UI_TEXTS.text_na)}")
+                            f"**Motivo da Rejeição:** {review_exec_info.get('rejection_reason', UI_TEXTS.text_na)}")
                     if review_exec_info.get('notes'):
                         st.write(
-                            f"**ObservaÃ§Ãµes do Classificador:** {review_exec_info.get('notes', UI_TEXTS.text_na)}")
+                            f"**Observações do Classificador:** {review_exec_info.get('notes', UI_TEXTS.text_na)}")
                 if notification.get('attachments'):
                     st.markdown("---")
-                    st.markdown("#### ðŸ“Ž Anexos")
+                    st.markdown("#### 📎 Anexos")
                     for attach_info in notification['attachments']:
                         unique_name_to_use = None
                         original_name_to_use = None
@@ -4089,10 +4089,10 @@ def show_approval():
                                     key=f"download_approval_{notification['id']}_{unique_name_to_use}"
                                 )
                             else:
-                                st.write(f"Anexo: {original_name_to_use} (arquivo nÃ£o encontrado ou corrompido)")
+                                st.write(f"Anexo: {original_name_to_use} (arquivo não encontrado ou corrompido)")
                 st.markdown("---")
 
-                # NOVO: Inicializa ou recupera o estado do formulÃ¡rio de aprovaÃ§Ã£o para esta notificaÃ§Ã£o especÃ­fica
+                # NOVO: Inicializa ou recupera o estado do formulário de aprovação para esta notificação específica
                 if 'approval_form_state' not in st.session_state:
                     st.session_state.approval_form_state = {}
                 if notification.get('id') not in st.session_state.approval_form_state:
@@ -4103,26 +4103,26 @@ def show_approval():
                 current_approval_data = st.session_state.approval_form_state[notification.get('id')]
                 with st.form(f"approval_form_{notification.get('id', UI_TEXTS.text_na)}_refactored",
                              clear_on_submit=False):
-                    st.markdown("### ðŸŽ¯ DecisÃ£o de AprovaÃ§Ã£o Final")
+                    st.markdown("### 🎯 Decisão de Aprovação Final")
                     approval_decision_options = [UI_TEXTS.selectbox_default_decisao_aprovacao, "Aprovar",
                                                  "Reprovar"]
                     current_approval_data['decision'] = st.selectbox(
-                        "DecisÃ£o:*", options=approval_decision_options,
+                        "Decisão:*", options=approval_decision_options,
                         key=f"approval_decision_{notification.get('id', UI_TEXTS.text_na)}_refactored",
                         index=approval_decision_options.index(
                             current_approval_data.get('decision', UI_TEXTS.selectbox_default_decisao_aprovacao)),
-                        help="Selecione 'Aprovar' para finalizar a notificaÃ§Ã£o ou 'Reprovar' para devolvÃª-la para revisÃ£o pelo classificador."
+                        help="Selecione 'Aprovar' para finalizar a notificação ou 'Reprovar' para devolvê-la para revisão pelo classificador."
                     )
-                    st.markdown("<span class='required-field'>* Campo obrigatÃ³rio</span>", unsafe_allow_html=True)
+                    st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
                     # Capture o valor do text_area e atribua-o ao `current_approval_data['notes']`
                     approval_notes_input = st.text_area(
-                        "ObservaÃ§Ãµes da AprovaÃ§Ã£o/ReprovaÃ§Ã£o:*",
+                        "Observações da Aprovação/Reprovação:*",
                         value=current_approval_data.get('notes', ''),
-                        placeholder="â€¢ Avalie a completude e eficÃ¡cia das aÃ§Ãµes executadas e a revisÃ£o do classificador...\nâ€¢ Indique se as aÃ§Ãµes foram satisfatÃ³rias para mitigar o risco ou resolver o evento.\nâ€¢ ForneÃ§a recomendaÃ§Ãµes adicionais, se necessÃ¡rio.\nâ€¢ Em caso de reprovaÃ§Ã£o, explique claramente o motivo e o que precisa ser revisado ou corrigido pelo classificador.",
+                        placeholder="• Avalie a completude e eficácia das ações executadas e a revisão do classificador...\n• Indique se as ações foram satisfatórias para mitigar o risco ou resolver o evento.\n• Forneça recomendações adicionais, se necessário.\n• Em caso de reprovação, explique claramente o motivo e o que precisa ser revisado ou corrigido pelo classificador.",
                         height=120, key=f"approval_notes_{notification.get('id', UI_TEXTS.text_na)}_refactored",
-                        help="ForneÃ§a sua avaliaÃ§Ã£o sobre as aÃ§Ãµes executadas, a revisÃ£o do classificador, e a decisÃ£o final.").strip()
+                        help="Forneça sua avaliação sobre as ações executadas, a revisão do classificador, e a decisão final.").strip()
                     current_approval_data['notes'] = approval_notes_input  # Atualiza o estado com o valor do text_area
-                    submit_button = st.form_submit_button("âœ”ï¸ Confirmar DecisÃ£o",
+                    submit_button = st.form_submit_button("✔️ Confirmar Decisão",
                                                           use_container_width=True)
                     st.markdown("---")
 
@@ -4130,15 +4130,15 @@ def show_approval():
                         validation_errors = []
                         if current_approval_data[
                             'decision'] == UI_TEXTS.selectbox_default_decisao_aprovacao: validation_errors.append(
-                            "Ã‰ obrigatÃ³rio selecionar a decisÃ£o (Aprovar/Reprovar).")
+                            "É obrigatório selecionar a decisão (Aprovar/Reprovar).")
                         if current_approval_data['decision'] == "Reprovar" and not current_approval_data[
                             'notes']: validation_errors.append(
-                            "Ã‰ obrigatÃ³rio informar as observaÃ§Ãµes para reprovar a notificaÃ§Ã£o.")
+                            "É obrigatório informar as observações para reprovar a notificação.")
                         if validation_errors:
-                            st.error("âš ï¸ **Por favor, corrija os seguintes erros:**")
+                            st.error("⚠️ **Por favor, corrija os seguintes erros:**")
                             for error in validation_errors: st.warning(error)
                         else:
-                            user_name = st.session_state.user.get('name', 'UsuÃ¡rio')
+                            user_name = st.session_state.user.get('name', 'Usuário')
                             user_username = st.session_state.user.get('username', UI_TEXTS.text_na)
                             approval_notes = current_approval_data['notes']
                             if current_approval_data['decision'] == "Aprovar":
@@ -4153,21 +4153,21 @@ def show_approval():
                                     },
                                     'conclusion': {
                                         'concluded_by': user_username,
-                                        'notes': approval_notes or "NotificaÃ§Ã£o aprovada superiormente.",
+                                        'notes': approval_notes or "Notificação aprovada superiormente.",
                                         'timestamp': datetime.now().isoformat(),
                                         'status_final': 'aprovada'
                                     },
                                     'approver': None
                                 }
                                 update_notification(notification['id'], updates)  # Atualiza no DB
-                                add_history_entry(notification['id'], "NotificaÃ§Ã£o aprovada e finalizada",
+                                add_history_entry(notification['id'], "Notificação aprovada e finalizada",
                                                   user_name,
                                                   f"Aprovada superiormente." + (
                                                       f" Obs: {approval_notes[:150]}..." if approval_notes and len(
                                                           approval_notes) > 150 else (
                                                           f" Obs: {approval_notes}" if approval_notes else "")))
                                 st.success(
-                                    f"âœ… NotificaÃ§Ã£o #{notification['id']} aprovada e finalizada com sucesso! O ciclo de gestÃ£o do evento foi concluÃ­do.")
+                                    f"✅ Notificação #{notification['id']} aprovada e finalizada com sucesso! O ciclo de gestão do evento foi concluído.")
                             elif current_approval_data['decision'] == "Reprovar":
                                 new_status = 'aguardando_classificador'
                                 updates = {
@@ -4181,32 +4181,32 @@ def show_approval():
                                     'approver': None
                                 }
                                 update_notification(notification['id'], updates)  # Atualiza no DB
-                                add_history_entry(notification['id'], "NotificaÃ§Ã£o reprovada (AprovaÃ§Ã£o)",
+                                add_history_entry(notification['id'], "Notificação reprovada (Aprovação)",
                                                   user_name,
                                                   f"Reprovada superiormente. Motivo: {approval_notes[:150]}..." if len(
                                                       approval_notes) > 150 else f"Reprovada superiormente. Motivo: {approval_notes}")
                                 st.warning(
-                                    f"âš ï¸ NotificaÃ§Ã£o #{notification['id']} reprovada! Devolvida para revisÃ£o pelo classificador.")
+                                    f"⚠️ Notificação #{notification['id']} reprovada! Devolvida para revisão pelo classificador.")
                                 st.info(
-                                    "A notificaÃ§Ã£o foi movida para o status 'aguardando classificador' para que a equipe de classificaÃ§Ã£o possa revisar e redefinir o fluxo.")
+                                    "A notificação foi movida para o status 'aguardando classificador' para que a equipe de classificação possa revisar e redefinir o fluxo.")
                             # For both approve and reject paths, perform cleanup and rerun
                             # (update_notification is already called inside if/elif blocks)
                             st.session_state.approval_form_state.pop(notification['id'], None)
                             _clear_approval_form_state(notification['id'])
-                            st.rerun() # CORREÃ‡ÃƒO: ForÃ§a o re-render
+                            st.rerun() # CORREÇÃO: Força o re-render
 
     with tab_closed_my_approval_notifs:
-        st.markdown("### Minhas AprovaÃ§Ãµes Encerradas")
+        st.markdown("### Minhas Aprovações Encerradas")
 
         if not closed_my_approval_notifications:
-            st.info("âœ… NÃ£o hÃ¡ notificaÃ§Ãµes encerradas que vocÃª aprovou ou reprovou no momento.")
+            st.info("✅ Não há notificações encerradas que você aprovou ou reprovou no momento.")
         else:
             st.info(
-                f"Total de notificaÃ§Ãµes encerradas por vocÃª: {len(closed_my_approval_notifications)}.")
+                f"Total de notificações encerradas por você: {len(closed_my_approval_notifications)}.")
             search_query_app_closed = st.text_input(
-                "ðŸ”Ž Buscar em Minhas AprovaÃ§Ãµes Encerradas (TÃ­tulo, DescriÃ§Ã£o, ID):",
+                "🔎 Buscar em Minhas Aprovações Encerradas (Título, Descrição, ID):",
                 key="closed_app_notif_search_input",
-                placeholder="Ex: 'aprovaÃ§Ã£o', 'reprovado', '456'"
+                placeholder="Ex: 'aprovação', 'reprovado', '456'"
             ).lower()
             filtered_closed_my_approval_notifications = []
             if search_query_app_closed:
@@ -4221,12 +4221,12 @@ def show_approval():
                 filtered_closed_my_approval_notifications = closed_my_approval_notifications
             if not filtered_closed_my_approval_notifications:
                 st.warning(
-                    "âš ï¸ Nenhuma notificaÃ§Ã£o encontrada com os critÃ©rios de busca especificados em suas aprovaÃ§Ãµes encerradas.")
+                    "⚠️ Nenhuma notificação encontrada com os critérios de busca especificados em suas aprovações encerradas.")
             else:
                 filtered_closed_my_approval_notifications.sort(
                     key=lambda x: x.get('created_at', ''), reverse=True)
                 st.markdown(
-                    f"**NotificaÃ§Ãµes Encontradas ({len(filtered_closed_my_approval_notifications)})**:")
+                    f"**Notificações Encontradas ({len(filtered_closed_my_approval_notifications)})**:")
                 for notification in filtered_closed_my_approval_notifications:
                     status_class = f"status-{notification.get('status', UI_TEXTS.text_na).replace('_', '-')}"
                     created_at_str = notification.get('created_at', UI_TEXTS.text_na)
@@ -4253,14 +4253,14 @@ def show_approval():
                         'rejected_by'):
                         concluded_by = (notification.get('rejection_approval') or {}).get(
                             'rejected_by')
-# Determinar o status do prazo para notificaÃ§Ãµes encerradas
+# Determinar o status do prazo para notificações encerradas
                     classif_info = notification.get('classification', {})
                     deadline_date_str = classif_info.get('deadline_date')
 
                     # Acessa 'timestamp' de 'conclusion' de forma segura
                     concluded_timestamp_str = (notification.get('conclusion') or {}).get(
                         'timestamp')
-                    # Verificar se a conclusÃ£o foi dentro ou fora do prazo
+                    # Verificar se a conclusão foi dentro ou fora do prazo
                     deadline_status = get_deadline_status(deadline_date_str,
                                                           concluded_timestamp_str)
                     card_class = ""
@@ -4273,12 +4273,12 @@ def show_approval():
                                         <div class="notification-card {card_class}">
                                             <h4>#{notification.get('id', UI_TEXTS.text_na)} - {notification.get('title', UI_TEXTS.text_na)}</h4>
                                             <p><strong>Status Final:</strong> <span class="{status_class}">{notification.get('status', UI_TEXTS.text_na).replace('_', ' ').title()}</span></p>
-                                            <p><strong>Encerrada por:</strong> {concluded_by} | <strong>Data de CriaÃ§Ã£o:</strong> {created_at_str}</p>
+                                            <p><strong>Encerrada por:</strong> {concluded_by} | <strong>Data de Criação:</strong> {created_at_str}</p>
                                             <p><strong>Prazo:</strong> {deadline_status['text']}</p>
                                         </div>
                                         """, unsafe_allow_html=True)
                     with st.expander(
-                            f"ðŸ‘ï¸ Visualizar Detalhes - NotificaÃ§Ã£o #{notification.get('id', UI_TEXTS.text_na)}"):
+                            f"👁️ Visualizar Detalhes - Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
                         display_notification_full_details(notification,
                                                           st.session_state.user.get(
                                                               'id') if st.session_state.authenticated else None,
@@ -4288,29 +4288,29 @@ def show_approval():
 
 @st_fragment
 def show_admin():
-    """Renderiza a pÃ¡gina de administraÃ§Ã£o."""
+    """Renderiza a página de administração."""
     if not check_permission('admin'):
-        st.error("âŒ Acesso negado! VocÃª nÃ£o tem permissÃ£o de administrador.")
+        st.error("❌ Acesso negado! Você não tem permissão de administrador.")
         return
 
-    st.markdown("<h1 class='main-header'>âš™ï¸ AdministraÃ§Ã£o do Sistema</h1>",
+    st.markdown("<h1 class='main-header'>⚙️ Administração do Sistema</h1>",
                 unsafe_allow_html=True)
     st.info(
-        "Esta Ã¡rea permite gerenciar usuÃ¡rios, configurar o sistema e acessar ferramentas de desenvolvimento.")
+        "Esta área permite gerenciar usuários, configurar o sistema e acessar ferramentas de desenvolvimento.")
 
     tab1, tab2, tab3, tab4 = st.tabs(
-        ["ðŸ‘¥ UsuÃ¡rios", "ðŸ’¾ ConfiguraÃ§Ãµes e Dados", "ðŸ› ï¸ VisualizaÃ§Ã£o de Desenvolvimento",
-         "â„¹ï¸ Sobre o Sistema"])
+        ["👥 Usuários", "💾 Configurações e Dados", "🛠️ Visualização de Desenvolvimento",
+         "ℹ️ Sobre o Sistema"])
 
     with tab1:
-        st.markdown("### ðŸ‘¥ Gerenciamento de UsuÃ¡rios")
+        st.markdown("### 👥 Gerenciamento de Usuários")
 
-        with st.expander("âž• Criar Novo UsuÃ¡rio", expanded=False):
+        with st.expander("➕ Criar Novo Usuário", expanded=False):
             with st.form("create_user_form_refactored", clear_on_submit=True):
-                st.markdown("**ðŸ“ Dados do Novo UsuÃ¡rio**")
+                st.markdown("**📝 Dados do Novo Usuário**")
                 col1, col2 = st.columns(2)
                 with col1:
-                    new_username = st.text_input("Nome de UsuÃ¡rio*",
+                    new_username = st.text_input("Nome de Usuário*",
                                                  placeholder="usuario.exemplo",
                                                  key="admin_new_username_form_refactored").strip()
                     new_password = st.text_input("Senha*", type="password",
@@ -4345,13 +4345,13 @@ def show_admin():
                     UI_TEXTS.multiselect_user_roles_label,
                     options=display_roles_options,
                     default=default_selection_for_display,
-                    help="Selecione uma ou mais funÃ§Ãµes para o novo usuÃ¡rio.",
+                    help="Selecione uma ou mais funções para o novo usuário.",
                     key="admin_new_roles_form_refactored"
                 )
 
-                st.markdown("<span class='required-field'>* Campos obrigatÃ³rios</span>",
+                st.markdown("<span class='required-field'>* Campos obrigatórios</span>",
                             unsafe_allow_html=True)
-                submit_button = st.form_submit_button("âž• Criar UsuÃ¡rio",
+                submit_button = st.form_submit_button("➕ Criar Usuário",
                                                       use_container_width=True)
 
             if submit_button:
@@ -4369,40 +4369,40 @@ def show_admin():
 
                 validation_errors = []
                 if not username_state: validation_errors.append(
-                    "Nome de UsuÃ¡rio Ã© obrigatÃ³rio.")
-                if not password_state: validation_errors.append("Senha Ã© obrigatÃ³ria.")
+                    "Nome de Usuário é obrigatório.")
+                if not password_state: validation_errors.append("Senha é obrigatória.")
                 if password_state != password_confirm_state: validation_errors.append(
-                    "As senhas nÃ£o coincidem.")
-                if not name_state: validation_errors.append("Nome Completo Ã© obrigatÃ³rio.")
-                if not email_state: validation_errors.append("Email Ã© obrigatÃ³rio.")
+                    "As senhas não coincidem.")
+                if not name_state: validation_errors.append("Nome Completo é obrigatório.")
+                if not email_state: validation_errors.append("Email é obrigatório.")
                 if not roles_to_save: validation_errors.append(
-                    "Pelo menos uma FunÃ§Ã£o Ã© obrigatÃ³ria.")
+                    "Pelo menos uma Função é obrigatória.")
 
                 if validation_errors:
-                    st.error("âš ï¸ **Por favor, corrija os seguintes erros:**")
+                    st.error("⚠️ **Por favor, corrija os seguintes erros:**")
                     for error in validation_errors: st.warning(error)
                 else:
                     user_data = {'username': username_state, 'password': password_state,
                                  'name': name_state,
                                  'email': email_state, 'roles': roles_to_save}
                     if create_user(user_data):
-                        st.success(f"âœ… UsuÃ¡rio '{name_state}' criado com sucesso!\n\n")
+                        st.success(f"✅ Usuário '{name_state}' criado com sucesso!\n\n")
                         st.rerun()
                     else:
-                        st.error("âŒ Nome de usuÃ¡rio jÃ¡ existe. Por favor, escolha outro.")
+                        st.error("❌ Nome de usuário já existe. Por favor, escolha outro.")
 
-        st.markdown("### ðŸ“‹ UsuÃ¡rios Cadastrados no Sistema")
+        st.markdown("### 📋 Usuários Cadastrados no Sistema")
         users = load_users()
         if users:
             if 'editing_user_id' not in st.session_state:
                 st.session_state.editing_user_id = None
 
-            # Filtra o prÃ³prio usuÃ¡rio logado da lista para ediÃ§Ã£o
+            # Filtra o próprio usuário logado da lista para edição
             users_to_display = [u for u in users if u['id'] != st.session_state.editing_user_id]
             users_to_display.sort(key=lambda x: x.get('name', ''))
 
             for user in users_to_display:
-                status_icon = "ðŸŸ¢" if user.get('active', True) else "ðŸ”´"
+                status_icon = "🟢" if user.get('active', True) else "🔴"
 
                 expander_key = f"user_expander_{user.get('id', UI_TEXTS.text_na)}"
                 with st.expander(
@@ -4414,9 +4414,9 @@ def show_admin():
                         st.write(f"**ID:** {user.get('id', UI_TEXTS.text_na)}")
                         st.write(f"**Email:** {user.get('email', UI_TEXTS.text_na)}")
                         st.write(
-                            f"**FunÃ§Ãµes:** {', '.join(user.get('roles', [UI_TEXTS.text_na]))}")
+                            f"**Funções:** {', '.join(user.get('roles', [UI_TEXTS.text_na]))}")
                         st.write(
-                            f"**Status:** {'âœ… Ativo' if user.get('active', True) else 'âŒ Inativo'}")
+                            f"**Status:** {'✅ Ativo' if user.get('active', True) else '❌ Inativo'}")
                         created_at_str = user.get('created_at', UI_TEXTS.text_na)
                         if created_at_str != UI_TEXTS.text_na:
                             try:
@@ -4427,16 +4427,16 @@ def show_admin():
                         st.write(f"**Criado em:** {created_at_str}")
 
                     with col_actions:
-                        # Regras para botÃµes de aÃ§Ã£o:
-                        # 1. Admin inicial (ID 1) nÃ£o pode ser editado/desativado por seguranÃ§a
-                        # 2. O usuÃ¡rio logado nÃ£o pode editar/desativar a prÃ³pria conta
+                        # Regras para botões de ação:
+                        # 1. Admin inicial (ID 1) não pode ser editado/desativado por segurança
+                        # 2. O usuário logado não pode editar/desativar a própria conta
                         if user.get('id') != 1 and user.get('id') != st.session_state.user.get(
                                 'id'):
-                            if st.button("âœï¸ Editar",
+                            if st.button("✏️ Editar",
                                          key=f"edit_user_{user.get('id', UI_TEXTS.text_na)}",
                                          use_container_width=True):
                                 st.session_state.editing_user_id = user['id']
-                                # Pre-popula os campos de ediÃ§Ã£o
+                                # Pre-popula os campos de edição
                                 st.session_state[f"edit_name_{user['id']}"] = user.get('name',
                                                                                        '')
                                 st.session_state[f"edit_email_{user['id']}"] = user.get('email',
@@ -4447,8 +4447,8 @@ def show_admin():
                                     'active', True)
                                 st.rerun()
 
-                            action_text = "ðŸ”’ Desativar" if user.get('active',
-                                                                    True) else "ðŸ”“ Ativar"
+                            action_text = "🔒 Desativar" if user.get('active',
+                                                                    True) else "🔓 Ativar"
                             if st.button(action_text,
                                          key=f"toggle_user_{user.get('id', UI_TEXTS.text_na)}",
                                          use_container_width=True):
@@ -4459,27 +4459,27 @@ def show_admin():
                                     status_msg = "desativado" if not updated_user[
                                         'active'] else "ativado"
                                     st.success(
-                                        f"âœ… UsuÃ¡rio '{user.get('name', UI_TEXTS.text_na)}' {status_msg} com sucesso.")
+                                        f"✅ Usuário '{user.get('name', UI_TEXTS.text_na)}' {status_msg} com sucesso.")
                                     st.rerun() 
                                 else:
-                                    st.error("âŒ Erro ao atualizar status do usuÃ¡rio.")
+                                    st.error("❌ Erro ao atualizar status do usuário.")
                         elif user.get('id') == 1:
-                            st.info("ðŸ‘‘ Admin inicial nÃ£o editÃ¡vel.")
+                            st.info("👑 Admin inicial não editável.")
                         elif user.get('id') == st.session_state.user.get('id'):
-                            st.info("ðŸ‘¤ VocÃª nÃ£o pode editar sua prÃ³pria conta.")
+                            st.info("👤 Você não pode editar sua própria conta.")
                             st.info(
-                                "Para alterar sua senha ou dados, faÃ§a logout e use a opÃ§Ã£o de recuperaÃ§Ã£o de senha ou peÃ§a a outro admin para editar.")
+                                "Para alterar sua senha ou dados, faça logout e use a opção de recuperação de senha ou peça a outro admin para editar.")
 
-            # FormulÃ¡rio de ediÃ§Ã£o flutuante para o usuÃ¡rio selecionado
+            # Formulário de edição flutuante para o usuário selecionado
             if st.session_state.editing_user_id:
                 edited_user = next(
                     (u for u in users if u['id'] == st.session_state.editing_user_id), None)
                 if edited_user:
                     st.markdown(
-                        f"### âœï¸ Editando UsuÃ¡rio: {edited_user.get('name', UI_TEXTS.text_na)} ({edited_user.get('username', UI_TEXTS.text_na)})")
+                        f"### ✏️ Editando Usuário: {edited_user.get('name', UI_TEXTS.text_na)} ({edited_user.get('username', UI_TEXTS.text_na)})")
                     with st.form(key=f"edit_user_form_{edited_user['id']}",
                                  clear_on_submit=False):
-                        st.text_input("Nome de UsuÃ¡rio", value=edited_user.get('username', ''),
+                        st.text_input("Nome de Usuário", value=edited_user.get('username', ''),
                                       disabled=True)
 
                         edited_name = st.text_input("Nome Completo*",
@@ -4529,35 +4529,35 @@ def show_admin():
                                                              key=f"new_password_confirm_{edited_user['id']}_input").strip()
 
                         st.markdown(
-                            "<span class='required-field'>* Campos obrigatÃ³rios (para nome, email e funÃ§Ãµes)</span>",
+                            "<span class='required-field'>* Campos obrigatórios (para nome, email e funções)</span>",
                             unsafe_allow_html=True)
 
                         col_edit_submit, col_edit_cancel = st.columns(2)
                         with col_edit_submit:
-                            submit_edit_button = st.form_submit_button("ðŸ’¾ Salvar AlteraÃ§Ãµes",
+                            submit_edit_button = st.form_submit_button("💾 Salvar Alterações",
                                                                        use_container_width=True)
                         with col_edit_cancel:
-                            cancel_edit_button = st.form_submit_button("âŒ Cancelar EdiÃ§Ã£o",
+                            cancel_edit_button = st.form_submit_button("❌ Cancelar Edição",
                                                                        use_container_width=True)
 
                         if submit_edit_button:
                             edit_validation_errors = []
                             if not edited_name: edit_validation_errors.append(
-                                "Nome Completo Ã© obrigatÃ³rio.")
+                                "Nome Completo é obrigatório.")
                             if not edited_email: edit_validation_errors.append(
-                                "Email Ã© obrigatÃ³rio.")
+                                "Email é obrigatório.")
                             if not edited_roles: edit_validation_errors.append(
-                                "Pelo menos uma FunÃ§Ã£o Ã© obrigatÃ³ria.")
+                                "Pelo menos uma Função é obrigatória.")
                             if new_password:
                                 if new_password != new_password_confirm:
                                     edit_validation_errors.append(
-                                        "As novas senhas nÃ£o coincidem.")
+                                        "As novas senhas não coincidem.")
                                 if len(new_password) < 6:
                                     edit_validation_errors.append(
-                                        "A nova senha deve ter no mÃ­nimo 6 caracteres.")
+                                        "A nova senha deve ter no mínimo 6 caracteres.")
 
                             if edit_validation_errors:
-                                st.error("âš ï¸ **Por favor, corrija os seguintes erros:**")
+                                st.error("⚠️ **Por favor, corrija os seguintes erros:**")
                                 for error in edit_validation_errors: st.warning(error)
                             else:
                                 updates_to_apply = {
@@ -4573,35 +4573,35 @@ def show_admin():
                                                                  updates_to_apply)
                                 if updated_user_final:
                                     st.success(
-                                        f"âœ… UsuÃ¡rio '{updated_user_final.get('name', UI_TEXTS.text_na)}' atualizado com sucesso!")
+                                        f"✅ Usuário '{updated_user_final.get('name', UI_TEXTS.text_na)}' atualizado com sucesso!")
                                     st.session_state.editing_user_id = None
                                     st.rerun()
                                 else:
-                                    st.error("âŒ Erro ao salvar alteraÃ§Ãµes do usuÃ¡rio.")
+                                    st.error("❌ Erro ao salvar alterações do usuário.")
 
                         if cancel_edit_button:
                             st.session_state.editing_user_id = None
                             st.rerun()
 
         else:
-            st.info("ðŸ“‹ Nenhum usuÃ¡rio cadastrado no sistema.")
+            st.info("📋 Nenhum usuário cadastrado no sistema.")
 
     with tab2:
-        st.markdown("### ðŸ’¾ ConfiguraÃ§Ãµes e Gerenciamento de Dados")
+        st.markdown("### 💾 Configurações e Gerenciamento de Dados")
         st.warning(
-            "âš ï¸ Esta seÃ§Ã£o Ã© destinada a desenvolvedores para visualizar a estrutura completa dos dados. NÃ£o Ã© para uso operacional normal.")
+            "⚠️ Esta seção é destinada a desenvolvedores para visualizar a estrutura completa dos dados. Não é para uso operacional normal.")
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("#### ðŸ’¾ Backup dos Dados")
+            st.markdown("#### 💾 Backup dos Dados")
             st.info(
-                "Gera um arquivo JSON contendo todos os dados de usuÃ¡rios e notificaÃ§Ãµes cadastrados no sistema.")
-            if st.button("ðŸ“¥ Gerar Backup (JSON)", use_container_width=True,
+                "Gera um arquivo JSON contendo todos os dados de usuários e notificações cadastrados no sistema.")
+            if st.button("📥 Gerar Backup (JSON)", use_container_width=True,
                          key="generate_backup_btn"):
                 # Carrega todos os dados do banco para o backup
                 all_users_for_backup = load_users()
                 all_notifications_for_backup = load_notifications()
 
-                # Garante que os dados do JSONB sejam dicionÃ¡rios e nÃ£o strings JSON
+                # Garante que os dados do JSONB sejam dicionários e não strings JSON
                 # E que os objetos datetime sejam strings ISO formatadas
                 def prepare_for_json(data):
                     if isinstance(data, dict):
@@ -4613,7 +4613,7 @@ def show_admin():
                     elif isinstance(data, (int, float, str, bool)) or data is None:
                         return data
                     else:
-                        # Para JSONB que jÃ¡ vem como dict/list
+                        # Para JSONB que já vem como dict/list
                         try:
                             # Se for uma string que parece JSON, tentar carregar
                             if isinstance(data, str) and (
@@ -4633,20 +4633,20 @@ def show_admin():
                 }
                 backup_json = json.dumps(backup_data, indent=2, ensure_ascii=False)
                 st.download_button(
-                    label="â¬‡ï¸ Baixar Backup Agora", data=backup_json,
+                    label="⬇️ Baixar Backup Agora", data=backup_json,
                     file_name=f"hospital_notif_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                     mime="application/json", use_container_width=True, key="download_backup_btn"
                 )
         with col2:
-            st.markdown("#### ðŸ“¤ Restaurar Dados")
+            st.markdown("#### 📤 Restaurar Dados")
             st.info(
-                "Carrega um arquivo JSON de backup para restaurar dados de usuÃ¡rios e notificaÃ§Ãµes. **Isso sobrescreverÃ¡ os dados existentes!**")
+                "Carrega um arquivo JSON de backup para restaurar dados de usuários e notificações. **Isso sobrescreverá os dados existentes!**")
             uploaded_file = st.file_uploader("Selecione um arquivo de backup (formato JSON):",
                                              type=['json'],
                                              key="admin_restore_file_uploader")
             if uploaded_file:
                 with st.form("restore_form", clear_on_submit=False):
-                    submit_button = st.form_submit_button("ðŸ”„ Restaurar Dados",
+                    submit_button = st.form_submit_button("🔄 Restaurar Dados",
                                                           use_container_width=True,
                                                           key="restore_data_btn")
                     if submit_button:
@@ -4656,14 +4656,14 @@ def show_admin():
                             backup_data = json.loads(uploaded_file_content)
                             if isinstance(backup_data,
                                           dict) and 'users' in backup_data and 'notifications' in backup_data:
-                                # RestauraÃ§Ã£o: Apaga tudo e reinsere (simples, mas destrutivo)
+                                # Restauração: Apaga tudo e reinsere (simples, mas destrutivo)
                                 conn = get_db_connection()
                                 cur = conn.cursor()
                                 try:
-                                    # Desabilita triggers de TSVECTOR para restauraÃ§Ã£o massiva
+                                    # Desabilita triggers de TSVECTOR para restauração massiva
                                     cur.execute(
                                         "ALTER TABLE notifications DISABLE TRIGGER trg_notifications_search_vector;")
-                                    # Limpa tabelas em ordem inversa de dependÃªncia
+                                    # Limpa tabelas em ordem inversa de dependência
                                     cur.execute(
                                         "TRUNCATE TABLE notification_actions RESTART IDENTITY CASCADE;")
                                     cur.execute(
@@ -4675,7 +4675,7 @@ def show_admin():
                                     cur.execute(
                                         "TRUNCATE TABLE users RESTART IDENTITY CASCADE;")
 
-                                    # Restaura usuÃ¡rios
+                                    # Restaura usuários
                                     for user_data in backup_data['users']:
                                         cur.execute("""
                                                     INSERT INTO users (id, username, password_hash, name, email, roles, active, created_at)
@@ -4683,7 +4683,7 @@ def show_admin():
                                                 """, (
                                             user_data.get('id'),
                                             user_data.get('username'),
-                                            user_data.get('password'),  # JÃ¡ Ã© o hash
+                                            user_data.get('password'),  # Já é o hash
                                             user_data.get('name'),
                                             user_data.get('email'),
                                             user_data.get('roles', []),
@@ -4692,11 +4692,11 @@ def show_admin():
                                                 user_data['created_at']) if user_data.get(
                                                 'created_at') else datetime.now()
                                         ))
-                                    # Ajusta a sequÃªncia SERIAL para o prÃ³ximo ID disponÃ­vel
+                                    # Ajusta a sequência SERIAL para o próximo ID disponível
                                     cur.execute(
                                         f"SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));")
 
-                                    # Restaura notificaÃ§Ãµes e sub-dados (attachments, actions, history)
+                                    # Restaura notificações e sub-dados (attachments, actions, history)
                                     for notif_data in backup_data['notifications']:
                                         # Converte datas/tempos para o tipo correto para o DB
                                         occurrence_date = datetime.fromisoformat(notif_data[
@@ -4708,7 +4708,7 @@ def show_admin():
                                         created_at = datetime.fromisoformat(
                                             notif_data['created_at']) if notif_data.get(
                                             'created_at') else datetime.now()
-                                        # Insere notificaÃ§Ã£o principal
+                                        # Insere notificação principal
                                         cur.execute("""
                                                     INSERT INTO notifications (
                                                         id, title, description, location, occurrence_date, occurrence_time,
@@ -4734,12 +4734,12 @@ def show_admin():
                                             notif_data.get('notified_department_complement'),
                                             notif_data.get('event_shift'),
                                             notif_data.get('immediate_actions_taken'),
-                                            # JÃ¡ Ã© boolean
+                                            # Já é boolean
                                             notif_data.get('immediate_action_description'),
-                                            notif_data.get('patient_involved'),  # JÃ¡ Ã© boolean
+                                            notif_data.get('patient_involved'),  # Já é boolean
                                             notif_data.get('patient_id'),
                                             notif_data.get('patient_outcome_obito'),
-                                            # JÃ¡ Ã© boolean
+                                            # Já é boolean
                                             notif_data.get('additional_notes'),
                                             notif_data.get('status'),
                                             created_at,
@@ -4781,7 +4781,7 @@ def show_admin():
                                                     'uploaded_at') else datetime.now()
                                             ))
 
-                                        # Restaura histÃ³rico
+                                        # Restaura histórico
                                         for hist in notif_data.get('history', []):
                                             cur.execute("""
                                                         INSERT INTO notification_history (notification_id, action_type, performed_by, action_timestamp, details)
@@ -4795,7 +4795,7 @@ def show_admin():
                                                 hist.get('details')
                                             ))
 
-                                        # Restaura aÃ§Ãµes
+                                        # Restaura ações
                                         for action_item in notif_data.get('actions', []):
                                             cur.execute("""
                                                         INSERT INTO notification_actions (notification_id, executor_id, executor_name, description, action_timestamp, final_action_by_executor, evidence_description, evidence_attachments)
@@ -4815,15 +4815,15 @@ def show_admin():
                                                     'evidence_attachments')) if action_item.get(
                                                     'evidence_attachments') else None
                                             ))
-                                    # Ajusta a sequÃªncia SERIAL para o prÃ³ximo ID disponÃ­vel
+                                    # Ajusta a sequência SERIAL para o próximo ID disponível
                                     cur.execute(
                                         f"SELECT setval('notifications_id_seq', (SELECT MAX(id) FROM notifications));")
 
                                     conn.commit()
                                     st.success(
-                                        "âœ… Dados restaurados com sucesso a partir do arquivo!\n\n")
+                                        "✅ Dados restaurados com sucesso a partir do arquivo!\n\n")
                                     st.info(
-                                        "A pÃ¡gina serÃ¡ recarregada para refletir os dados restaurados.")
+                                        "A página será recarregada para refletir os dados restaurados.")
                                     st.session_state.pop('admin_restore_file_uploader', None)
                                     _reset_form_state()
                                     st.session_state.initial_classification_state = {}
@@ -4835,7 +4835,7 @@ def show_admin():
                                 except psycopg2.Error as e:
                                     conn.rollback()
                                     st.error(
-                                        f"âŒ Erro ao restaurar dados no banco de dados: {e}")
+                                        f"❌ Erro ao restaurar dados no banco de dados: {e}")
                                 finally:
                                     # Habilita triggers de TSVECTOR novamente
                                     cur.execute(
@@ -4844,18 +4844,18 @@ def show_admin():
                                     conn.close()
                             else:
                                 st.error(
-                                    "âŒ Arquivo de backup invÃ¡lido. O arquivo JSON nÃ£o contÃ©m a estrutura esperada (chaves 'users' e 'notifications').")
+                                    "❌ Arquivo de backup inválido. O arquivo JSON não contém a estrutura esperada (chaves 'users' e 'notifications').")
                         except json.JSONDecodeError:
                             st.error(
-                                "âŒ Erro ao ler o arquivo JSON. Certifique-se de que Ã© um arquivo JSON vÃ¡lido.")
+                                "❌ Erro ao ler o arquivo JSON. Certifique-se de que é um arquivo JSON válido.")
                         except Exception as e:
                             st.error(
-                                f"âŒ Ocorreu um erro inesperado ao restaurar os dados: {str(e)}")
+                                f"❌ Ocorreu um erro inesperado ao restaurar os dados: {str(e)}")
 
     with tab3:
-        st.markdown("### ðŸ› ï¸ VisualizaÃ§Ã£o de Desenvolvimento e Debug")
+        st.markdown("### 🛠️ Visualização de Desenvolvimento e Debug")
         st.warning(
-            "âš ï¸ Esta seÃ§Ã£o Ã© destinada a desenvolvedores para visualizar a estrutura completa dos dados. NÃ£o Ã© para uso operacional normal.")
+            "⚠️ Esta seção é destinada a desenvolvedores para visualizar a estrutura completa dos dados. Não é para uso operacional normal.")
         notifications = load_notifications()  # Carrega do DB
         if notifications:
             selected_notif_display_options = [UI_TEXTS.selectbox_default_admin_debug_notif] + [
@@ -4868,7 +4868,7 @@ def show_admin():
                 st.session_state[selectbox_key_debug] = selected_notif_display_options[0]
 
             selected_notif_display = st.selectbox(
-                "Selecionar notificaÃ§Ã£o para anÃ¡lise detalhada (JSON):",
+                "Selecionar notificação para análise detalhada (JSON):",
                 options=selected_notif_display_options,
                 index=selected_notif_display_options.index(
                     st.session_state[selectbox_key_debug]) if st.session_state[
@@ -4884,72 +4884,72 @@ def show_admin():
                         notification = next(
                             (n for n in notifications if n.get('id') == notif_id), None)
                         if notification:
-                            st.markdown("#### Dados Completos da NotificaÃ§Ã£o (JSON)")
+                            st.markdown("#### Dados Completos da Notificação (JSON)")
                             # Para exibir JSON puro e bonito no Streamlit, garantimos que todas as datas/tempos e JSONB
-                            # jÃ¡ estejam formatados como strings ISO e dicionÃ¡rios/listas Python, respectivamente.
-                            # load_notifications jÃ¡ faz grande parte disso.
+                            # já estejam formatados como strings ISO e dicionários/listas Python, respectivamente.
+                            # load_notifications já faz grande parte disso.
                             st.json(notification)
                         else:
-                            st.error("âŒ NotificaÃ§Ã£o nÃ£o encontrada.")
+                            st.error("❌ Notificação não encontrada.")
                     else:
-                        st.error("âŒ Formato de seleÃ§Ã£o invÃ¡lido.")
+                        st.error("❌ Formato de seleção inválido.")
                 except (IndexError, ValueError) as e:
-                    st.error(f"âŒ Erro ao processar seleÃ§Ã£o ou encontrar notificaÃ§Ã£o: {e}")
+                    st.error(f"❌ Erro ao processar seleção ou encontrar notificação: {e}")
         else:
-            st.info("ðŸ“‹ Nenhuma notificaÃ§Ã£o encontrada para anÃ¡lise de desenvolvimento.")
+            st.info("📋 Nenhuma notificação encontrada para análise de desenvolvimento.")
 
     with tab4:
-        st.markdown("### â„¹ï¸ InformaÃ§Ãµes do Sistema")
+        st.markdown("### ℹ️ Informações do Sistema")
         st.markdown("#### Detalhes do Portal")
-        st.write(f"**VersÃ£o do Portal:** 2.0.1")
-        st.write(f"**Data da Ãšltima AtualizaÃ§Ã£o:** 19/07/2025")
+        st.write(f"**Versão do Portal:** 2.0.1")
+        st.write(f"**Data da Última Atualização:** 19/07/2025")
         st.write(f"**Desenvolvido por:** FIA Softworks")
         st.markdown("#### Contato")
-        st.markdown("##### Suporte TÃ©cnico:")
+        st.markdown("##### Suporte Técnico:")
         st.write(f"**Email:** borges@fiasoftworks.com.br")
         
 
 @st_fragment
 def show_dashboard():
-    # A funÃ§Ã£o force_rerun_dashboard_search nÃ£o Ã© mais necessÃ¡ria aqui
+    # A função force_rerun_dashboard_search não é mais necessária aqui
     # def force_rerun_dashboard_search():
     #     st.rerun()
 
     if not check_permission('admin') and not check_permission('classificador'):
-        st.error("âŒ Acesso negado! VocÃª nÃ£o tem permissÃ£o para visualizar o dashboard.")
+        st.error("❌ Acesso negado! Você não tem permissão para visualizar o dashboard.")
         return
     """
-    Renderiza um dashboard abrangente para visualizaÃ§Ã£o de notificaÃ§Ãµes,
-    incluindo mÃ©tricas chave, grÃ¡ficos e uma lista detalhada, filtrÃ¡vel,
-    pesquisÃ¡vel e paginada de notificaÃ§Ãµes.
+    Renderiza um dashboard abrangente para visualização de notificações,
+    incluindo métricas chave, gráficos e uma lista detalhada, filtrável,
+    pesquisável e paginada de notificações.
     """
-    st.markdown("<h1 class='main-header'>   Dashboard de NotificaÃ§Ãµes</h1>",
+    st.markdown("<h1 class='main-header'>   Dashboard de Notificações</h1>",
                 unsafe_allow_html=True)
 
     all_notifications = load_notifications()  # Carrega do DB
     if not all_notifications:
         st.warning(
-            "âš ï¸ Nenhuma notificaÃ§Ã£o encontrada para exibir no dashboard. Comece registrando uma nova notificaÃ§Ã£o.")
+            "⚠️ Nenhuma notificação encontrada para exibir no dashboard. Comece registrando uma nova notificação.")
         return
 
-    # Converte a lista de notificaÃ§Ãµes em um DataFrame pandas para facilitar a manipulaÃ§Ã£o
+    # Converte a lista de notificações em um DataFrame pandas para facilitar a manipulação
     df_notifications = pd.DataFrame(all_notifications)
     df_notifications['created_at_dt'] = pd.to_datetime(df_notifications['created_at'])
     df_notifications['occurrence_date_dt'] = pd.to_datetime(df_notifications['occurrence_date'])
 
-    # Define categorias de status para grÃ¡ficos
+    # Define categorias de status para gráficos
     completed_statuses = ['aprovada', 'concluida']
     rejected_statuses = ['rejeitada', 'reprovada']
 
-    # Aba para VisÃ£o Geral e Lista Detalhada (conteÃºdo existente)
-    # Aba para Indicadores e GrÃ¡ficos (novo conteÃºdo)
+    # Aba para Visão Geral e Lista Detalhada (conteúdo existente)
+    # Aba para Indicadores e Gráficos (novo conteúdo)
     tab_overview_list, tab_indicators = st.tabs(
-        ["ðŸ“Š VisÃ£o Geral e Lista", "ðŸ“ˆ Indicadores e GrÃ¡ficos"])
+        ["📊 Visão Geral e Lista", "📈 Indicadores e Gráficos"])
 
     with tab_overview_list:
-        st.info("VisÃ£o geral e detalhada de todas as notificaÃ§Ãµes registradas no sistema.")
+        st.info("Visão geral e detalhada de todas as notificações registradas no sistema.")
 
-        st.markdown("### VisÃ£o Geral e MÃ©tricas Chave")
+        st.markdown("### Visão Geral e Métricas Chave")
         total = len(all_notifications)
         pending_classif = len(
             [n for n in all_notifications if n.get('status') == "pendente_classificacao"])
@@ -4973,7 +4973,7 @@ def show_dashboard():
                 f"<div class='metric-card'><h4>Em Andamento</h4><p>{in_progress}</p></div>",
                 unsafe_allow_html=True)
         with col_m4:
-            st.markdown(f"<div class='metric-card'><h4>ConcluÃ­das</h4><p>{completed}</p></div>",
+            st.markdown(f"<div class='metric-card'><h4>Concluídas</h4><p>{completed}</p></div>",
                         unsafe_allow_html=True)
         with col_m5:
             st.markdown(f"<div class='metric-card'><h4>Rejeitadas</h4><p>{rejected}</p></div>",
@@ -4981,21 +4981,21 @@ def show_dashboard():
 
         st.markdown("---")
 
-        st.markdown("### GrÃ¡ficos de TendÃªncia e DistribuiÃ§Ã£o")
+        st.markdown("### Gráficos de Tendência e Distribuição")
         col_chart1, col_chart2 = st.columns(2)
 
         with col_chart1:
-            st.markdown("#### DistribuiÃ§Ã£o de NotificaÃ§Ãµes por Status")
+            st.markdown("#### Distribuição de Notificações por Status")
             status_mapping = {
                 'pendente_classificacao': 'Pendente Classif. Inicial',
                 'classificada': 'Classificada (Aguardando Exec.)',
-                'em_execucao': 'Em ExecuÃ§Ã£o',
-                'revisao_classificador_execucao': 'Aguardando RevisÃ£o Exec.',
-                'aguardando_classificador': 'Aguardando Classif. (RevisÃ£o)',
-                'aguardando_aprovacao': 'Aguardando AprovaÃ§Ã£o',
-                'aprovada': 'ConcluÃ­da (Aprovada)',
+                'em_execucao': 'Em Execução',
+                'revisao_classificador_execucao': 'Aguardando Revisão Exec.',
+                'aguardando_classificador': 'Aguardando Classif. (Revisão)',
+                'aguardando_aprovacao': 'Aguardando Aprovação',
+                'aprovada': 'Concluída (Aprovada)',
                 'rejeitada': 'Rejeitada (Classif. Inicial)',
-                'reprovada': 'Reprovada (AprovaÃ§Ã£o)'
+                'reprovada': 'Reprovada (Aprovação)'
             }
             status_count = {}
             for notification in all_notifications:
@@ -5020,12 +5020,12 @@ def show_dashboard():
                     status_df = status_df.sort_values('Status')
                 st.bar_chart(status_df.set_index('Status'))
             else:
-                st.info("Nenhum dado de status para gerar o grÃ¡fico.")
+                st.info("Nenhum dado de status para gerar o gráfico.")
 
         with col_chart2:
-            st.markdown("#### NotificaÃ§Ãµes Criadas ao Longo do Tempo")
+            st.markdown("#### Notificações Criadas ao Longo do Tempo")
             if not df_notifications.empty:
-                df_notifications_copy = df_notifications.copy()  # Cria uma cÃ³pia para evitar SettingWithCopyWarning
+                df_notifications_copy = df_notifications.copy()  # Cria uma cópia para evitar SettingWithCopyWarning
                 df_notifications_copy['month_year'] = df_notifications_copy[
                     'created_at_dt'].dt.to_period('M').astype(
                     str)
@@ -5038,11 +5038,11 @@ def show_dashboard():
 
                 st.line_chart(monthly_counts.set_index('month_year'))
             else:
-                st.info("Nenhum dado para gerar o grÃ¡fico de tendÃªncia.")
+                st.info("Nenhum dado para gerar o gráfico de tendência.")
 
         st.markdown("---")
 
-        st.markdown("### Lista Detalhada de NotificaÃ§Ãµes")
+        st.markdown("### Lista Detalhada de Notificações")
 
         col_filters1, col_filters2, col_filters3 = st.columns(3)
 
@@ -5061,7 +5061,7 @@ def show_dashboard():
         if 'dashboard_search_query_input' not in st.session_state:
             st.session_state.dashboard_search_query_input = ""
             
-        # NÃ£o Ã© mais necessÃ¡rio inicializar dashboard_search_query aqui, pois serÃ¡ derivado de dashboard_search_query_input
+        # Não é mais necessário inicializar dashboard_search_query aqui, pois será derivado de dashboard_search_query_input
         # if 'dashboard_search_query' not in st.session_state: st.session_state.dashboard_search_query = ""
             
         if 'dashboard_sort_column' not in st.session_state: st.session_state.dashboard_sort_column = 'created_at'
@@ -5159,32 +5159,32 @@ def show_dashboard():
             )
 
             st.session_state.dashboard_filter_date_start = st.date_input(
-                "Data Inicial (CriaÃ§Ã£o):", value=date_start_default,
+                "Data Inicial (Criação):", value=date_start_default,
                 key="dashboard_filter_date_start_input"
             )
             st.session_state.dashboard_filter_date_end = st.date_input(
-                "Data Final (CriaÃ§Ã£o):", value=date_end_default,
+                "Data Final (Criação):", value=date_end_default,
                 key="dashboard_filter_date_date_end_input"
             )
 
         with col_filters3:
             # O st.text_input armazena seu valor diretamente em st.session_state.dashboard_search_query_input
-            # O parÃ¢metro 'value' serve para definir o valor inicial, que serÃ¡ o que estÃ¡ no session_state (ou vazio)
+            # O parâmetro 'value' serve para definir o valor inicial, que será o que está no session_state (ou vazio)
             st.text_input(
-                "Buscar (TÃ­tulo, DescriÃ§Ã£o, ID):",
-                value=st.session_state.dashboard_search_query_input, # Usa o valor que estÃ¡ no session_state para persistÃªncia
-                key="dashboard_search_query_input", # A chave onde o valor atual do widget Ã© armazenado
+                "Buscar (Título, Descrição, ID):",
+                value=st.session_state.dashboard_search_query_input, # Usa o valor que está no session_state para persistência
+                key="dashboard_search_query_input", # A chave onde o valor atual do widget é armazenado
                 # on_change=force_rerun_dashboard_search # Removido para evitar o problema de "voltar"
             )
-            # A variÃ¡vel usada para a lÃ³gica de filtragem Ã© atualizada APÃ“S o text_input ter seu valor persistido.
-            # Essa linha serÃ¡ executada em cada rerun (seja por Enter, blur ou outro widget).
+            # A variável usada para a lógica de filtragem é atualizada APÓS o text_input ter seu valor persistido.
+            # Essa linha será executada em cada rerun (seja por Enter, blur ou outro widget).
             st.session_state.dashboard_search_query = st.session_state.dashboard_search_query_input.lower()
 
 
             sort_options_map = {
                 'ID': 'id',
-                'Data de CriaÃ§Ã£o': 'created_at',
-                'TÃ­tulo': 'title',
+                'Data de Criação': 'created_at',
+                'Título': 'title',
                 'Local': 'location',
                 'Prioridade': 'classification.prioridade',
             }
@@ -5229,7 +5229,7 @@ def show_dashboard():
                         st.session_state.dashboard_filter_date_start <= created_at_date <= st.session_state.dashboard_filter_date_end):
                     match = False
 
-            # Usa st.session_state.dashboard_search_query, que Ã© sempre o valor atualizado e em minÃºsculas
+            # Usa st.session_state.dashboard_search_query, que é sempre o valor atualizado e em minúsculas
             if match and st.session_state.dashboard_search_query:
                 query = st.session_state.dashboard_search_query
                 search_fields = [
@@ -5255,7 +5255,7 @@ def show_dashboard():
                 return notif.get('location', '')
             elif sort_key == 'classification.prioridade':
                 priority_value = notif.get('classification', {}).get('prioridade', 'Baixa')
-                priority_order_val = {'CrÃ­tica': 4, 'Alta': 3, 'MÃ©dia': 2, 'Baixa': 1,
+                priority_order_val = {'Crítica': 4, 'Alta': 3, 'Média': 2, 'Baixa': 1,
                                       UI_TEXTS.text_na: 0,
                                       UI_TEXTS.selectbox_default_prioridade_resolucao: 0}
                 return priority_order_val.get(priority_value, 0)
@@ -5268,7 +5268,7 @@ def show_dashboard():
                 reverse=not st.session_state.dashboard_sort_ascending
             )
 
-        st.write(f"**NotificaÃ§Ãµes Encontradas: {len(filtered_notifications)}**")
+        st.write(f"**Notificações Encontradas: {len(filtered_notifications)}**")
 
         items_per_page_options = [5, 10, 20, 50]
         items_per_page_display_options = [UI_TEXTS.selectbox_items_per_page_placeholder] + [
@@ -5296,7 +5296,7 @@ def show_dashboard():
 
         if 'dashboard_current_page' not in st.session_state: st.session_state.dashboard_current_page = 1
         st.session_state.dashboard_current_page = st.number_input(
-            "PÃ¡gina:", min_value=1, max_value=total_pages,
+            "Página:", min_value=1, max_value=total_pages,
             value=st.session_state.dashboard_current_page,
             key="dashboard_current_page_input"
         )
@@ -5307,7 +5307,7 @@ def show_dashboard():
         paginated_notifications = filtered_notifications[start_idx:end_idx]
 
         if not paginated_notifications:
-            st.info("Nenhuma notificaÃ§Ã£o encontrada com os filtros e busca aplicados.")
+            st.info("Nenhuma notificação encontrada com os filtros e busca aplicados.")
         else:
             for notification in paginated_notifications:
                 status_class = f"status-{notification.get('status', UI_TEXTS.text_na).replace('_', '-')}"
@@ -5337,7 +5337,7 @@ def show_dashboard():
                                     """, unsafe_allow_html=True)
 
                 with st.expander(
-                        f"ðŸ‘ï¸ Visualizar Detalhes - NotificaÃ§Ã£o #{notification.get('id', UI_TEXTS.text_na)}"):
+                        f"👁️ Visualizar Detalhes - Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
                     display_notification_full_details(notification,
                                                       st.session_state.user.get(
                                                           'id') if st.session_state.authenticated else None,
@@ -5345,10 +5345,10 @@ def show_dashboard():
                                                           'username') if st.session_state.authenticated else None)
 
     with tab_indicators:
-        st.info("Explore os indicadores e tendÃªncias das notificaÃ§Ãµes, com filtros de perÃ­odo.")
-        st.markdown("### SeleÃ§Ã£o de PerÃ­odo para Indicadores")
+        st.info("Explore os indicadores e tendências das notificações, com filtros de período.")
+        st.markdown("### Seleção de Período para Indicadores")
 
-        # Define as datas padrÃ£o para o filtro de perÃ­odo, usando a data mais antiga e mais recente
+        # Define as datas padrão para o filtro de período, usando a data mais antiga e mais recente
         min_date = df_notifications[
             'created_at_dt'].min().date() if not df_notifications.empty else dt_date_class.today() - timedelta(
             days=365)
@@ -5356,41 +5356,41 @@ def show_dashboard():
             'created_at_dt'].max().date() if not df_notifications.empty else dt_date_class.today()
         col_date1, col_date2 = st.columns(2)
         with col_date1:
-            start_date_indicators = st.date_input("Data de InÃ­cio", value=min_date,
+            start_date_indicators = st.date_input("Data de Início", value=min_date,
                                                   key="start_date_indicators")
         with col_date2:
             end_date_indicators = st.date_input("Data de Fim", value=max_date,
                                                 key="end_date_indicators")
 
-        # Filtra o DataFrame pelo perÃ­odo selecionado
+        # Filtra o DataFrame pelo período selecionado
         df_filtered_by_period = df_notifications[
             (df_notifications['created_at_dt'].dt.date >= start_date_indicators) &
             (df_notifications[
                  'created_at_dt'].dt.date <= end_date_indicators)].copy()
 
         if df_filtered_by_period.empty:
-            st.warning("âš ï¸ NÃ£o hÃ¡ dados para o perÃ­odo selecionado para gerar os indicadores.")
+            st.warning("⚠️ Não há dados para o período selecionado para gerar os indicadores.")
             return
 
         st.markdown("---")
 
         st.markdown(
-            "#### ðŸ“ˆ Quantidade de NotificaÃ§Ãµes por MÃªs (Abertas, ConcluÃ­das, Rejeitadas)")
+            "#### 📈 Quantidade de Notificações por Mês (Abertas, Concluídas, Rejeitadas)")
 
         df_monthly = df_filtered_by_period.copy()
         df_monthly['month_year'] = df_monthly['created_at_dt'].dt.to_period('M').astype(str)
 
-        # Categoriza o status da notificaÃ§Ã£o
+        # Categoriza o status da notificação
         df_monthly['status_category'] = 'Aberta'
         df_monthly.loc[
-            df_monthly['status'].isin(completed_statuses), 'status_category'] = 'ConcluÃ­da'
+            df_monthly['status'].isin(completed_statuses), 'status_category'] = 'Concluída'
         df_monthly.loc[
             df_monthly['status'].isin(rejected_statuses), 'status_category'] = 'Rejeitada'
 
         monthly_counts = df_monthly.groupby(['month_year', 'status_category']).size().unstack(
             fill_value=0)
 
-        # Garante que todos os meses no perÃ­odo estejam presentes, mesmo que sem dados
+        # Garante que todos os meses no período estejam presentes, mesmo que sem dados
         all_months_in_range = pd.period_range(start=start_date_indicators,
                                               end=end_date_indicators, freq='M').astype(
             str)
@@ -5398,11 +5398,11 @@ def show_dashboard():
         if not monthly_counts.empty:
             st.line_chart(monthly_counts)
         else:
-            st.info("Nenhuma notificaÃ§Ã£o encontrada no perÃ­odo para este grÃ¡fico.")
+            st.info("Nenhuma notificação encontrada no período para este gráfico.")
 
         st.markdown("---")
 
-        st.markdown("####    PendÃªncia de AnÃ¡lises por MÃªs")
+        st.markdown("####    Pendência de Análises por Mês")
         pending_analysis_statuses = ['pendente_classificacao', 'aguardando_classificador',
                                      'revisao_classificador_execucao']
         df_pending_analysis = df_filtered_by_period[
@@ -5436,7 +5436,7 @@ def show_dashboard():
 
             st.bar_chart(monthly_pending_counts.set_index('month_year'))
         else:
-            st.info("Nenhuma pendÃªncia de anÃ¡lise encontrada no perÃ­odo e filtro selecionados.")
+            st.info("Nenhuma pendência de análise encontrada no período e filtro selecionados.")
 
         st.markdown("---")
 
@@ -5451,9 +5451,9 @@ def show_dashboard():
                 if not top_notified.empty:
                     st.bar_chart(top_notified)
                 else:
-                    st.info("Nenhum dado de setor notificado para o perÃ­odo.")
+                    st.info("Nenhum dado de setor notificado para o período.")
             else:
-                st.info("Nenhum dado de setor notificado para o perÃ­odo.")
+                st.info("Nenhum dado de setor notificado para o período.")
 
         with col_top2:
             st.markdown("##### Top 10 Setores Notificantes")
@@ -5463,18 +5463,18 @@ def show_dashboard():
                 if not top_reporting.empty:
                     st.bar_chart(top_reporting)
                 else:
-                    st.info("Nenhum dado de setor notificante para o perÃ­odo.")
+                    st.info("Nenhum dado de setor notificante para o período.")
             else:
-                st.info("Nenhum dado de setor notificante para o perÃ­odo.")
+                st.info("Nenhum dado de setor notificante para o período.")
 
         st.markdown("---")
 
-        st.markdown("#### ðŸ“Š ClassificaÃ§Ã£o das NotificaÃ§Ãµes (NNC e Tipo Principal)")
+        st.markdown("#### 📊 Classificação das Notificações (NNC e Tipo Principal)")
 
-        # DataFrame para notificaÃ§Ãµes concluÃ­das no perÃ­odo
+        # DataFrame para notificações concluídas no período
         df_completed_period = df_filtered_by_period[
             df_filtered_by_period['status'].isin(completed_statuses)].copy()
-        # DataFrame para notificaÃ§Ãµes abertas no perÃ­odo (nÃ£o concluÃ­das e nÃ£o rejeitadas)
+        # DataFrame para notificações abertas no período (não concluídas e não rejeitadas)
         df_open_period = df_filtered_by_period[
             ~df_filtered_by_period['status'].isin(
                 completed_statuses + rejected_statuses)].copy()
@@ -5482,18 +5482,18 @@ def show_dashboard():
         col_classif1, col_classif2 = st.columns(2)
 
         with col_classif1:
-            st.markdown("##### NNC - ConcluÃ­das")
+            st.markdown("##### NNC - Concluídas")
             if not df_completed_period.empty:
-                # Usa .apply para acessar o dicionÃ¡rio 'classification' e pegar 'nnc'
+                # Usa .apply para acessar o dicionário 'classification' e pegar 'nnc'
                 completed_nnc = df_completed_period['classification'].apply(
                     lambda x: x.get('nnc') if x else None).value_counts().dropna()
                 if not completed_nnc.empty:
                     st.bar_chart(completed_nnc)
                 else:
                     st.info(
-                        "Nenhuma classificaÃ§Ã£o NNC para notificaÃ§Ãµes concluÃ­das no perÃ­odo.")
+                        "Nenhuma classificação NNC para notificações concluídas no período.")
             else:
-                st.info("Nenhuma notificaÃ§Ã£o concluÃ­da no perÃ­odo.")
+                st.info("Nenhuma notificação concluída no período.")
 
         with col_classif2:
             st.markdown("##### NNC - Abertas")
@@ -5503,22 +5503,22 @@ def show_dashboard():
                 if not open_nnc.empty:
                     st.bar_chart(open_nnc)
                 else:
-                    st.info("Nenhuma classificaÃ§Ã£o NNC para notificaÃ§Ãµes abertas no perÃ­odo.")
+                    st.info("Nenhuma classificação NNC para notificações abertas no período.")
             else:
-                st.info("Nenhuma notificaÃ§Ã£o aberta no perÃ­odo.")
+                st.info("Nenhuma notificação aberta no período.")
 
         col_classif3, col_classif4 = st.columns(2)
         with col_classif3:
-            st.markdown("##### Tipo Principal - ConcluÃ­das")
+            st.markdown("##### Tipo Principal - Concluídas")
             if not df_completed_period.empty:
                 completed_main_type = df_completed_period['classification'].apply(
                     lambda x: x.get('event_type_main') if x else None).value_counts().dropna()
                 if not completed_main_type.empty:
                     st.bar_chart(completed_main_type)
                 else:
-                    st.info("Nenhum tipo principal para notificaÃ§Ãµes concluÃ­das no perÃ­odo.")
+                    st.info("Nenhum tipo principal para notificações concluídas no período.")
             else:
-                st.info("Nenhuma notificaÃ§Ã£o concluÃ­da no perÃ­odo.")
+                st.info("Nenhuma notificação concluída no período.")
 
         with col_classif4:
             st.markdown("##### Tipo Principal - Abertas")
@@ -5528,14 +5528,14 @@ def show_dashboard():
                 if not open_main_type.empty:
                     st.bar_chart(open_main_type)
                 else:
-                    st.info("Nenhuma tipo principal para notificaÃ§Ãµes abertas no perÃ­odo.")
+                    st.info("Nenhuma tipo principal para notificações abertas no período.")
             else:
-                st.info("Nenhuma notificaÃ§Ã£o aberta no perÃ­odo.")
+                st.info("Nenhuma notificação aberta no período.")
 
 
 def main():
     """Main function to run the Streamlit application."""
-    init_database()  # Garante que o DB e tabelas estÃ£o inicializadas
+    init_database()  # Garante que o DB e tabelas estão inicializadas
 
     if 'authenticated' not in st.session_state: st.session_state.authenticated = False
     if 'user' not in st.session_state: st.session_state.user = None
@@ -5545,33 +5545,33 @@ def main():
     if 'review_classification_state' not in st.session_state: st.session_state.review_classification_state = {}
     if 'current_initial_classification_id' not in st.session_state: st.session_state.current_initial_classification_id = None
     if 'current_review_classification_id' not in st.session_state: st.session_state.current_review_classification_id = None
-    # NOVO: Adiciona o estado para o formulÃ¡rio de aprovaÃ§Ã£o
+    # NOVO: Adiciona o estado para o formulário de aprovação
     if 'approval_form_state' not in st.session_state: st.session_state.approval_form_state = {}
 
     show_sidebar()
 
     restricted_pages = ['dashboard', 'classification', 'execution', 'approval', 'admin']
     if st.session_state.page in restricted_pages and not st.session_state.authenticated:
-        st.warning("âš ï¸ VocÃª precisa estar logado para acessar esta pÃ¡gina.")
+        st.warning("⚠️ Você precisa estar logado para acessar esta página.")
         st.session_state.page = 'create_notification'
-        st.rerun()  # Permanece, pois Ã© navegaÃ§Ã£o global
+        st.rerun()  # Permanece, pois é navegação global
 
     if st.session_state.page == 'create_notification':
-        show_create_notification()  # Chama a versÃ£o fragmentada
+        show_create_notification()  # Chama a versão fragmentada
     elif st.session_state.page == 'dashboard':
-        show_dashboard()  # Chama a versÃ£o fragmentada
+        show_dashboard()  # Chama a versão fragmentada
     elif st.session_state.page == 'classification':
-        show_classification()  # Chama a versÃ£o fragmentada
+        show_classification()  # Chama a versão fragmentada
     elif st.session_state.page == 'execution':
-        show_execution()  # Chama a versÃ£o fragmentada
+        show_execution()  # Chama a versão fragmentada
     elif st.session_state.page == 'approval':
-        show_approval()  # Chama a versÃ£o fragmentada
+        show_approval()  # Chama a versão fragmentada
     elif st.session_state.page == 'admin':
-        show_admin()  # Chama a versÃ£o fragmentada
+        show_admin()  # Chama a versão fragmentada
     else:
-        st.error("PÃ¡gina solicitada invÃ¡lida. Redirecionando para a pÃ¡gina inicial.")
+        st.error("Página solicitada inválida. Redirecionando para a página inicial.")
         st.session_state.page = 'create_notification'
-        st.rerun()  # Permanece, pois Ã© navegaÃ§Ã£o global
+        st.rerun()  # Permanece, pois é navegação global
 
 
 if __name__ == "__main__":
