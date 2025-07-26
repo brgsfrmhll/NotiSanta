@@ -3043,7 +3043,6 @@ def show_classification():
                         <p><strong>Prazo:</strong> {deadline_status['text']}</p>
                     </div>
                     """, unsafe_allow_html=True)
-
                 st.markdown("#### 📋 Detalhes para Revisão")
                 col_rev1, col_rev2 = st.columns(2)
                 with col_rev1:
@@ -3090,8 +3089,9 @@ def show_classification():
                         st.write(f"**Prazo de Conclusão:** {UI_TEXTS.deadline_days_nan}")
                 st.markdown("---")
                 st.markdown("#### ⚡ Ações Executadas pelos Responsáveis")
-                if notification.get('actions'):
-                    for action in sorted(notification['actions'], key=lambda x: x.get('timestamp', '')):
+                # CORREÇÃO: Substituído 'notification' por 'notification_review'
+                if notification_review.get('actions'):
+                    for action in sorted(notification_review['actions'], key=lambda x: x.get('timestamp', '')):
                         action_type = "🏁 CONCLUSÃO (Executor)" if action.get(
                             'final_action_by_executor') else "📝 AÇÃO Registrada"
                         action_timestamp = action.get('timestamp', UI_TEXTS.text_na)
@@ -3145,13 +3145,13 @@ def show_classification():
                 # Pega os nomes de exibição dos executores atribuídos
                 executor_names_review = [
                     name for name, uid in executor_name_to_id_map_review.items()
-                    if uid in notification_review.get('executors', [])
+                    if uid in notification_review.get('executors', []) # CORREÇÃO: Usado notification_review
                 ]
                 st.markdown(
                     f"**👥 Executores Atribuídos Originalmente:** {', '.join(executor_names_review) or 'Nenhum'}")
-                if notification_review.get('attachments'):
+                if notification_review.get('attachments'): # CORREÇÃO: Usado notification_review
                     st.markdown("#### 📎 Anexos")
-                    for attach_info in notification_review['attachments']:
+                    for attach_info in notification_review['attachments']: # CORREÇÃO: Usado notification_review
                         unique_name_to_use = None
                         original_name_to_use = None
                         if isinstance(attach_info,
@@ -3236,7 +3236,7 @@ def show_classification():
                                 review_details_to_save['rejection_reason'] = current_review_data.get(
                                     'rejection_reason_review')
                             if review_decision_state == "Aceitar Conclusão":
-                                original_classification = notification_review.get('classification', {})
+                                original_classification = notification_review.get('classification', {}) # CORREÇÃO: Usado notification_review
                                 requires_approval_after_execution = original_classification.get('requires_approval')
                                 if requires_approval_after_execution is True:
                                     new_status = 'aguardando_aprovacao'
@@ -3305,8 +3305,8 @@ def show_classification():
                             st.rerun() # CORREÇÃO: Força o re-render
             else:
                 if pending_execution_review:
-                    st.info(f"👆 Selecione uma notificação da lista acima para revisar a execução concluída.")
-    with tab_closed_notifs:
+                    st.info(f"👆 Selecione uma notificação da lista acima para revisar a execução concluída.")         
+                    with tab_closed_notifs:
         st.markdown("### Notificações Encerradas")
 
         if not closed_notifications:
