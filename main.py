@@ -2116,7 +2116,7 @@ def show_create_notification():
 
 @st_fragment
 def show_classification():
-        notification = st.session_state.get('selected_notification')
+    notification = st.session_state.get('selected_notification')
     if not notification:
         st.warning('Nenhuma notificação selecionada.')
         return
@@ -4934,7 +4934,6 @@ def show_dashboard():
     if not all_notifications:
         st.warning(
             "⚠️ Nenhuma notificação encontrada para exibir no dashboard. Comece registrando uma nova notificação.")
-        return
 
     # Converte a lista de notificações em um DataFrame pandas para facilitar a manipulação
     df_notifications = pd.DataFrame(all_notifications)
