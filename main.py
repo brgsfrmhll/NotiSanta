@@ -3256,7 +3256,7 @@ def show_classification():
                     elif notification.get('rejection_approval') and (notification.get('rejection_approval') or {}).get(
                             'rejected_by'):
                         concluded_by = (notification.get('rejection_approval') or {}).get('rejected_by')
-                    deadline_info = notification.get('classification', {}).get('deadline_date')
+                    deadline_info = (notification.get('classification') or {}).get('deadline_date')
                     concluded_timestamp_str = (notification.get('conclusion') or {}).get('timestamp')
                     deadline_status = get_deadline_status(deadline_info, concluded_timestamp_str)
                     card_class = ""
