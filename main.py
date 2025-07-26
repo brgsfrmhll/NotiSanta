@@ -2249,7 +2249,7 @@ def show_classification():
 
             if notification_initial:
                 st.markdown(
-                    f"### Notificação Selecionada para Classificação Inicial: #{notification_initial.get('id', UI_TEXTS.text_na)}"")
+                    f"### Notificação Selecionada para Classificação Inicial: #{notification_initial.get('id', UI_TEXTS.text_na)}")
                 with st.expander(
                         f"📄 Detalhes Reportados Originalmente (Notificação #{notification_initial.get('id', UI_TEXTS.text_na)})",
                         expanded=False):
@@ -2924,7 +2924,7 @@ unsafe_allow_html=True)
                                         }
                                         update_notification(notification_id_initial, updates)  # Atualiza no DB
                                         details_hist = f"Classificação NNC: {classification_data_to_save['nnc']}, Prioridade: {classification_data_to_save.get('prioridade', UI_TEXTS.text_na)}"
-                                        if classification_data_to_save["nnc"] == "Evento com dano" and \
+                                        if classification_data_to_save["nnc"] == "Evento com dano" and \\
                                                 classification_data_to_save["nivel_dano"]:
                                             details_hist += f", Nível Dano: {classification_data_to_save['nivel_dano']}"
                                         details_hist += f", Never Event: {classification_data_to_save.get('never_event', UI_TEXTS.text_na)}"
@@ -3043,9 +3043,9 @@ unsafe_allow_html=True)
                     st.session_state.pop('current_review_classification_id', None)
                     # Also clear its specific form data from session_state
                     st.session_state.review_classification_state.pop(notification_review_id_from_session, None)
-                    st.rerun() # Clear selection and update UI
+                    st.rerun() # Rerun to clean up and avoid further errors.
 
-            # Initialize or retrieve the form data for the currently displayed notification
+            # Ensure current_review_data is always linked to the *currently loaded* notification_review
             current_review_data = st.session_state.review_classification_state.get(
                 notification_review.get('id') if notification_review else None, # Use ID from the actual loaded notification
                 {} # Default to empty dict if no notification or state for it
@@ -3062,7 +3062,7 @@ unsafe_allow_html=True)
 
             if notification_review is not None:
                 st.markdown(
-                    f"### Notificação Selecionada para Revisão de Execução: #{notification_review.get('id', UI_TEXTS.text_na)}"")
+                    f"### Notificação Selecionada para Revisão de Execução: #{notification_review.get('id', UI_TEXTS.text_na)}")
 
                 # Obter informações de prazo para o card
                 raw_classification_data = notification_review.get('classification')
