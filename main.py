@@ -1,4 +1,4 @@
-# --- git pull https://github.com/brgsfrmhll/NotiSanta
+8# --- git pull https://github.com/brgsfrmhll/NotiSanta
 # --- sudo systemctl daemon-reload
 # --- sudo systemctl restart streamlit-app2.service
 # --- source /home/ubuntu/NotiSanta/venv/bin/activate
@@ -1707,7 +1707,7 @@ def show_create_notification():
                 help="Turno em que o evento ocorreu", key="create_event_shift_state_refactored")
             current_data['description'] = st.text_area(
                 "Descrição Detalhada do Evento*", value=current_data['description'],
-                placeholder="Descreva:\\n• O que aconteceu?\\n• Quando aconteceu?\\n• Onde aconteceu?\\n• Quem esteve envolvido?\\n• Como aconteceu?\\n• Consequências observadas",
+                placeholder="Descreva:\n• O que aconteceu?\n• Quando aconteceu?\n• Onde aconteceu?\n• Quem esteve envolvido?\n• Como aconteceu?\n• Consequências observadas",
                 height=150,
                 key="create_description_state_refactored")
             st.markdown("<span class='required-field'>* Campos obrigatórios</span>", unsafe_allow_html=True)
