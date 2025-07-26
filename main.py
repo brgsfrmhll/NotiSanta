@@ -2116,7 +2116,11 @@ def show_create_notification():
 
 @st_fragment
 def show_classification():
-    """
+        notification = st.session_state.get('selected_notification')
+    if not notification:
+        st.warning('Nenhuma notificação selecionada.')
+        return
+"""
     Renders the page for classifiers to perform initial classification of new notifications
     and review the execution of completed actions by responsible parties.
     """
