@@ -1435,7 +1435,7 @@ def show_sidebar():
             st.markdown("---")
         st.markdown("""
         <div class="sidebar-footer">
-            NotificaSanta v2.0.1<br>
+            NotificaSanta v2.0.5<br>
             &copy; 2025 Todos os direitos reservados
         </div>
         """, unsafe_allow_html=True)
@@ -4721,10 +4721,9 @@ def show_admin():
     with tab4:
         st.markdown("### ℹ️ Informações do Sistema")
         st.markdown("#### Detalhes do Portal")
-        st.write(f"**Versão do Portal:** 2.0.1")
-        st.write(f"**Data da Última Atualização:** 19/07/2025")
+        st.write(f"**Versão do Portal:** 2.0.5")
+        st.write(f"**Data da Última Atualização:** 27/07/2025")
         st.write(f"**Desenvolvido por:** FIA Softworks")
-        st.markdown("#### Contato")
         st.markdown("##### Suporte Técnico:")
         st.write(f"**Email:** borges@fiasoftworks.com.br")
         
