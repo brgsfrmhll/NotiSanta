@@ -1737,7 +1737,7 @@ def show_create_notification():
                 """, unsafe_allow_html=True)
                 current_data['immediate_action_description'] = st.text_area(
                     "Descrição detalhada da ação realizada*", value=current_data['immediate_action_description'],
-                    placeholder="Descreva:\\n• Quais ações foram tomadas?\\n• Por quem foram executadas?\\n• Quando foram realizadas?\\n• Resultados obtidos",
+                    placeholder="Descreva:\n• Quais ações foram tomadas?\n• Por quem foram executadas?\n• Quando foram realizadas?\n• Resultados obtidos",
                     height=150,
                     key="create_immediate_action_desc_state_refactored",
                     help="Forneça um relato completo...")
@@ -3453,7 +3453,7 @@ def show_execution():
                         "Descrição detalhada da ação realizada*",
                         value=st.session_state.get(
                             f"exec_action_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored", ""),
-                        placeholder="Descreva:\\n• O QUÊ foi feito?\\n• POR QUÊ foi feito (qual o objetivo)?\\n• ONDE foi realizado?\\n• QUANDO foi realizado (data/hora)?\\n• QUEM executou (se aplicável)?\\n• COMO foi executado (passos, métodos)?\\n• QUANTO CUSTOU (recursos, tempo)?\\n• QUÃO FREQUENTE (se for uma ação contínua)?",
+                        placeholder="Descreva:\n• O QUÊ foi feito?\n• POR QUÊ foi feito (qual o objetivo)?\n• ONDE foi realizado?\n• QUANDO foi realizado (data/hora)?\n• QUEM executou (se aplicável)?\n• COMO foi executado (passos, métodos)?\n• QUANTO CUSTOU (recursos, tempo)?\n• QUÃO FREQUENTE (se for uma ação contínua)?",
                         height=180,
                         key=f"exec_action_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored"
                     ).strip()
