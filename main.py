@@ -1,3 +1,4 @@
+
 # --- git pull https://github.com/brgsfrmhll/NotiSanta
 # --- sudo systemctl daemon-reload
 # --- sudo systemctl restart streamlit-app2.service
@@ -289,6 +290,87 @@ st.markdown(r"""
     }
 </style>
 """, unsafe_allow_html=True)
+
+from typing import Any
+
+def _get_attachments_map_by_ids(conn, ids: List[int]) -> Dict[int, List[Dict[str, Any]]]:
+    if not ids:
+        return {}
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT notification_id, unique_name, original_name, uploaded_at
+        FROM notification_attachments
+        WHERE notification_id = ANY(%s)
+        """,
+        (ids,)
+    )
+    rows = cur.fetchall()
+    cur.close()
+
+    mp: Dict[int, List[Dict[str, Any]]] = {}
+    for nid, uniq, orig, up_at in rows:
+        mp.setdefault(nid, []).append({
+            "unique_name": uniq,
+            "original_name": orig,
+            "uploaded_at": up_at.isoformat() if hasattr(up_at, "isoformat") else up_at
+        })
+    return mp
+
+
+def _get_history_map_by_ids(conn, ids: List[int]) -> Dict[int, List[Dict[str, Any]]]:
+    if not ids:
+        return {}
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT notification_id, action_type, performed_by, action_timestamp, details
+        FROM notification_history
+        WHERE notification_id = ANY(%s)
+        ORDER BY action_timestamp ASC
+        """,
+        (ids,)
+    )
+    rows = cur.fetchall()
+    cur.close()
+
+    mp: Dict[int, List[Dict[str, Any]]] = {}
+    for nid, act, user, ts, det in rows:
+        mp.setdefault(nid, []).append({
+            "action": act,
+            "user": user,
+            "timestamp": ts.isoformat() if hasattr(ts, "isoformat") else ts,
+            "details": det
+        })
+    return mp
+
+
+def _get_actions_map_by_ids(conn, ids: List[int]) -> Dict[int, List[Dict[str, Any]]]:
+    if not ids:
+        return {}
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT notification_id, action_type, executed_by, executed_at, details
+        FROM notification_actions
+        WHERE notification_id = ANY(%s)
+        ORDER BY executed_at ASC
+        """,
+        (ids,)
+    )
+    rows = cur.fetchall()
+    cur.close()
+
+    mp: Dict[int, List[Dict[str, Any]]] = {}
+    for nid, act, user, ts, det in rows:
+        mp.setdefault(nid, []).append({
+            "action": act,
+            "executed_by": user,
+            "timestamp": ts.isoformat() if hasattr(ts, "isoformat") else ts,
+            "details": det
+        })
+    return mp
+
 
 # CORREÇÃO: Removido o código Python que estava dentro do bloco st.markdown (CSS)
 # As duas últimas linhas eram comentários CSS e podem ser mantidas se for a intenção de estilizar elementos do Streamlit
@@ -615,6 +697,103 @@ def init_database():
         if conn:
             conn.close()
 
+def init_database_performance_objects():
+    """
+    Cria extensões e índices voltados a performance. Não altera a funcionalidade.
+    Deve ser chamada uma única vez após init_database().
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Extensões para busca textual eficiente
+        cur.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm;")
+        cur.execute("CREATE EXTENSION IF NOT EXISTS unaccent;")
+
+        # Índices padrão (reafirma com IF NOT EXISTS)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notifications_status
+              ON notifications (status);
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notifications_created_at
+              ON notifications (created_at DESC);
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notifications_approver
+              ON notifications (approver);
+        """)
+
+        # Índice parcial específico para a fila de classificação
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notifications_status_pendente_partial
+              ON notifications (created_at DESC)
+              WHERE status = 'pendente_classificacao';
+        """)
+
+        # JSONB crítico (classification) — otimiza filtros via operadores JSON
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notifications_classification_gin_path
+              ON notifications USING GIN (classification jsonb_path_ops);
+        """)
+
+        # Full-text search já existe; reafirma
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notifications_search_vector
+              ON notifications USING GIN (search_vector);
+        """)
+
+        # Trigram para ILIKE/LIKE em título e descrição
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notifications_title_trgm
+              ON notifications USING GIN (title gin_trgm_ops);
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notifications_description_trgm
+              ON notifications USING GIN (description gin_trgm_ops);
+        """)
+
+        # Índice opcional para filtros por setor notificado, se coluna existir
+        cur.execute("""
+            DO $$
+            BEGIN
+              IF EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'notifications'
+                  AND column_name = 'notified_department'
+              ) THEN
+                CREATE INDEX IF NOT EXISTS idx_notifications_notified_department
+                  ON notifications (notified_department);
+              END IF;
+            END$$;
+        """)
+
+        # Índices auxiliares em tabelas relacionadas (se ainda não houver)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_attachments_notification_id
+              ON notification_attachments (notification_id);
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_history_notification_id
+              ON notification_history (notification_id);
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_actions_notification_id
+              ON notification_actions (notification_id);
+        """)
+
+        conn.commit()
+        cur.close()
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise
+    finally:
+        if conn:
+            conn.close()
+
 def load_users() -> List[Dict]:
     """Carrega dados de usuário do banco de dados."""
     conn = None
@@ -747,9 +926,11 @@ def update_user(user_id: int, updates: Dict) -> Optional[Dict]:
     finally:
         if conn:
             conn.close()
-
 def load_notifications() -> List[Dict]:
-    """Carrega dados de notificação do banco de dados, incluindo dados relacionados."""
+    """
+    Carrega dados de notificação do banco de dados, incluindo dados relacionados.
+    Mantém funcionalidade/retorno, mas elimina N+1 (batch loading).
+    """
     conn = None
     try:
         conn = get_db_connection()
@@ -764,29 +945,38 @@ def load_notifications() -> List[Dict]:
                 classification, rejection_classification, review_execution, approval,
                 rejection_approval, rejection_execution_review, conclusion,
                 executors, approver
-            FROM notifications ORDER BY created_at DESC
+            FROM notifications
+            ORDER BY created_at DESC
         """)
-        notifications_raw = cur.fetchall()
-        # Mapeamento dos nomes das colunas para facilitar a construção do dicionário
+        rows = cur.fetchall()
         column_names = [desc[0] for desc in cur.description]
-        notifications = []
-        for row in notifications_raw:
+        cur.close()
+
+        notifications: List[Dict[str, Any]] = []
+        ids: List[int] = []
+        for row in rows:
             notification = dict(zip(column_names, row))
-            # Ajustar tipos de dados que não são serializáveis para JSON (datetime, date, time)
             if notification.get('occurrence_date'):
                 notification['occurrence_date'] = notification['occurrence_date'].isoformat()
             if notification.get('occurrence_time'):
                 notification['occurrence_time'] = notification['occurrence_time'].isoformat()
             if notification.get('created_at'):
                 notification['created_at'] = notification['created_at'].isoformat()
-            # Buscar dados de outras tabelas para compor a notificação completa
-            notification['attachments'] = get_notification_attachments(notification['id'], conn, cur)
-            notification['history'] = get_notification_history(notification['id'], conn, cur)
-            notification['actions'] = get_notification_actions(notification['id'], conn, cur)
-
             notifications.append(notification)
-        cur.close()
+            ids.append(notification['id'])
+
+        attachments_map = _get_attachments_map_by_ids(conn, ids)
+        history_map = _get_history_map_by_ids(conn, ids)
+        actions_map = _get_actions_map_by_ids(conn, ids)
+
+        for n in notifications:
+            nid = n['id']
+            n['attachments'] = attachments_map.get(nid, [])
+            n['history'] = history_map.get(nid, [])
+            n['actions'] = actions_map.get(nid, [])
+
         return notifications
+
     except psycopg2.Error as e:
         st.error(f"Erro ao carregar notificações: {e}")
         return []
@@ -794,111 +984,159 @@ def load_notifications() -> List[Dict]:
         if conn:
             conn.close()
 
-def create_notification(data: Dict, uploaded_files: Optional[List[Any]] = None) -> Dict:
+def create_notification(data: Dict, uploaded_files: Optional[List[Any]] = None):
     """
-    Cria um novo registro de notificação no banco de dados e seus anexos iniciais.
-    Retorna o objeto de notificação completo (como se fosse lido do DB).
+    Cria a notificação e retorna o registro criado (com anexos/histórico),
+    sem recarregar todas as notificações.
+    Mantém a lógica existente (campos/transformações).
     """
     conn = None
-    notification_id = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
 
-        # Prepare main notification data
-        occurrence_date_iso = data.get('occurrence_date').isoformat() if isinstance(data.get('occurrence_date'),
-                                                                                    dt_date_class) else None
-        occurrence_time_str = data.get('occurrence_time').isoformat() if isinstance(data.get('occurrence_time'),
-                                                                                    dt_time_class) else None
         cur.execute("""
             INSERT INTO notifications (
                 title, description, location, occurrence_date, occurrence_time,
                 reporting_department, reporting_department_complement, notified_department,
                 notified_department_complement, event_shift, immediate_actions_taken,
                 immediate_action_description, patient_involved, patient_id, patient_outcome_obito,
-                additional_notes, status, created_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                additional_notes, status, created_at,
+                classification, rejection_classification, review_execution, approval,
+                rejection_approval, rejection_execution_review, conclusion,
+                executors, approver
+            ) VALUES (
+                %s,%s,%s,%s,%s,
+                %s,%s,%s,
+                %s,%s,%s,
+                %s,%s,%s,%s,
+                %s,%s, %s,
+                %s,%s,%s,%s,
+                %s,%s,%s,
+                %s,%s
+            )
             RETURNING id
         """, (
             data.get('title', '').strip(),
             data.get('description', '').strip(),
             data.get('location', '').strip(),
-            occurrence_date_iso,
-            occurrence_time_str,
+            data.get('occurrence_date'),
+            data.get('occurrence_time'),
             data.get('reporting_department', '').strip(),
             data.get('reporting_department_complement', '').strip(),
             data.get('notified_department', '').strip(),
             data.get('notified_department_complement', '').strip(),
-            data.get('event_shift', UI_TEXTS.selectbox_default_event_shift),
-            data.get('immediate_actions_taken') == "Sim",  # Converte para booleano
-            data.get('immediate_action_description', '').strip() if data.get(
-                'immediate_actions_taken') == "Sim" else None,
-            data.get('patient_involved') == "Sim",  # Converte para booleano
-            data.get('patient_id', '').strip() if data.get('patient_involved') == "Sim" else None,
-            (True if data.get('patient_outcome_obito') == "Sim" else False if data.get(
-                'patient_outcome_obito') == "Não" else None) if data.get('patient_involved') == "Sim" else None,
+            data.get('event_shift'),
+            data.get('immediate_actions_taken') == "Sim",
+            (data.get('immediate_action_description', '').strip()
+             if data.get('immediate_actions_taken') == "Sim" else None),
+            data.get('patient_involved') == "Sim",
+            (data.get('patient_id', '').strip() if data.get('patient_involved') == "Sim" else None),
+            (True if data.get('patient_outcome_obito') == "Sim" else
+             False if data.get('patient_outcome_obito') == "Não" else None)
+              if data.get('patient_involved') == "Sim" else None,
             data.get('additional_notes', '').strip(),
             "pendente_classificacao",
-            datetime.now().isoformat()
+            datetime.now(),  # timestamp real
+            json.dumps(data.get('classification')) if data.get('classification') is not None else None,
+            json.dumps(data.get('rejection_classification')) if data.get('rejection_classification') is not None else None,
+            json.dumps(data.get('review_execution')) if data.get('review_execution') is not None else None,
+            json.dumps(data.get('approval')) if data.get('approval') is not None else None,
+            json.dumps(data.get('rejection_approval')) if data.get('rejection_approval') is not None else None,
+            json.dumps(data.get('rejection_execution_review')) if data.get('rejection_execution_review') is not None else None,
+            json.dumps(data.get('conclusion')) if data.get('conclusion') is not None else None,
+            data.get('executors', []),
+            data.get('approver')
         ))
         notification_id = cur.fetchone()[0]
-        # Save initial attachments
+
+        # Anexos iniciais
         if uploaded_files:
             for file in uploaded_files:
-                # save_uploaded_file_to_disk salva o file no sistema de files
-                saved_file_info = save_uploaded_file_to_disk(file, notification_id)
-                if saved_file_info:
-                    # E adiciona o registro na tabela notification_attachments
+                saved = save_uploaded_file_to_disk(file, notification_id)
+                if saved:
                     cur.execute("""
                         INSERT INTO notification_attachments (notification_id, unique_name, original_name)
                         VALUES (%s, %s, %s)
-                    """, (notification_id, saved_file_info['unique_name'], saved_file_info['original_name']))
-        # Add initial history entry
+                    """, (notification_id, saved['unique_name'], saved['original_name']))
+
+        # Histórico inicial (usa sua função existente add_history_entry)
         add_history_entry(
             notification_id,
             "Notificação criada",
             "Sistema (Formulário Público)",
-            f"Notificação enviada para classificação. Título: {data.get('title', 'Sem título')[:100]}..." if len(
-                data.get('title',
-                         '')) > 100 else f"Notificação enviada para classificação. Título: {data.get('title', 'Sem título')}",
-            conn=conn,  # Passa a conexão para a função de histórico usar a mesma transação
-            cursor=cur  # Passa o cursor
+            f"Notificação enviada para classificação. Título: {data.get('title', 'Sem título')[:100]}..." if len(data.get('title','')) > 100
+              else f"Notificação enviada para classificação. Título: {data.get('title', 'Sem título')}",
+            conn=conn  # usa a mesma transação
         )
 
-        conn.commit()
+        # Busca somente o recém-criado (com relacionados)
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT
+                id, title, description, location, occurrence_date, occurrence_time,
+                reporting_department, reporting_department_complement, notified_department,
+                notified_department_complement, event_shift, immediate_actions_taken,
+                immediate_action_description, patient_involved, patient_id, patient_outcome_obito,
+                additional_notes, status, created_at,
+                classification, rejection_classification, review_execution, approval,
+                rejection_approval, rejection_execution_review, conclusion,
+                executors, approver
+            FROM notifications
+            WHERE id = %s
+        """, (notification_id,))
+        row = cur.fetchone()
         cur.close()
 
-        # Recarregar a notificação completa para retornar
-        # Isso é importante porque a notificação pode ter valores padrão ou triggers que a modificam
-        # (Chama load_notifications e filtra pelo ID)
-        all_notifications = load_notifications()  # Recarrega tudo para garantir consistência
-        created_notification = next((n for n in all_notifications if n['id'] == notification_id), None)
-        return created_notification
+        cols = [
+            "id","title","description","location","occurrence_date","occurrence_time",
+            "reporting_department","reporting_department_complement",
+            "notified_department","notified_department_complement",
+            "event_shift","immediate_actions_taken","immediate_action_description",
+            "patient_involved","patient_id","patient_outcome_obito",
+            "additional_notes","status","created_at",
+            "classification","rejection_classification","review_execution","approval",
+            "rejection_approval","rejection_execution_review","conclusion",
+            "executors","approver"
+        ]
+        created = dict(zip(cols, row))
+        if created.get('occurrence_date'):
+            created['occurrence_date'] = created['occurrence_date'].isoformat()
+        if created.get('occurrence_time'):
+            created['occurrence_time'] = created['occurrence_time'].isoformat()
+        if created.get('created_at'):
+            created['created_at'] = created['created_at'].isoformat()
+
+        attachments_map = _get_attachments_map_by_ids(conn, [notification_id])
+        history_map = _get_history_map_by_ids(conn, [notification_id])
+        actions_map = _get_actions_map_by_ids(conn, [notification_id])
+
+        created['attachments'] = attachments_map.get(notification_id, [])
+        created['history'] = history_map.get(notification_id, [])
+        created['actions'] = actions_map.get(notification_id, [])
+
+        conn.commit()
+        return created
 
     except psycopg2.Error as e:
         st.error(f"Erro ao criar notificação: {e}")
         if conn:
-            conn.rollback()  # Rollback em caso de falha grave
-        return {}  # Retorna um dicionário vazio em caso de falha grave
+            conn.rollback()
+        return {}
     finally:
         if conn:
             conn.close()
 
 def update_notification(notification_id: int, updates: Dict):
     """
-    Atualiza um registro de notificação com novos dados no banco de dados.
-    Esta função é inteligente para lidar com campos JSONB e arrays,
-    além de campos simples.
+    Atualiza um registro de notificação com novos dados no banco.
+    Mantém a mesma funcionalidade, mas evita recarregar toda a tabela.
     """
     conn = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
 
-        set_clauses = []
-        values = []
-        # Mapeamento para garantir que booleanos e datas/tempos sejam formatados corretamente para o DB
-        # E que dicionários sejam serializados para JSONB
         column_mapping = {
             'immediate_actions_taken': lambda x: True if x == "Sim" else False if x == "Não" else None,
             'patient_involved': lambda x: True if x == "Sim" else False if x == "Não" else None,
@@ -912,34 +1150,78 @@ def update_notification(notification_id: int, updates: Dict):
             'rejection_approval': lambda x: json.dumps(x) if x is not None else None,
             'rejection_execution_review': lambda x: json.dumps(x) if x is not None else None,
             'conclusion': lambda x: json.dumps(x) if x is not None else None,
-            'executors': lambda x: x  # psycopg2 lida bem com arrays Python para INTEGER[]
+            'executors': lambda x: x
         }
+
+        set_clauses = []
+        values = []
+
         for key, value in updates.items():
-            if key not in ['id', 'created_at', 'attachments', 'actions',
-                           'history']:  # Não atualiza IDs ou listas complexas aqui
-                if key in column_mapping:
-                    set_clauses.append(sql.Identifier(key) + sql.SQL(' = %s'))
-                    values.append(column_mapping[key](value))
-                else:
-                    set_clauses.append(sql.Identifier(key) + sql.SQL(' = %s'))
-                    values.append(value)
+            if key in ['id', 'created_at', 'attachments', 'actions', 'history']:
+                continue
+            if key in column_mapping:
+                set_clauses.append(sql.Identifier(key) + sql.SQL(' = %s'))
+                values.append(column_mapping[key](value))
+            else:
+                set_clauses.append(sql.Identifier(key) + sql.SQL(' = %s'))
+                values.append(value)
 
         if not set_clauses:
-            return None  # Nenhuma atualização para aplicar
+            return None
 
-        query = sql.SQL("UPDATE notifications SET {} WHERE id = %s").format(
-            sql.SQL(', ').join(set_clauses)
-        )
+        query = sql.SQL("""
+            UPDATE notifications
+               SET {}
+             WHERE id = %s
+         RETURNING
+            id, title, description, location, occurrence_date, occurrence_time,
+            reporting_department, reporting_department_complement, notified_department,
+            notified_department_complement, event_shift, immediate_actions_taken,
+            immediate_action_description, patient_involved, patient_id, patient_outcome_obito,
+            additional_notes, status, created_at,
+            classification, rejection_classification, review_execution, approval,
+            rejection_approval, rejection_execution_review, conclusion,
+            executors, approver
+        """).format(sql.SQL(', ').join(set_clauses))
+
         values.append(notification_id)
-
         cur.execute(query, values)
-        conn.commit()
+        updated_row = cur.fetchone()
         cur.close()
 
-        # Recarregar a notificação atualizada para retornar (chama load_notifications e filtra)
-        all_notifications = load_notifications()
-        updated_notification = next((n for n in all_notifications if n['id'] == notification_id), None)
-        return updated_notification
+        if not updated_row:
+            conn.rollback()
+            return None
+
+        cols = [
+            "id","title","description","location","occurrence_date","occurrence_time",
+            "reporting_department","reporting_department_complement",
+            "notified_department","notified_department_complement",
+            "event_shift","immediate_actions_taken","immediate_action_description",
+            "patient_involved","patient_id","patient_outcome_obito",
+            "additional_notes","status","created_at",
+            "classification","rejection_classification","review_execution","approval",
+            "rejection_approval","rejection_execution_review","conclusion",
+            "executors","approver"
+        ]
+        updated = dict(zip(cols, updated_row))
+        if updated.get('occurrence_date'):
+            updated['occurrence_date'] = updated['occurrence_date'].isoformat()
+        if updated.get('occurrence_time'):
+            updated['occurrence_time'] = updated['occurrence_time'].isoformat()
+        if updated.get('created_at'):
+            updated['created_at'] = updated['created_at'].isoformat()
+
+        attachments_map = _get_attachments_map_by_ids(conn, [notification_id])
+        history_map = _get_history_map_by_ids(conn, [notification_id])
+        actions_map = _get_actions_map_by_ids(conn, [notification_id])
+
+        updated['attachments'] = attachments_map.get(notification_id, [])
+        updated['history'] = history_map.get(notification_id, [])
+        updated['actions'] = actions_map.get(notification_id, [])
+
+        conn.commit()
+        return updated
 
     except psycopg2.Error as e:
         st.error(f"Erro ao atualizar notificação: {e}")
@@ -5314,7 +5596,7 @@ def show_dashboard():
 def main():
     """Main function to run the Streamlit application."""
     init_database()  # Garante que o DB e tabelas estão inicializadas
-
+    init_database_performance_objects() 
     if 'authenticated' not in st.session_state: st.session_state.authenticated = False
     if 'user' not in st.session_state: st.session_state.user = None
     if 'page' not in st.session_state: st.session_state.page = 'create_notification'
