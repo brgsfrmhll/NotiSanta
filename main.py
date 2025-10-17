@@ -345,29 +345,47 @@ def _get_history_map_by_ids(conn, ids: List[int]) -> Dict[int, List[Dict[str, An
     return mp
 
 
-def _get_actions_map_by_ids(conn, ids: List[int]) -> Dict[int, List[Dict[str, Any]]]:
+def _get_actions_map_by_ids(conn, ids: List[int]) -> Dict[int, List[Dict]]:
     if not ids:
         return {}
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT notification_id, action_type, executed_by, executed_at, details
+        SELECT
+            notification_id,
+            executor_id,
+            executor_name,
+            description,
+            action_timestamp,
+            final_action_by_executor,
+            evidence_description,
+            evidence_attachments
         FROM notification_actions
         WHERE notification_id = ANY(%s)
-        ORDER BY executed_at ASC
+        ORDER BY action_timestamp ASC
         """,
         (ids,)
     )
     rows = cur.fetchall()
     cur.close()
 
-    mp: Dict[int, List[Dict[str, Any]]] = {}
-    for nid, act, user, ts, det in rows:
+    mp: Dict[int, List[Dict]] = {}
+    for (nid,
+         executor_id,
+         executor_name,
+         description,
+         action_ts,
+         final_action_by_executor,
+         evidence_description,
+         evidence_attachments) in rows:
         mp.setdefault(nid, []).append({
-            "action": act,
-            "executed_by": user,
-            "timestamp": ts.isoformat() if hasattr(ts, "isoformat") else ts,
-            "details": det
+            "executor_id": executor_id,
+            "executor_name": executor_name,
+            "description": description,
+            "timestamp": action_ts.isoformat() if hasattr(action_ts, "isoformat") else action_ts,
+            "final_action_by_executor": bool(final_action_by_executor),
+            "evidence_description": evidence_description,
+            "evidence_attachments": evidence_attachments or []
         })
     return mp
 
