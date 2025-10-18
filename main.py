@@ -2662,12 +2662,14 @@ def show_revisao_execucao():
     
     # Seleção de notificação
     notification_options = []
-    for n in filtered_notifications:
+    for n in review_notifications:
+        # Extrair classificação do JSONB
         classification = n.get('classification', {})
         if isinstance(classification, str):
             classification = json.loads(classification)
+        
         nnc = classification.get('nnc', 'Sem classificação')
-       
+        
         # Buscar nomes dos executores
         executor_names = "Sem executor"
         if n.get('executors'):
@@ -2866,6 +2868,7 @@ def show_revisao_execucao():
                 st.error(f"❌ Erro ao salvar revisão: {str(e)}")
             finally:
                 conn.close()
+
 @st.fragment
 def show_notificacoes_encerradas():
     """
@@ -2911,14 +2914,20 @@ def show_notificacoes_encerradas():
                         classification = json.loads(classification)
                     except:
                         continue
+                elif classification is None:
+                    continue
+                
                 nnc = classification.get('nnc')
                 if nnc and nnc not in classificacoes_disponiveis:
                     classificacoes_disponiveis.append(nnc)
         
+        if not classificacoes_disponiveis:
+            classificacoes_disponiveis = ["Sem classificação"]
+        
         filtro_classificacao = st.multiselect(
             "📋 Filtrar por Classificação",
-            options=classificacoes_disponiveis if classificacoes_disponiveis else ["Nenhuma"],
-            default=classificacoes_disponiveis if classificacoes_disponiveis else ["Nenhuma"],
+            options=classificacoes_disponiveis,
+            default=classificacoes_disponiveis,
             key="filtro_classif_encerradas"
         )
     
@@ -2933,14 +2942,20 @@ def show_notificacoes_encerradas():
                         classification = json.loads(classification)
                     except:
                         continue
+                elif classification is None:
+                    continue
+                
                 setor = classification.get('responsible_sector')
                 if setor and setor not in setores_disponiveis:
                     setores_disponiveis.append(setor)
         
+        if not setores_disponiveis:
+            setores_disponiveis = ["Sem setor"]
+        
         filtro_setor = st.multiselect(
             "🏢 Filtrar por Setor",
-            options=setores_disponiveis if setores_disponiveis else ["Nenhum"],
-            default=setores_disponiveis if setores_disponiveis else ["Nenhum"],
+            options=setores_disponiveis,
+            default=setores_disponiveis,
             key="filtro_setor_encerradas"
         )
     
@@ -2958,18 +2973,19 @@ def show_notificacoes_encerradas():
                 try:
                     classification = json.loads(classification)
                 except:
-                    classification = {}
+                    classification = None
             
-            nnc = classification.get('nnc')
-            if filtro_classificacao and "Nenhuma" not in filtro_classificacao:
-                if not nnc or nnc not in filtro_classificacao:
-                    continue
-            
-            # Extrair e verificar setor
-            setor = classification.get('responsible_sector')
-            if filtro_setor and "Nenhum" not in filtro_setor:
-                if not setor or setor not in filtro_setor:
-                    continue
+            if classification:
+                nnc = classification.get('nnc')
+                if filtro_classificacao and "Sem classificação" not in filtro_classificacao:
+                    if not nnc or nnc not in filtro_classificacao:
+                        continue
+                
+                # Extrair e verificar setor
+                setor = classification.get('responsible_sector')
+                if filtro_setor and "Sem setor" not in filtro_setor:
+                    if not setor or setor not in filtro_setor:
+                        continue
         
         filtered_notifications.append(n)
     
@@ -2999,13 +3015,19 @@ def show_notificacoes_encerradas():
             dias = delta.days
             tempo_resolucao = f"{dias} dia(s)"
         
-        # Extrair dados de classificação
-        classification = n.get('classification', {})
-        if isinstance(classification, str):
+        # Extrair dados de classificação com validação para None
+        classification = n.get('classification')
+        if classification is None:
+            classification = {}
+        elif isinstance(classification, str):
             try:
                 classification = json.loads(classification)
             except:
                 classification = {}
+        
+        # Garantir que classification é um dict
+        if not isinstance(classification, dict):
+            classification = {}
         
         df_data.append({
             'ID': n['id'],
@@ -3060,13 +3082,19 @@ def show_notificacoes_encerradas():
     notif_id = selected_notification['id']
     
     with st.expander("📋 **Ver Detalhes Completos**", expanded=False):
-        # Extrair dados de classificação (DENTRO DO EXPANDER)
-        selected_classification = selected_notification.get('classification', {})
-        if isinstance(selected_classification, str):
+        # Extrair dados de classificação com validação completa
+        selected_classification = selected_notification.get('classification')
+        if selected_classification is None:
+            selected_classification = {}
+        elif isinstance(selected_classification, str):
             try:
                 selected_classification = json.loads(selected_classification)
             except:
                 selected_classification = {}
+        
+        # Garantir que é um dict
+        if not isinstance(selected_classification, dict):
+            selected_classification = {}
         
         col1, col2 = st.columns(2)
         
@@ -3135,7 +3163,7 @@ def show_notificacoes_encerradas():
                 except:
                     review_data = {}
             
-            if review_data.get('observations'):
+            if isinstance(review_data, dict) and review_data.get('observations'):
                 st.markdown("#### 📝 Observações da Revisão")
                 st.info(review_data['observations'])
         
@@ -3148,7 +3176,7 @@ def show_notificacoes_encerradas():
                 except:
                     approval_data = {}
             
-            if approval_data.get('observations'):
+            if isinstance(approval_data, dict) and approval_data.get('observations'):
                 st.markdown("#### 📝 Observações do Aprovador")
                 st.info(approval_data['observations'])
         
@@ -3204,6 +3232,7 @@ def show_notificacoes_encerradas():
                             )
         else:
             st.info("Nenhum anexo disponível.")
+
 
 @st_fragment
 def show_execution():
