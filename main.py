@@ -2760,7 +2760,12 @@ def show_revisao_execucao():
         st.warning("⚠️ Nenhuma ação registrada pelos executores ainda.")
     else:
         for idx, action in enumerate(actions, 1):
-            with st.expander(f"📌 Ação {idx} - {action.get('executor_name', 'Executor desconhecido')} - {action['created_at'].strftime('%d/%m/%Y %H:%M')}"):
+            # Usar ID da ação como referência já que não há created_at
+            action_label = f"📌 Ação {idx} - {action.get('executor_name', 'Executor desconhecido')}"
+            if action.get('action_date'):  # Se houver data da ação
+                action_label += f" - {action['action_date'].strftime('%d/%m/%Y %H:%M')}"
+            
+            with st.expander(action_label):
                 st.markdown(f"**Descrição da Ação:**")
                 st.markdown(action.get('action_description', action.get('description', 'Sem descrição')))
                 
