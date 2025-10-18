@@ -2750,12 +2750,12 @@ def show_revisao_execucao():
             FROM notification_actions na
             LEFT JOIN users u ON na.executor_id = u.id
             WHERE na.notification_id = %s
-            ORDER BY na.created_at DESC
+            ORDER BY na.id DESC
         """, (notif_id,))
         actions = cursor.fetchall()
     finally:
         conn.close()
-    
+        
     if not actions:
         st.warning("⚠️ Nenhuma ação registrada pelos executores ainda.")
     else:
