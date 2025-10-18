@@ -2337,7 +2337,7 @@ def show_classification():
             except ValueError:
                 index_initial_selectbox = 0
         
-        # IMPORTANTE: selectbox deve estar FORA de qualquer if condicional
+        # Renderizar o selectbox (SEMPRE, não dentro de if)
         selected_option_initial = st.selectbox(
             "Escolha uma notificação para analisar e classificar inicial:",
             options=notification_options_initial,
@@ -2345,52 +2345,53 @@ def show_classification():
             key=selectbox_key_initial,
             help="Selecione na lista a notificação pendente que você deseja classificar."
         )
-
-            notification_id_initial = None
-            notification_initial = None
-            if selected_option_initial != UI_TEXTS.selectbox_default_notification_select:
-                try:
-                    parts = selected_option_initial.split("|")[0].strip()
-                    notification_id_initial = int(parts.replace("#", "").strip())
-                except Exception:
-                    notification_id_initial = None
-
-                if notification_id_initial:
-                    notification_initial = next(
-                        (n for n in pending_initial_classification if n['id'] == notification_id_initial), None)
-                    if notification_initial and notification_id_initial not in st.session_state.initial_classification_state:
-                        st.session_state.initial_classification_state[notification_id_initial] = {
-                            'step': 1,
-                            'data': {
-                                'procede_classification': UI_TEXTS.selectbox_default_procede_classification,
-                                'motivo_rejeicao': '',
-                                'classificacao_nnc': UI_TEXTS.selectbox_default_classificacao_nnc,
-                                'nivel_dano': UI_TEXTS.selectbox_default_nivel_dano,
-                                'prioridade_selecionada': UI_TEXTS.selectbox_default_prioridade_resolucao,
-                                'never_event_selecionado': UI_TEXTS.text_na,
-                                'evento_sentinela_sim_nao': UI_TEXTS.selectbox_default_evento_sentinela,
-                                'tipo_evento_principal_selecionado': UI_TEXTS.selectbox_default_tipo_principal,
-                                'tipo_evento_sub_selecionado': [],
-                                'tipo_evento_sub_texto_livre': '',
-                                'classificacao_oms_selecionada': [],
-                                'observacoes_classificacao': '',
-                                'requires_approval': UI_TEXTS.selectbox_default_requires_approval,
-                                'approver_selecionado': UI_TEXTS.selectbox_default_approver,
-                                'executores_selecionados': [],
-                                'temp_notified_department': notification_initial.get('notified_department'),
-                                'temp_notified_department_complement': notification_initial.get(
-                                    'notified_department_complement'),
-                            }
+        
+        # Processar a seleção do usuário
+        notification_id_initial = None
+        notification_initial = None
+        if selected_option_initial != UI_TEXTS.selectbox_default_notification_select:
+            try:
+                parts = selected_option_initial.split("|")[0].strip()
+                notification_id_initial = int(parts.replace("#", "").strip())
+            except Exception:
+                notification_id_initial = None
+        
+            if notification_id_initial:
+                notification_initial = next(
+                    (n for n in pending_initial_classification if n['id'] == notification_id_initial), None)
+                if notification_initial and notification_id_initial not in st.session_state.initial_classification_state:
+                    st.session_state.initial_classification_state[notification_id_initial] = {
+                        'step': 1,
+                        'data': {
+                            'procede_classification': UI_TEXTS.selectbox_default_procede_classification,
+                            'motivo_rejeicao': '',
+                            'classificacao_nnc': UI_TEXTS.selectbox_default_classificacao_nnc,
+                            'nivel_dano': UI_TEXTS.selectbox_default_nivel_dano,
+                            'prioridade_selecionada': UI_TEXTS.selectbox_default_prioridade_resolucao,
+                            'never_event_selecionado': UI_TEXTS.text_na,
+                            'evento_sentinela_sim_nao': UI_TEXTS.selectbox_default_evento_sentinela,
+                            'tipo_evento_principal_selecionado': UI_TEXTS.selectbox_default_tipo_principal,
+                            'tipo_evento_sub_selecionado': [],
+                            'tipo_evento_sub_texto_livre': '',
+                            'classificacao_oms_selecionada': [],
+                            'observacoes_classificacao': '',
+                            'requires_approval': UI_TEXTS.selectbox_default_requires_approval,
+                            'approver_selecionado': UI_TEXTS.selectbox_default_approver,
+                            'executores_selecionados': [],
+                            'temp_notified_department': notification_initial.get('notified_department'),
+                            'temp_notified_department_complement': notification_initial.get('notified_department_complement'),
                         }
-                else:
-                    notification_initial = None
+                    }
             else:
                 notification_initial = None
+        else:
+            notification_initial = None
+        
+        current_classification_state = st.session_state.initial_classification_state.get(notification_id_initial, {})
+        current_step = current_classification_state.get('step', 1)
+        current_data = current_classification_state.get('data', {})
 
-            current_classification_state = st.session_state.initial_classification_state.get(notification_id_initial, {})
-            current_step = current_classification_state.get('step', 1)
-            current_data = current_classification_state.get('data', {})
-
+        
             if notification_initial:
                 st.markdown(
                     f"### Notificação Selecionada para Classificação Inicial: #{notification_initial.get('id', UI_TEXTS.text_na)}")
@@ -5432,5 +5433,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
