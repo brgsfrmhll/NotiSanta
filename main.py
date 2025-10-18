@@ -2748,7 +2748,7 @@ def show_revisao_execucao():
         cursor.execute("""
             SELECT na.*, u.name as executor_name
             FROM notification_actions na
-            LEFT JOIN users u ON na.user_id = u.id
+            LEFT JOIN users u ON na.executor_id = u.id
             WHERE na.notification_id = %s
             ORDER BY na.created_at DESC
         """, (notif_id,))
