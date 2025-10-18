@@ -2387,7 +2387,7 @@ def show_classificacao_inicial():
     
     # Seleção de notificação
     notification_options = [
-        f"ID {n['id']} - {n['titulo']} ({n['created_at'].strftime('%d/%m/%Y %H:%M')})"
+        f"ID {n['id']} - {n.get('title', 'Sem título')} ({n['created_at'].strftime('%d/%m/%Y %H:%M')})"
         for n in pending_notifications
     ]
     
@@ -2407,18 +2407,18 @@ def show_classificacao_inicial():
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.markdown(f"### 📄 {selected_notification['titulo']}")
-        st.markdown(f"**Descrição:** {selected_notification['descricao']}")
-        st.markdown(f"**Local:** {selected_notification['local']}")
-        st.markdown(f"**Turno:** {selected_notification.get('turno_ocorrencia', 'Não informado')}")
+        st.markdown(f"### 📄 {selected_notification.get('title', 'Sem título')}")
+        st.markdown(f"**Descrição:** {selected_notification.get('description', 'Sem descrição')}")
+        st.markdown(f"**Local:** {selected_notification.get('location', 'Não informado')}")
+        st.markdown(f"**Turno:** {selected_notification.get('shift', 'Não informado')}")
         
-        if selected_notification.get('data_ocorrencia'):
-            st.markdown(f"**Data da Ocorrência:** {selected_notification['data_ocorrencia'].strftime('%d/%m/%Y')}")
+        if selected_notification.get('occurrence_date'):
+            st.markdown(f"**Data da Ocorrência:** {selected_notification['occurrence_date'].strftime('%d/%m/%Y')}")
         
-        if selected_notification.get('paciente_nome'):
-            st.markdown(f"**Paciente:** {selected_notification['paciente_nome']}")
-            if selected_notification.get('paciente_prontuario'):
-                st.markdown(f"**Prontuário:** {selected_notification['paciente_prontuario']}")
+        if selected_notification.get('patient_name'):
+            st.markdown(f"**Paciente:** {selected_notification['patient_name']}")
+            if selected_notification.get('patient_record'):
+                st.markdown(f"**Prontuário:** {selected_notification['patient_record']}")
     
     with col2:
         st.markdown("**📊 Informações**")
@@ -2517,14 +2517,14 @@ def show_classificacao_inicial():
                 cursor = conn.cursor()
                 cursor.execute("""
                     UPDATE notifications SET
-                        classificacao = %s,
-                        nivel_dano = %s,
-                        prioridade = %s,
-                        setor_responsavel = %s,
+                        classification = %s,
+                        damage_level = %s,
+                        priority = %s,
+                        responsible_sector = %s,
                         never_event = %s,
-                        tipo_evento = %s,
-                        observacoes_classificador = %s,
-                        prazo_conclusao = %s,
+                        event_type = %s,
+                        classifier_observations = %s,
+                        completion_deadline = %s,
                         status = 'classificada',
                         classified_at = NOW(),
                         classified_by = %s
@@ -2544,7 +2544,7 @@ def show_classificacao_inicial():
                 
                 conn.commit()
                 st.success(f"✅ Notificação classificada com sucesso! Prazo de conclusão: {prazo_conclusao.strftime('%d/%m/%Y')}")
-                time.sleep(1.5)
+                time_module.sleep(1.5)
                 st.rerun()
                 
             except Exception as e:
@@ -2552,7 +2552,6 @@ def show_classificacao_inicial():
                 st.error(f"❌ Erro ao salvar classificação: {str(e)}")
             finally:
                 conn.close()
-
 @st.fragment
 def show_revisao_execucao():
     """
@@ -2578,7 +2577,7 @@ def show_revisao_execucao():
     
     # Seleção de notificação
     notification_options = [
-        f"ID {n['id']} - {n['titulo']} - {n['classificacao']} ({n.get('executor_names', 'Sem executor')})"
+        f"ID {n['id']} - {n.get('title', 'Sem título')} - {n.get('classification', 'Sem classificação')} ({n.get('executor_names', 'Sem executor')})"
         for n in review_notifications
     ]
     
@@ -2598,11 +2597,11 @@ def show_revisao_execucao():
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.markdown(f"### 📄 {selected_notification['titulo']}")
-        st.markdown(f"**Descrição:** {selected_notification['descricao']}")
-        st.markdown(f"**Classificação:** `{selected_notification['classificacao']}`")
-        st.markdown(f"**Prioridade:** `{selected_notification['prioridade']}`")
-        st.markdown(f"**Setor Responsável:** {selected_notification['setor_responsavel']}")
+        st.markdown(f"### 📄 {selected_notification.get('title', 'Sem título')}")
+        st.markdown(f"**Descrição:** {selected_notification.get('description', 'Sem descrição')}")
+        st.markdown(f"**Classificação:** `{selected_notification.get('classification', 'N/A')}`")
+        st.markdown(f"**Prioridade:** `{selected_notification.get('priority', 'N/A')}`")
+        st.markdown(f"**Setor Responsável:** {selected_notification.get('responsible_sector', 'N/A')}")
     
     with col2:
         st.markdown("**📊 Informações**")
@@ -2610,8 +2609,8 @@ def show_revisao_execucao():
         st.markdown(f"**Status:** `{selected_notification['status']}`")
         
         # Cálculo de prazo
-        if selected_notification.get('prazo_conclusao'):
-            prazo = selected_notification['prazo_conclusao']
+        if selected_notification.get('completion_deadline'):
+            prazo = selected_notification['completion_deadline']
             dias_restantes = (prazo - datetime.now()).days
             
             if dias_restantes < 0:
@@ -2637,15 +2636,15 @@ def show_revisao_execucao():
         for idx, action in enumerate(actions, 1):
             with st.expander(f"📌 Ação {idx} - {action.get('executor_name', 'Executor desconhecido')} - {action['created_at'].strftime('%d/%m/%Y %H:%M')}"):
                 st.markdown(f"**Descrição da Ação:**")
-                st.markdown(action['descricao'])
+                st.markdown(action.get('description', 'Sem descrição'))
                 
-                if action.get('evidencia_descricao'):
+                if action.get('evidence_description'):
                     st.markdown(f"**Evidências:**")
-                    st.markdown(action['evidencia_descricao'])
+                    st.markdown(action['evidence_description'])
                 
-                if action.get('evidencia_anexos'):
+                if action.get('evidence_attachments'):
                     st.markdown("**📎 Anexos de Evidência:**")
-                    anexos = json.loads(action['evidencia_anexos']) if isinstance(action['evidencia_anexos'], str) else action['evidencia_anexos']
+                    anexos = json.loads(action['evidence_attachments']) if isinstance(action['evidence_attachments'], str) else action['evidence_attachments']
                     for anexo in anexos:
                         file_path = os.path.join('attachments', anexo)
                         if os.path.exists(file_path):
@@ -2657,8 +2656,8 @@ def show_revisao_execucao():
                                     key=f"download_evidencia_{action['id']}_{anexo}"
                                 )
                 
-                if action.get('acao_final'):
-                    st.success(f"✅ **Ação Final:** {action['acao_final']}")
+                if action.get('final_action'):
+                    st.success(f"✅ **Ação Final:** {action['final_action']}")
     
     st.markdown("---")
     st.markdown("## ✅ Revisão da Execução")
@@ -2703,7 +2702,7 @@ def show_revisao_execucao():
                 cursor.execute("""
                     UPDATE notifications SET
                         status = %s,
-                        observacoes_revisao_classificador = %s,
+                        classifier_review_observations = %s,
                         reviewed_at = NOW(),
                         reviewed_by = %s
                     WHERE id = %s
@@ -2719,7 +2718,7 @@ def show_revisao_execucao():
                 
                 conn.commit()
                 st.success(mensagem_sucesso)
-                time.sleep(1.5)
+                time_module.sleep(1.5)
                 st.rerun()
                 
             except Exception as e:
@@ -2763,7 +2762,7 @@ def show_notificacoes_encerradas():
         )
     
     with col_filter2:
-        classificacoes_disponiveis = list(set([n['classificacao'] for n in closed_notifications if n.get('classificacao')]))
+        classificacoes_disponiveis = list(set([n.get('classification') for n in closed_notifications if n.get('classification')]))
         filtro_classificacao = st.multiselect(
             "📋 Filtrar por Classificação",
             options=classificacoes_disponiveis,
@@ -2772,7 +2771,7 @@ def show_notificacoes_encerradas():
         )
     
     with col_filter3:
-        setores_disponiveis = list(set([n['setor_responsavel'] for n in closed_notifications if n.get('setor_responsavel')]))
+        setores_disponiveis = list(set([n.get('responsible_sector') for n in closed_notifications if n.get('responsible_sector')]))
         filtro_setor = st.multiselect(
             "🏢 Filtrar por Setor",
             options=setores_disponiveis,
@@ -2784,8 +2783,8 @@ def show_notificacoes_encerradas():
     filtered_notifications = [
         n for n in closed_notifications
         if n['status'] in filtro_status
-        and (not n.get('classificacao') or n['classificacao'] in filtro_classificacao)
-        and (not n.get('setor_responsavel') or n['setor_responsavel'] in filtro_setor)
+        and (not n.get('classification') or n['classification'] in filtro_classificacao)
+        and (not n.get('responsible_sector') or n['responsible_sector'] in filtro_setor)
     ]
     
     st.markdown("---")
@@ -2817,10 +2816,10 @@ def show_notificacoes_encerradas():
         df_data.append({
             'ID': n['id'],
             'Status': f"{status_icon} {n['status']}",
-            'Título': n['titulo'],
-            'Classificação': n.get('classificacao', 'N/A'),
-            'Prioridade': n.get('prioridade', 'N/A'),
-            'Setor': n.get('setor_responsavel', 'N/A'),
+            'Título': n.get('title', 'Sem título'),
+            'Classificação': n.get('classification', 'N/A'),
+            'Prioridade': n.get('priority', 'N/A'),
+            'Setor': n.get('responsible_sector', 'N/A'),
             'Criado em': n['created_at'].strftime('%d/%m/%Y'),
             'Encerrado em': n.get('approved_at', n.get('updated_at', datetime.now())).strftime('%d/%m/%Y'),
             'Tempo': tempo_resolucao
@@ -2852,7 +2851,7 @@ def show_notificacoes_encerradas():
     st.markdown("### 🔍 Visualizar Detalhes")
     
     notification_options = [
-        f"ID {n['id']} - {n['titulo']} ({n['status']})"
+        f"ID {n['id']} - {n.get('title', 'Sem título')} ({n['status']})"
         for n in filtered_notifications
     ]
     
@@ -2871,17 +2870,17 @@ def show_notificacoes_encerradas():
         
         with col1:
             st.markdown("#### 📄 Informações Básicas")
-            st.markdown(f"**Título:** {selected_notification['titulo']}")
-            st.markdown(f"**Descrição:** {selected_notification['descricao']}")
-            st.markdown(f"**Local:** {selected_notification['local']}")
+            st.markdown(f"**Título:** {selected_notification.get('title', 'Sem título')}")
+            st.markdown(f"**Descrição:** {selected_notification.get('description', 'Sem descrição')}")
+            st.markdown(f"**Local:** {selected_notification.get('location', 'Não informado')}")
             st.markdown(f"**Status:** `{selected_notification['status']}`")
             
-            if selected_notification.get('classificacao'):
-                st.markdown(f"**Classificação:** {selected_notification['classificacao']}")
-            if selected_notification.get('prioridade'):
-                st.markdown(f"**Prioridade:** {selected_notification['prioridade']}")
-            if selected_notification.get('setor_responsavel'):
-                st.markdown(f"**Setor:** {selected_notification['setor_responsavel']}")
+            if selected_notification.get('classification'):
+                st.markdown(f"**Classificação:** {selected_notification['classification']}")
+            if selected_notification.get('priority'):
+                st.markdown(f"**Prioridade:** {selected_notification['priority']}")
+            if selected_notification.get('responsible_sector'):
+                st.markdown(f"**Setor:** {selected_notification['responsible_sector']}")
         
         with col2:
             st.markdown("#### 📊 Datas e Responsáveis")
@@ -2900,13 +2899,13 @@ def show_notificacoes_encerradas():
                 st.markdown(f"**Aprovador:** {selected_notification['approver_name']}")
         
         # Observações
-        if selected_notification.get('observacoes_classificador'):
+        if selected_notification.get('classifier_observations'):
             st.markdown("#### 📝 Observações do Classificador")
-            st.info(selected_notification['observacoes_classificador'])
+            st.info(selected_notification['classifier_observations'])
         
-        if selected_notification.get('observacoes_aprovador'):
+        if selected_notification.get('approver_observations'):
             st.markdown("#### 📝 Observações do Aprovador")
-            st.info(selected_notification['observacoes_aprovador'])
+            st.info(selected_notification['approver_observations'])
         
         # Histórico
         st.markdown("#### 📜 Histórico de Ações")
@@ -2936,7 +2935,7 @@ def show_notificacoes_encerradas():
                                 file_name=att['original_filename'],
                                 key=f"download_encerrada_{att['id']}"
                             )
-
+                          
 @st_fragment
 def show_execution():
     """Renderiza a página para executores visualizarem notificações atribuídas e registrarem ações."""
@@ -5016,4 +5015,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
