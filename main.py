@@ -2989,11 +2989,6 @@ def show_notificacoes_encerradas():
             dias = delta.days
             tempo_resolucao = f"{dias} dia(s)"
         
-# Extrair dados de classificação
-classification = n.get('classification', {})
-if isinstance(classification, str):
-    classification = json.loads(classification)
-
     df_data.append({
         'ID': n['id'],
         'Status': f"{status_icon} {n['status']}",
