@@ -2662,14 +2662,12 @@ def show_revisao_execucao():
     
     # Seleção de notificação
     notification_options = []
-    for n in review_notifications:
-        # Extrair classificação do JSONB
+    for n in filtered_notifications:
         classification = n.get('classification', {})
         if isinstance(classification, str):
             classification = json.loads(classification)
-        
         nnc = classification.get('nnc', 'Sem classificação')
-        
+       
         # Buscar nomes dos executores
         executor_names = "Sem executor"
         if n.get('executors'):
@@ -2868,7 +2866,6 @@ def show_revisao_execucao():
                 st.error(f"❌ Erro ao salvar revisão: {str(e)}")
             finally:
                 conn.close()
-
 @st.fragment
 def show_notificacoes_encerradas():
     """
@@ -2910,18 +2907,21 @@ def show_notificacoes_encerradas():
             classification = n.get('classification')
             if classification:
                 if isinstance(classification, str):
-                    classification = json.loads(classification)
+                    try:
+                        classification = json.loads(classification)
+                    except:
+                        continue
                 nnc = classification.get('nnc')
                 if nnc and nnc not in classificacoes_disponiveis:
                     classificacoes_disponiveis.append(nnc)
         
         filtro_classificacao = st.multiselect(
             "📋 Filtrar por Classificação",
-            options=classificacoes_disponiveis,
-            default=classificacoes_disponiveis,
+            options=classificacoes_disponiveis if classificacoes_disponiveis else ["Nenhuma"],
+            default=classificacoes_disponiveis if classificacoes_disponiveis else ["Nenhuma"],
             key="filtro_classif_encerradas"
         )
-
+    
     with col_filter3:
         # Extrair setores do JSONB
         setores_disponiveis = []
@@ -2929,18 +2929,22 @@ def show_notificacoes_encerradas():
             classification = n.get('classification')
             if classification:
                 if isinstance(classification, str):
-                    classification = json.loads(classification)
+                    try:
+                        classification = json.loads(classification)
+                    except:
+                        continue
                 setor = classification.get('responsible_sector')
                 if setor and setor not in setores_disponiveis:
                     setores_disponiveis.append(setor)
         
         filtro_setor = st.multiselect(
             "🏢 Filtrar por Setor",
-            options=setores_disponiveis,
-            default=setores_disponiveis,
+            options=setores_disponiveis if setores_disponiveis else ["Nenhum"],
+            default=setores_disponiveis if setores_disponiveis else ["Nenhum"],
             key="filtro_setor_encerradas"
         )
-        
+    
+    # Aplicar filtros
     filtered_notifications = []
     for n in closed_notifications:
         # Verificar status
@@ -2951,18 +2955,24 @@ def show_notificacoes_encerradas():
         classification = n.get('classification')
         if classification:
             if isinstance(classification, str):
-                classification = json.loads(classification)
+                try:
+                    classification = json.loads(classification)
+                except:
+                    classification = {}
+            
             nnc = classification.get('nnc')
-            if nnc and nnc not in filtro_classificacao:
-                continue
-        
-        # Extrair e verificar setor
-        if classification:
+            if filtro_classificacao and "Nenhuma" not in filtro_classificacao:
+                if not nnc or nnc not in filtro_classificacao:
+                    continue
+            
+            # Extrair e verificar setor
             setor = classification.get('responsible_sector')
-            if setor and setor not in filtro_setor:
-                continue
+            if filtro_setor and "Nenhum" not in filtro_setor:
+                if not setor or setor not in filtro_setor:
+                    continue
         
         filtered_notifications.append(n)
+    
     st.markdown("---")
     st.info(f"🔍 Exibindo **{len(filtered_notifications)}** notificação(ões) após filtros")
     
@@ -2984,22 +2994,30 @@ def show_notificacoes_encerradas():
         
         # Calcular tempo de resolução
         tempo_resolucao = "N/A"
-        if n.get('created_at') and n.get('approved_at'):
-            delta = n['approved_at'] - n['created_at']
+        if n.get('created_at') and n.get('updated_at'):
+            delta = n['updated_at'] - n['created_at']
             dias = delta.days
             tempo_resolucao = f"{dias} dia(s)"
         
-    df_data.append({
-        'ID': n['id'],
-        'Status': f"{status_icon} {n['status']}",
-        'Título': n.get('title', 'Sem título'),
-        'Classificação': classification.get('nnc', 'N/A'),
-        'Prioridade': classification.get('prioridade', 'N/A'),
-        'Setor': classification.get('responsible_sector', 'N/A'),
-        'Criado em': n['created_at'].strftime('%d/%m/%Y'),
-        'Encerrado em': n.get('approved_at', n.get('updated_at', datetime.now())).strftime('%d/%m/%Y'),
-        'Tempo': tempo_resolucao
-    })
+        # Extrair dados de classificação
+        classification = n.get('classification', {})
+        if isinstance(classification, str):
+            try:
+                classification = json.loads(classification)
+            except:
+                classification = {}
+        
+        df_data.append({
+            'ID': n['id'],
+            'Status': f"{status_icon} {n['status']}",
+            'Título': n.get('title', 'Sem título'),
+            'Classificação': classification.get('nnc', 'N/A'),
+            'Prioridade': classification.get('prioridade', 'N/A'),
+            'Setor': classification.get('responsible_sector', 'N/A'),
+            'Criado em': n['created_at'].strftime('%d/%m/%Y') if n.get('created_at') else 'N/A',
+            'Encerrado em': n['updated_at'].strftime('%d/%m/%Y') if n.get('updated_at') else 'N/A',
+            'Tempo': tempo_resolucao
+        })
     
     df = pd.DataFrame(df_data)
     
@@ -3042,86 +3060,151 @@ def show_notificacoes_encerradas():
     notif_id = selected_notification['id']
     
     with st.expander("📋 **Ver Detalhes Completos**", expanded=False):
+        # Extrair dados de classificação (DENTRO DO EXPANDER)
+        selected_classification = selected_notification.get('classification', {})
+        if isinstance(selected_classification, str):
+            try:
+                selected_classification = json.loads(selected_classification)
+            except:
+                selected_classification = {}
+        
         col1, col2 = st.columns(2)
         
-# Extrair dados de classificação
-selected_classification = selected_notification.get('classification', {})
-if isinstance(selected_classification, str):
-    selected_classification = json.loads(selected_classification)
-
-    with col1:
-        st.markdown("#### 📄 Informações Básicas")
-        st.markdown(f"**Título:** {selected_notification.get('title', 'Sem título')}")
-        st.markdown(f"**Descrição:** {selected_notification.get('description', 'Sem descrição')}")
-        st.markdown(f"**Local:** {selected_notification.get('location', 'Não informado')}")
-        st.markdown(f"**Status:** `{selected_notification['status']}`")
-        
-        if selected_classification.get('nnc'):
-            st.markdown(f"**Classificação:** {selected_classification['nnc']}")
-        if selected_classification.get('prioridade'):
-            st.markdown(f"**Prioridade:** {selected_classification['prioridade']}")
-        if selected_classification.get('responsible_sector'):
-            st.markdown(f"**Setor:** {selected_classification['responsible_sector']}")
+        with col1:
+            st.markdown("#### 📄 Informações Básicas")
+            st.markdown(f"**Título:** {selected_notification.get('title', 'Sem título')}")
+            st.markdown(f"**Descrição:** {selected_notification.get('description', 'Sem descrição')}")
+            st.markdown(f"**Local:** {selected_notification.get('location', 'Não informado')}")
+            st.markdown(f"**Status:** `{selected_notification['status']}`")
             
+            if selected_classification.get('nnc'):
+                st.markdown(f"**Classificação:** {selected_classification['nnc']}")
+            if selected_classification.get('prioridade'):
+                st.markdown(f"**Prioridade:** {selected_classification['prioridade']}")
+            if selected_classification.get('responsible_sector'):
+                st.markdown(f"**Setor:** {selected_classification['responsible_sector']}")
+        
         with col2:
             st.markdown("#### 📊 Datas e Responsáveis")
-            st.markdown(f"**Criado em:** {selected_notification['created_at'].strftime('%d/%m/%Y %H:%M')}")
+            if selected_notification.get('created_at'):
+                st.markdown(f"**Criado em:** {selected_notification['created_at'].strftime('%d/%m/%Y %H:%M')}")
             
-            if selected_notification.get('classified_at'):
-                st.markdown(f"**Classificado em:** {selected_notification['classified_at'].strftime('%d/%m/%Y %H:%M')}")
+            if selected_notification.get('updated_at'):
+                st.markdown(f"**Atualizado em:** {selected_notification['updated_at'].strftime('%d/%m/%Y %H:%M')}")
             
-            if selected_notification.get('approved_at'):
-                st.markdown(f"**Aprovado em:** {selected_notification['approved_at'].strftime('%d/%m/%Y %H:%M')}")
+            # Buscar nomes dos executores
+            if selected_notification.get('executors'):
+                conn = get_db_connection()
+                try:
+                    cursor = conn.cursor(cursor_factory=RealDictCursor)
+                    cursor.execute("SELECT name FROM users WHERE id = ANY(%s)", (selected_notification['executors'],))
+                    executors = cursor.fetchall()
+                    if executors:
+                        executor_names = ", ".join([e['name'] for e in executors])
+                        st.markdown(f"**Executores:** {executor_names}")
+                except:
+                    pass
+                finally:
+                    conn.close()
             
-            if selected_notification.get('executor_names'):
-                st.markdown(f"**Executores:** {selected_notification['executor_names']}")
-            
-            if selected_notification.get('approver_name'):
-                st.markdown(f"**Aprovador:** {selected_notification['approver_name']}")
+            # Buscar nome do classificador
+            if selected_classification.get('classified_by'):
+                conn = get_db_connection()
+                try:
+                    cursor = conn.cursor(cursor_factory=RealDictCursor)
+                    cursor.execute("SELECT name FROM users WHERE id = %s", (selected_classification['classified_by'],))
+                    classifier = cursor.fetchone()
+                    if classifier:
+                        st.markdown(f"**Classificado por:** {classifier['name']}")
+                except:
+                    pass
+                finally:
+                    conn.close()
         
         # Observações
         if selected_classification.get('classifier_observations'):
             st.markdown("#### 📝 Observações do Classificador")
             st.info(selected_classification['classifier_observations'])
-
-        # Observações do aprovador (pode estar em outro campo)
-        if selected_notification.get('approval_data'):
-            approval_data = selected_notification['approval_data']
+        
+        # Observações de revisão
+        review_data = selected_notification.get('review_execution')
+        if review_data:
+            if isinstance(review_data, str):
+                try:
+                    review_data = json.loads(review_data)
+                except:
+                    review_data = {}
+            
+            if review_data.get('observations'):
+                st.markdown("#### 📝 Observações da Revisão")
+                st.info(review_data['observations'])
+        
+        # Observações de aprovação
+        approval_data = selected_notification.get('approval')
+        if approval_data:
             if isinstance(approval_data, str):
-                approval_data = json.loads(approval_data)
+                try:
+                    approval_data = json.loads(approval_data)
+                except:
+                    approval_data = {}
+            
             if approval_data.get('observations'):
                 st.markdown("#### 📝 Observações do Aprovador")
                 st.info(approval_data['observations'])
-                
+        
         # Histórico
         st.markdown("#### 📜 Histórico de Ações")
-        history = get_notification_history(notif_id)
         
-        if history:
-            for h in history:
-                st.markdown(f"- **{h['created_at'].strftime('%d/%m/%Y %H:%M')}** - {h.get('user_name', 'Sistema')}: {h['action']} - {h.get('details', '')}")
-        else:
-            st.info("Sem histórico registrado.")
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("""
+                SELECT nh.*, u.name as user_name
+                FROM notification_history nh
+                LEFT JOIN users u ON nh.user_id = u.id
+                WHERE nh.notification_id = %s
+                ORDER BY nh.created_at DESC
+            """, (notif_id,))
+            history = cursor.fetchall()
+            
+            if history:
+                for h in history:
+                    timestamp = h['created_at'].strftime('%d/%m/%Y %H:%M') if h.get('created_at') else 'N/A'
+                    user = h.get('user_name', 'Sistema')
+                    action = h.get('action', 'Ação')
+                    details = h.get('details', '')
+                    st.markdown(f"- **{timestamp}** - {user}: {action} {('- ' + details) if details else ''}")
+            else:
+                st.info("Sem histórico registrado.")
+        except Exception as e:
+            st.warning(f"Não foi possível carregar o histórico: {str(e)}")
+        finally:
+            conn.close()
         
         # Anexos
+        st.markdown("#### 📎 Anexos")
         attachments = get_notification_attachments(notif_id)
+        
         if attachments:
-            st.markdown("#### 📎 Anexos")
-            for att in attachments:
+            for idx, att in enumerate(attachments):
                 col_att1, col_att2 = st.columns([3, 1])
                 with col_att1:
-                    st.markdown(f"📄 {att['original_filename']}")
+                    original_name = att.get('original_name', att.get('original_filename', 'Arquivo'))
+                    st.markdown(f"📄 {original_name}")
                 with col_att2:
-                    file_path = os.path.join('attachments', att['filename'])
+                    unique_name = att.get('unique_name', att.get('filename', ''))
+                    file_path = os.path.join('attachments', unique_name)
                     if os.path.exists(file_path):
                         with open(file_path, 'rb') as f:
                             st.download_button(
                                 "⬇️ Baixar",
                                 f,
-                                file_name=att['original_filename'],
-                                key=f"download_encerrada_{att['id']}"
+                                file_name=original_name,
+                                key=f"download_encerrada_{notif_id}_{idx}"
                             )
-                          
+        else:
+            st.info("Nenhum anexo disponível.")
+
 @st_fragment
 def show_execution():
     """Renderiza a página para executores visualizarem notificações atribuídas e registrarem ações."""
