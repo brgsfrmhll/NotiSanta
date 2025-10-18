@@ -2326,23 +2326,25 @@ def show_classification():
             
         pending_initial_ids_str = ",".join(str(n['id']) for n in pending_initial_classification)
         selectbox_key_initial = f"classify_selectbox_initial_{pending_initial_ids_str}"
-
-        default_initial_selection = UI_TEXTS.selectbox_default_notification_select
+        
+        # Determinar o índice inicial do selectbox
+        index_initial_selectbox = 0
         if active_notification_obj and active_notification_obj['id'] in [n['id'] for n in pending_initial_classification]:
-            index_initial_selectbox = 0
-        if default_initial_selection != UI_TEXTS.selectbox_default_notification_select:
+            # Se há uma notificação ativa, tentar encontrá-la na lista
+            active_option_text = f"#{active_notification_obj['id']} | {active_notification_obj.get('title', 'Sem título')}"
             try:
-                index_initial_selectbox = notification_options_initial.index(default_initial_selection)
+                index_initial_selectbox = notification_options_initial.index(active_option_text)
             except ValueError:
-                pass
-
-            selected_option_initial = st.selectbox(
-                "Escolha uma notificação para analisar e classificar inicial:",
-                options=notification_options_initial,
-                index=index_initial_selectbox,
-                key=selectbox_key_initial,
-                help="Selecione na lista a notificação pendente que você deseja classificar."
-            )
+                index_initial_selectbox = 0
+        
+        # IMPORTANTE: selectbox deve estar FORA de qualquer if condicional
+        selected_option_initial = st.selectbox(
+            "Escolha uma notificação para analisar e classificar inicial:",
+            options=notification_options_initial,
+            index=index_initial_selectbox,
+            key=selectbox_key_initial,
+            help="Selecione na lista a notificação pendente que você deseja classificar."
+        )
 
             notification_id_initial = None
             notification_initial = None
@@ -5430,4 +5432,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
