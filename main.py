@@ -14,7 +14,8 @@ import uuid
 import pandas as pd
 import time as time_module
 import psycopg2
-from psycopg2 import sql  # Importa sql para usar na construção de queries dinâmicas
+from psycopg2 import sql 
+from psycopg2.extras import RealDictCursor# Importa sql para usar na construção de queries dinâmicas
 from dotenv import load_dotenv
 from streamlit import fragment as st_fragment  # Mantido para compatibilidade com o código completo
 
@@ -5015,3 +5016,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
