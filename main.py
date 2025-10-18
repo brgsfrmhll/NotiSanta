@@ -2321,6 +2321,7 @@ def show_classification():
         st.markdown("#### 📋 Selecionar Notificação para Classificação Inicial")
         notification_options_initial = [UI_TEXTS.selectbox_default_notification_select]
         for n in pending_initial_classification:
+            option_text = f"#{n['id']} | {n.get('title', 'Sem título')}"
             notification_options_initial.append(option_text)
             
         pending_initial_ids_str = ",".join(str(n['id']) for n in pending_initial_classification)
@@ -3024,6 +3025,8 @@ def show_classification():
             st.markdown("#### 📋 Selecionar Notificação para Revisão")
             notification_options_review = [UI_TEXTS.selectbox_default_notification_select] 
             for n in pending_execution_review:
+                option_text = f"#{n['id']} | {n.get('title', 'Sem título')}"
+                notification_options_review.append(option_text)
             
                 pending_review_ids_str = ",".join(str(n['id']) for n in pending_execution_review)
                 selectbox_key_review = f"classify_selectbox_review_{pending_review_ids_str}"
@@ -5427,3 +5430,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
