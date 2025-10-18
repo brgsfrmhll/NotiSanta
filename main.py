@@ -2315,83 +2315,87 @@ def show_classification():
 
     with tab_initial_classif:
         st.markdown("### Notificações Aguardando Classificação Inicial")
-    if not pending_initial_classification:
-        st.info("✅ Não há notificações aguardando classificação inicial no momento.")
-    else:
-        st.markdown("#### 📋 Selecionar Notificação para Classificação Inicial")
-        notification_options_initial = [UI_TEXTS.selectbox_default_notification_select]
-        for n in pending_initial_classification:
-            option_text = f"#{n['id']} | {n.get('title', 'Sem título')}"
-            notification_options_initial.append(option_text)
-            
-        pending_initial_ids_str = ",".join(str(n['id']) for n in pending_initial_classification)
-        selectbox_key_initial = f"classify_selectbox_initial_{pending_initial_ids_str}"
         
-        # Determinar o índice inicial do selectbox
-        index_initial_selectbox = 0
-        if active_notification_obj and active_notification_obj['id'] in [n['id'] for n in pending_initial_classification]:
-            # Se há uma notificação ativa, tentar encontrá-la na lista
-            active_option_text = f"#{active_notification_obj['id']} | {active_notification_obj.get('title', 'Sem título')}"
-            try:
-                index_initial_selectbox = notification_options_initial.index(active_option_text)
-            except ValueError:
-                index_initial_selectbox = 0
-        
-        # Renderizar o selectbox (SEMPRE, não dentro de if)
-        selected_option_initial = st.selectbox(
-            "Escolha uma notificação para analisar e classificar inicial:",
-            options=notification_options_initial,
-            index=index_initial_selectbox,
-            key=selectbox_key_initial,
-            help="Selecione na lista a notificação pendente que você deseja classificar."
-        )
-        
-        # Processar a seleção do usuário
-        notification_id_initial = None
-        notification_initial = None
-        if selected_option_initial != UI_TEXTS.selectbox_default_notification_select:
-            try:
-                parts = selected_option_initial.split("|")[0].strip()
-                notification_id_initial = int(parts.replace("#", "").strip())
-            except Exception:
-                notification_id_initial = None
-        
-            if notification_id_initial:
-                notification_initial = next(
-                    (n for n in pending_initial_classification if n['id'] == notification_id_initial), None)
-                if notification_initial and notification_id_initial not in st.session_state.initial_classification_state:
-                    st.session_state.initial_classification_state[notification_id_initial] = {
-                        'step': 1,
-                        'data': {
-                            'procede_classification': UI_TEXTS.selectbox_default_procede_classification,
-                            'motivo_rejeicao': '',
-                            'classificacao_nnc': UI_TEXTS.selectbox_default_classificacao_nnc,
-                            'nivel_dano': UI_TEXTS.selectbox_default_nivel_dano,
-                            'prioridade_selecionada': UI_TEXTS.selectbox_default_prioridade_resolucao,
-                            'never_event_selecionado': UI_TEXTS.text_na,
-                            'evento_sentinela_sim_nao': UI_TEXTS.selectbox_default_evento_sentinela,
-                            'tipo_evento_principal_selecionado': UI_TEXTS.selectbox_default_tipo_principal,
-                            'tipo_evento_sub_selecionado': [],
-                            'tipo_evento_sub_texto_livre': '',
-                            'classificacao_oms_selecionada': [],
-                            'observacoes_classificacao': '',
-                            'requires_approval': UI_TEXTS.selectbox_default_requires_approval,
-                            'approver_selecionado': UI_TEXTS.selectbox_default_approver,
-                            'executores_selecionados': [],
-                            'temp_notified_department': notification_initial.get('notified_department'),
-                            'temp_notified_department_complement': notification_initial.get('notified_department_complement'),
-                        }
-                    }
-            else:
-                notification_initial = None
+        if not pending_initial_classification:
+            st.info("✅ Não há notificações aguardando classificação inicial no momento.")
         else:
+            st.markdown("#### 📋 Selecionar Notificação para Classificação Inicial")
+            
+            # Construir lista de opções
+            notification_options_initial = [UI_TEXTS.selectbox_default_notification_select]
+            for n in pending_initial_classification:
+                option_text = f"#{n['id']} | {n.get('title', 'Sem título')}"
+                notification_options_initial.append(option_text)
+            
+            # Criar chave única para o selectbox
+            pending_initial_ids_str = ",".join(str(n['id']) for n in pending_initial_classification)
+            selectbox_key_initial = f"classify_selectbox_initial_{pending_initial_ids_str}"
+            
+            # Determinar índice inicial
+            index_initial_selectbox = 0
+            if active_notification_obj and active_notification_obj['id'] in [n['id'] for n in pending_initial_classification]:
+                active_option_text = f"#{active_notification_obj['id']} | {active_notification_obj.get('title', 'Sem título')}"
+                try:
+                    index_initial_selectbox = notification_options_initial.index(active_option_text)
+                except ValueError:
+                    index_initial_selectbox = 0
+            
+            # Renderizar selectbox
+            selected_option_initial = st.selectbox(
+                "Escolha uma notificação para analisar e classificar inicial:",
+                options=notification_options_initial,
+                index=index_initial_selectbox,
+                key=selectbox_key_initial,
+                help="Selecione na lista a notificação pendente que você deseja classificar."
+            )
+            
+            # Processar seleção
+            notification_id_initial = None
             notification_initial = None
-        
-        current_classification_state = st.session_state.initial_classification_state.get(notification_id_initial, {})
-        current_step = current_classification_state.get('step', 1)
-        current_data = current_classification_state.get('data', {})
-
-        
+            
+            if selected_option_initial != UI_TEXTS.selectbox_default_notification_select:
+                try:
+                    parts = selected_option_initial.split("|")[0].strip()
+                    notification_id_initial = int(parts.replace("#", "").strip())
+                except Exception:
+                    notification_id_initial = None
+                
+                if notification_id_initial:
+                    notification_initial = next(
+                        (n for n in pending_initial_classification if n['id'] == notification_id_initial), None
+                    )
+                    
+                    # Inicializar estado se necessário
+                    if notification_initial and notification_id_initial not in st.session_state.initial_classification_state:
+                        st.session_state.initial_classification_state[notification_id_initial] = {
+                            'step': 1,
+                            'data': {
+                                'procede_classification': UI_TEXTS.selectbox_default_procede_classification,
+                                'motivo_rejeicao': '',
+                                'classificacao_nnc': UI_TEXTS.selectbox_default_classificacao_nnc,
+                                'nivel_dano': UI_TEXTS.selectbox_default_nivel_dano,
+                                'prioridade_selecionada': UI_TEXTS.selectbox_default_prioridade_resolucao,
+                                'never_event_selecionado': UI_TEXTS.text_na,
+                                'evento_sentinela_sim_nao': UI_TEXTS.selectbox_default_evento_sentinela,
+                                'tipo_evento_principal_selecionado': UI_TEXTS.selectbox_default_tipo_principal,
+                                'tipo_evento_sub_selecionado': [],
+                                'tipo_evento_sub_texto_livre': '',
+                                'classificacao_oms_selecionada': [],
+                                'observacoes_classificacao': '',
+                                'requires_approval': UI_TEXTS.selectbox_default_requires_approval,
+                                'approver_selecionado': UI_TEXTS.selectbox_default_approver,
+                                'executores_selecionados': [],
+                                'temp_notified_department': notification_initial.get('notified_department'),
+                                'temp_notified_department_complement': notification_initial.get('notified_department_complement'),
+                            }
+                        }
+            
+            # Obter estado atual (SEMPRE, mesmo se notification_initial for None)
+            current_classification_state = st.session_state.initial_classification_state.get(notification_id_initial, {})
+            current_step = current_classification_state.get('step', 1)
+            current_data = current_classification_state.get('data', {})
+            
+            # Renderizar interface apenas se há notificação selecionada
             if notification_initial:
                 st.markdown(
                     f"### Notificação Selecionada para Classificação Inicial: #{notification_initial.get('id', UI_TEXTS.text_na)}")
@@ -5433,6 +5437,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
