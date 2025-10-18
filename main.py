@@ -2361,7 +2361,6 @@ unsafe_allow_html=True)
                         except Exception as e:
                             st.error(f"❌ Ocorreu um erro ao finalizar a notificação: {e}")
                             st.warning("Por favor, revise as informações e tente enviar novamente.")
-
 @st.fragment
 def show_classificacao_inicial():
     """
@@ -2410,22 +2409,36 @@ def show_classificacao_inicial():
         st.markdown(f"### 📄 {selected_notification.get('title', 'Sem título')}")
         st.markdown(f"**Descrição:** {selected_notification.get('description', 'Sem descrição')}")
         st.markdown(f"**Local:** {selected_notification.get('location', 'Não informado')}")
-        st.markdown(f"**Turno:** {selected_notification.get('shift', 'Não informado')}")
+        st.markdown(f"**Turno:** {selected_notification.get('event_shift', 'Não informado')}")
         
         if selected_notification.get('occurrence_date'):
             st.markdown(f"**Data da Ocorrência:** {selected_notification['occurrence_date'].strftime('%d/%m/%Y')}")
         
-        if selected_notification.get('patient_name'):
-            st.markdown(f"**Paciente:** {selected_notification['patient_name']}")
-            if selected_notification.get('patient_record'):
-                st.markdown(f"**Prontuário:** {selected_notification['patient_record']}")
+        if selected_notification.get('patient_involved'):
+            st.markdown(f"**Paciente Envolvido:** Sim")
+            if selected_notification.get('patient_id'):
+                st.markdown(f"**Prontuário:** {selected_notification['patient_id']}")
     
     with col2:
         st.markdown("**📊 Informações**")
         st.markdown(f"**ID:** {notif_id}")
         st.markdown(f"**Status:** `{selected_notification['status']}`")
         st.markdown(f"**Criado em:** {selected_notification['created_at'].strftime('%d/%m/%Y %H:%M')}")
-        st.markdown(f"**Criado por:** {selected_notification.get('created_by_name', 'N/A')}")
+        
+        # Buscar nome do criador
+        creator_name = "N/A"
+        if selected_notification.get('created_by'):
+            conn = get_db_connection()
+            try:
+                cursor = conn.cursor(cursor_factory=RealDictCursor)
+                cursor.execute("SELECT name FROM users WHERE id = %s", (selected_notification['created_by'],))
+                creator = cursor.fetchone()
+                if creator:
+                    creator_name = creator['name']
+            finally:
+                conn.close()
+        
+        st.markdown(f"**Criado por:** {creator_name}")
     
     # Anexos
     attachments = get_notification_attachments(notif_id)
@@ -2435,16 +2448,16 @@ def show_classificacao_inicial():
         for att in attachments:
             col_att1, col_att2 = st.columns([3, 1])
             with col_att1:
-                st.markdown(f"📄 {att['original_filename']}")
+                st.markdown(f"📄 {att.get('original_name', att.get('original_filename', 'Arquivo'))}")
             with col_att2:
-                file_path = os.path.join('attachments', att['filename'])
+                file_path = os.path.join('attachments', att.get('unique_name', att.get('filename', '')))
                 if os.path.exists(file_path):
                     with open(file_path, 'rb') as f:
                         st.download_button(
                             "⬇️ Baixar",
                             f,
-                            file_name=att['original_filename'],
-                            key=f"download_classif_inicial_{att['id']}"
+                            file_name=att.get('original_name', att.get('original_filename', 'arquivo')),
+                            key=f"download_classif_inicial_{att.get('id', att.get('unique_name', idx))}"
                         )
     
     st.markdown("---")
@@ -2456,46 +2469,87 @@ def show_classificacao_inicial():
         
         with col_form1:
             classificacao = st.selectbox(
-                "📋 Classificação *",
-                options=FORM_DATA.CLASSIFICACOES,
-                key=f"classificacao_{notif_id}"
+                "📋 Classificação NNC *",
+                options=FORM_DATA.classificacao_nnc,
+                key=f"classificacao_{notif_id}",
+                help="Selecione o tipo de classificação principal do evento"
             )
             
-            nivel_dano = st.selectbox(
-                "⚠️ Nível de Dano *",
-                options=FORM_DATA.NIVEIS_DANO,
-                key=f"nivel_dano_{notif_id}"
-            )
+            # Mostrar nível de dano apenas se for "Evento com dano"
+            nivel_dano = None
+            if classificacao == "Evento com dano":
+                nivel_dano = st.selectbox(
+                    "⚠️ Nível de Dano *",
+                    options=FORM_DATA.niveis_dano,
+                    key=f"nivel_dano_{notif_id}",
+                    help="Selecione o nível de dano ao paciente"
+                )
             
             prioridade = st.selectbox(
                 "🎯 Prioridade *",
-                options=FORM_DATA.PRIORIDADES,
-                key=f"prioridade_{notif_id}"
+                options=FORM_DATA.prioridades,
+                key=f"prioridade_{notif_id}",
+                help="Defina a prioridade para investigação e resolução"
             )
         
         with col_form2:
             setor_responsavel = st.selectbox(
                 "🏢 Setor Responsável *",
                 options=FORM_DATA.SETORES,
-                key=f"setor_{notif_id}"
+                key=f"setor_{notif_id}",
+                help="Setor que deverá executar as ações corretivas"
             )
             
             never_event = st.selectbox(
-                "🚨 Never Event? *",
-                options=FORM_DATA.NEVER_EVENTS,
-                key=f"never_event_{notif_id}"
+                "🚨 Never Event *",
+                options=FORM_DATA.never_events + ["N/A"],
+                key=f"never_event_{notif_id}",
+                help="Selecione se o evento se enquadra como Never Event"
             )
             
-            tipo_evento = st.selectbox(
-                "📊 Tipo de Evento *",
-                options=FORM_DATA.TIPOS_EVENTO,
-                key=f"tipo_evento_{notif_id}"
+            evento_sentinela = st.selectbox(
+                "⚠️ Evento Sentinela? *",
+                options=["Sim", "Não"],
+                key=f"evento_sentinela_{notif_id}",
+                help="Indique se é um Evento Sentinela"
             )
+        
+        # Tipo de evento principal
+        tipo_evento_principal = st.selectbox(
+            "📊 Tipo Principal de Evento *",
+            options=list(FORM_DATA.tipos_evento_principal.keys()),
+            key=f"tipo_evento_{notif_id}",
+            help="Classificação do tipo principal de evento"
+        )
+        
+        # Subtipo (se aplicável)
+        tipo_evento_sub = []
+        if tipo_evento_principal in ["Clínico", "Não-clínico", "Ocupacional"]:
+            sub_options = FORM_DATA.tipos_evento_principal.get(tipo_evento_principal, [])
+            if sub_options:
+                tipo_evento_sub = st.multiselect(
+                    f"Especifique o Evento {tipo_evento_principal}:",
+                    options=sub_options,
+                    key=f"tipo_evento_sub_{notif_id}",
+                    help="Selecione as sub-categorias aplicáveis"
+                )
+        
+        # Selecionar executores
+        all_executors = get_users_by_role('executor')
+        executor_options = [f"{e['name']} ({e['username']})" for e in all_executors]
+        
+        executores_selecionados = st.multiselect(
+            "👥 Selecionar Executores *",
+            options=executor_options,
+            key=f"executores_{notif_id}",
+            help="Selecione os usuários que executarão as ações"
+        )
         
         observacoes_classificador = st.text_area(
             "📝 Observações do Classificador (opcional)",
             key=f"obs_classif_{notif_id}",
-            height=100
+            height=100,
+            placeholder="Adicione observações relevantes sobre a classificação..."
         )
         
         st.markdown("---")
@@ -2503,13 +2557,50 @@ def show_classificacao_inicial():
         
         if submitted:
             # Validação
-            if not all([classificacao, nivel_dano, prioridade, setor_responsavel, never_event, tipo_evento]):
+            if not classificacao or not prioridade or not setor_responsavel or not never_event or not tipo_evento_principal:
                 st.error("❌ Por favor, preencha todos os campos obrigatórios!")
                 return
             
+            if classificacao == "Evento com dano" and not nivel_dano:
+                st.error("❌ Nível de dano é obrigatório para eventos com dano!")
+                return
+            
+            if not executores_selecionados:
+                st.error("❌ Selecione pelo menos um executor!")
+                return
+            
+            # Converter nomes de executores para IDs
+            executor_name_to_id = {
+                f"{e['name']} ({e['username']})": e['id']
+                for e in all_executors
+            }
+            executor_ids = [executor_name_to_id[name] for name in executores_selecionados if name in executor_name_to_id]
+            
             # Calcular prazo baseado na classificação
-            deadline_days = DEADLINE_DAYS_MAPPING.get(classificacao, 30)
+            deadline_days = 0
+            if classificacao == "Evento com dano" and nivel_dano:
+                deadline_mapping = DEADLINE_DAYS_MAPPING.get("Evento com dano", {})
+                deadline_days = deadline_mapping.get(nivel_dano, 30)
+            else:
+                deadline_days = DEADLINE_DAYS_MAPPING.get(classificacao, 30)
+            
             prazo_conclusao = datetime.now() + timedelta(days=deadline_days)
+            
+            # Preparar dados de classificação para JSONB
+            classification_data = {
+                "nnc": classificacao,
+                "nivel_dano": nivel_dano if classificacao == "Evento com dano" else None,
+                "prioridade": prioridade,
+                "never_event": never_event,
+                "is_sentinel_event": evento_sentinela == "Sim",
+                "event_type_main": tipo_evento_principal,
+                "event_type_sub": tipo_evento_sub,
+                "responsible_sector": setor_responsavel,
+                "classifier_observations": observacoes_classificador,
+                "deadline": prazo_conclusao.isoformat(),
+                "classified_at": datetime.now().isoformat(),
+                "classified_by": st.session_state.user_id
+            }
             
             # Atualizar notificação no banco
             conn = get_db_connection()
@@ -2518,21 +2609,14 @@ def show_classificacao_inicial():
                 cursor.execute("""
                     UPDATE notifications SET
                         classification = %s,
-                        damage_level = %s,
-                        priority = %s,
-                        responsible_sector = %s,
-                        never_event = %s,
-                        event_type = %s,
-                        classifier_observations = %s,
-                        completion_deadline = %s,
+                        executors = %s,
                         status = 'classificada',
-                        classified_at = NOW(),
-                        classified_by = %s
+                        updated_at = NOW()
                     WHERE id = %s
                 """, (
-                    classificacao, nivel_dano, prioridade, setor_responsavel,
-                    never_event, tipo_evento, observacoes_classificador,
-                    prazo_conclusao, st.session_state.user_id, notif_id
+                    json.dumps(classification_data),
+                    executor_ids,
+                    notif_id
                 ))
                 
                 # Registrar no histórico
@@ -2552,6 +2636,7 @@ def show_classificacao_inicial():
                 st.error(f"❌ Erro ao salvar classificação: {str(e)}")
             finally:
                 conn.close()
+
 @st.fragment
 def show_revisao_execucao():
     """
@@ -2576,10 +2661,29 @@ def show_revisao_execucao():
     st.info(f"📋 **{len(review_notifications)} notificação(ões)** aguardando revisão de execução")
     
     # Seleção de notificação
-    notification_options = [
-        f"ID {n['id']} - {n.get('title', 'Sem título')} - {n.get('classification', 'Sem classificação')} ({n.get('executor_names', 'Sem executor')})"
-        for n in review_notifications
-    ]
+    notification_options = []
+    for n in review_notifications:
+        # Extrair classificação do JSONB
+        classification = n.get('classification', {})
+        if isinstance(classification, str):
+            classification = json.loads(classification)
+        
+        nnc = classification.get('nnc', 'Sem classificação')
+        
+        # Buscar nomes dos executores
+        executor_names = "Sem executor"
+        if n.get('executors'):
+            conn = get_db_connection()
+            try:
+                cursor = conn.cursor(cursor_factory=RealDictCursor)
+                cursor.execute("SELECT name FROM users WHERE id = ANY(%s)", (n['executors'],))
+                executors = cursor.fetchall()
+                if executors:
+                    executor_names = ", ".join([e['name'] for e in executors])
+            finally:
+                conn.close()
+        
+        notification_options.append(f"ID {n['id']} - {n.get('title', 'Sem título')} - {nnc} ({executor_names})")
     
     selected_index = st.selectbox(
         "🔍 Selecione a notificação para revisar:",
@@ -2591,6 +2695,11 @@ def show_revisao_execucao():
     selected_notification = review_notifications[selected_index]
     notif_id = selected_notification['id']
     
+    # Extrair dados de classificação
+    classification = selected_notification.get('classification', {})
+    if isinstance(classification, str):
+        classification = json.loads(classification)
+    
     st.markdown("---")
     
     # Detalhes da notificação
@@ -2599,9 +2708,9 @@ def show_revisao_execucao():
     with col1:
         st.markdown(f"### 📄 {selected_notification.get('title', 'Sem título')}")
         st.markdown(f"**Descrição:** {selected_notification.get('description', 'Sem descrição')}")
-        st.markdown(f"**Classificação:** `{selected_notification.get('classification', 'N/A')}`")
-        st.markdown(f"**Prioridade:** `{selected_notification.get('priority', 'N/A')}`")
-        st.markdown(f"**Setor Responsável:** {selected_notification.get('responsible_sector', 'N/A')}")
+        st.markdown(f"**Classificação:** `{classification.get('nnc', 'N/A')}`")
+        st.markdown(f"**Prioridade:** `{classification.get('prioridade', 'N/A')}`")
+        st.markdown(f"**Setor Responsável:** {classification.get('responsible_sector', 'N/A')}")
     
     with col2:
         st.markdown("**📊 Informações**")
@@ -2609,26 +2718,43 @@ def show_revisao_execucao():
         st.markdown(f"**Status:** `{selected_notification['status']}`")
         
         # Cálculo de prazo
-        if selected_notification.get('completion_deadline'):
-            prazo = selected_notification['completion_deadline']
-            dias_restantes = (prazo - datetime.now()).days
-            
-            if dias_restantes < 0:
-                status_prazo = "🔴 Atrasada"
-            elif dias_restantes <= 3:
-                status_prazo = "🟡 Prazo Próximo"
-            else:
-                status_prazo = "🟢 No Prazo"
-            
-            st.markdown(f"**Prazo:** {prazo.strftime('%d/%m/%Y')}")
-            st.markdown(f"**Situação:** {status_prazo}")
+        deadline_str = classification.get('deadline')
+        if deadline_str:
+            try:
+                prazo = datetime.fromisoformat(deadline_str)
+                dias_restantes = (prazo - datetime.now()).days
+                
+                if dias_restantes < 0:
+                    status_prazo = "🔴 Atrasada"
+                elif dias_restantes <= 3:
+                    status_prazo = "🟡 Prazo Próximo"
+                else:
+                    status_prazo = "🟢 No Prazo"
+                
+                st.markdown(f"**Prazo:** {prazo.strftime('%d/%m/%Y')}")
+                st.markdown(f"**Situação:** {status_prazo}")
+            except:
+                pass
     
     st.markdown("---")
     
     # Ações dos executores
     st.markdown("### 🔧 Ações Realizadas pelos Executores")
     
-    actions = get_notification_actions(notif_id)
+    # Buscar ações da tabela notification_actions
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("""
+            SELECT na.*, u.name as executor_name
+            FROM notification_actions na
+            LEFT JOIN users u ON na.user_id = u.id
+            WHERE na.notification_id = %s
+            ORDER BY na.created_at DESC
+        """, (notif_id,))
+        actions = cursor.fetchall()
+    finally:
+        conn.close()
     
     if not actions:
         st.warning("⚠️ Nenhuma ação registrada pelos executores ainda.")
@@ -2636,28 +2762,30 @@ def show_revisao_execucao():
         for idx, action in enumerate(actions, 1):
             with st.expander(f"📌 Ação {idx} - {action.get('executor_name', 'Executor desconhecido')} - {action['created_at'].strftime('%d/%m/%Y %H:%M')}"):
                 st.markdown(f"**Descrição da Ação:**")
-                st.markdown(action.get('description', 'Sem descrição'))
+                st.markdown(action.get('action_description', action.get('description', 'Sem descrição')))
                 
                 if action.get('evidence_description'):
                     st.markdown(f"**Evidências:**")
                     st.markdown(action['evidence_description'])
                 
+                # Anexos de evidência
                 if action.get('evidence_attachments'):
                     st.markdown("**📎 Anexos de Evidência:**")
-                    anexos = json.loads(action['evidence_attachments']) if isinstance(action['evidence_attachments'], str) else action['evidence_attachments']
+                    anexos = action['evidence_attachments']
+                    if isinstance(anexos, str):
+                        anexos = json.loads(anexos)
+                    
                     for anexo in anexos:
-                        file_path = os.path.join('attachments', anexo)
+                        file_info = anexo if isinstance(anexo, dict) else {'unique_name': anexo, 'original_name': anexo}
+                        file_path = os.path.join('attachments', file_info.get('unique_name', anexo))
                         if os.path.exists(file_path):
                             with open(file_path, 'rb') as f:
                                 st.download_button(
-                                    f"⬇️ {anexo}",
+                                    f"⬇️ {file_info.get('original_name', anexo)}",
                                     f,
-                                    file_name=anexo,
-                                    key=f"download_evidencia_{action['id']}_{anexo}"
+                                    file_name=file_info.get('original_name', anexo),
+                                    key=f"download_evidencia_{action['id']}_{file_info.get('unique_name', anexo)}"
                                 )
-                
-                if action.get('final_action'):
-                    st.success(f"✅ **Ação Final:** {action['final_action']}")
     
     st.markdown("---")
     st.markdown("## ✅ Revisão da Execução")
@@ -2667,21 +2795,23 @@ def show_revisao_execucao():
         decisao = st.radio(
             "📋 Decisão da Revisão *",
             options=["✅ Aprovar Execução", "🔄 Solicitar Correções"],
-            key=f"decisao_revisao_{notif_id}"
+            key=f"decisao_revisao_{notif_id}",
+            help="Aprovar envia para aprovação final. Solicitar correções retorna para execução."
         )
         
         observacoes_revisao = st.text_area(
             "📝 Observações da Revisão *",
             key=f"obs_revisao_{notif_id}",
             height=150,
-            help="Descreva sua análise da execução. Se solicitar correções, especifique o que precisa ser ajustado."
+            placeholder="Descreva sua análise da execução. Se solicitar correções, especifique o que precisa ser ajustado.",
+            help="Campo obrigatório"
         )
         
         st.markdown("---")
         submitted = st.form_submit_button("💾 Salvar Revisão", use_container_width=True, type="primary")
         
         if submitted:
-            if not observacoes_revisao:
+            if not observacoes_revisao.strip():
                 st.error("❌ Por favor, preencha as observações da revisão!")
                 return
             
@@ -2695,6 +2825,14 @@ def show_revisao_execucao():
                 acao_historico = "revisao_correcoes"
                 mensagem_sucesso = "🔄 Correções solicitadas! Notificação retornou para execução."
             
+            # Preparar dados de revisão
+            review_data = {
+                "decision": decisao,
+                "observations": observacoes_revisao,
+                "reviewed_at": datetime.now().isoformat(),
+                "reviewed_by": st.session_state.user_id
+            }
+            
             # Atualizar no banco
             conn = get_db_connection()
             try:
@@ -2702,11 +2840,10 @@ def show_revisao_execucao():
                 cursor.execute("""
                     UPDATE notifications SET
                         status = %s,
-                        classifier_review_observations = %s,
-                        reviewed_at = NOW(),
-                        reviewed_by = %s
+                        review_execution = %s,
+                        updated_at = NOW()
                     WHERE id = %s
-                """, (novo_status, observacoes_revisao, st.session_state.user_id, notif_id))
+                """, (novo_status, json.dumps(review_data), notif_id))
                 
                 # Registrar no histórico
                 add_notification_history(
