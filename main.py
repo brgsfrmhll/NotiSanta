@@ -2420,15 +2420,20 @@ def show_classificacao_inicial():
     
     st.markdown("---")
     
-    # Exibição dos detalhes da notificação
+    # EXIBIÇÃO COMPLETA DOS DETALHES DA NOTIFICAÇÃO
     col1, col2 = st.columns([2, 1])
     
     with col1:
         st.markdown(f"### 📄 {selected_notification.get('title', 'Sem título')}")
         st.markdown(f"**Descrição:** {selected_notification.get('description', 'Sem descrição')}")
+        
+        # Informações de localização e turno
+        st.markdown("---")
+        st.markdown("#### 📍 Localização e Contexto")
         st.markdown(f"**Local:** {selected_notification.get('location', 'Não informado')}")
         st.markdown(f"**Turno:** {selected_notification.get('event_shift', 'Não informado')}")
         
+        # Data e hora da ocorrência
         if selected_notification.get('occurrence_date'):
             occurrence_date_val = selected_notification['occurrence_date']
             if isinstance(occurrence_date_val, str):
@@ -2438,19 +2443,62 @@ def show_classificacao_inicial():
                     occurrence_date_val = None
             
             if occurrence_date_val:
-                st.markdown(f"**Data da Ocorrência:** {occurrence_date_val.strftime('%d/%m/%Y')}")
+                occurrence_time = selected_notification.get('occurrence_time', 'Não informado')
+                st.markdown(f"**Data da Ocorrência:** {occurrence_date_val.strftime('%d/%m/%Y')} às {occurrence_time}")
             else:
                 st.markdown(f"**Data da Ocorrência:** {UI_TEXTS.text_na}")
         
+        # Departamentos
+        st.markdown("---")
+        st.markdown("#### 🏥 Departamentos Envolvidos")
+        reporting_dept = selected_notification.get('reporting_department', 'Não informado')
+        reporting_complement = selected_notification.get('reporting_department_complement', '')
+        st.markdown(f"**Departamento Notificante:** {reporting_dept}")
+        if reporting_complement:
+            st.markdown(f"**Complemento:** {reporting_complement}")
+        
+        notified_dept = selected_notification.get('notified_department', 'Não informado')
+        notified_complement = selected_notification.get('notified_department_complement', '')
+        st.markdown(f"**Departamento Notificado:** {notified_dept}")
+        if notified_complement:
+            st.markdown(f"**Complemento:** {notified_complement}")
+        
+        # Ações imediatas
+        st.markdown("---")
+        st.markdown("#### ⚡ Ações Imediatas")
+        immediate_actions = selected_notification.get('immediate_actions_taken')
+        if immediate_actions:
+            st.markdown(f"**Ações Tomadas:** {immediate_actions}")
+            action_desc = selected_notification.get('immediate_action_description', '')
+            if action_desc:
+                st.markdown(f"**Descrição das Ações:** {action_desc}")
+        else:
+            st.markdown("**Ações Tomadas:** Nenhuma ação imediata registrada")
+        
+        # Informações do paciente
         if selected_notification.get('patient_involved'):
+            st.markdown("---")
+            st.markdown("#### 👤 Informações do Paciente")
             st.markdown(f"**Paciente Envolvido:** Sim")
             if selected_notification.get('patient_id'):
                 st.markdown(f"**Prontuário:** {selected_notification['patient_id']}")
+            
+            patient_outcome = selected_notification.get('patient_outcome_obito')
+            if patient_outcome:
+                st.markdown(f"**Desfecho:** {patient_outcome}")
+        
+        # Notas adicionais
+        additional_notes = selected_notification.get('additional_notes', '')
+        if additional_notes:
+            st.markdown("---")
+            st.markdown("#### 📝 Notas Adicionais")
+            st.markdown(additional_notes)
     
     with col2:
-        st.markdown("**📊 Informações**")
+        st.markdown("**📊 Informações do Sistema**")
         st.markdown(f"**ID:** {notif_id}")
         st.markdown(f"**Status:** `{selected_notification['status']}`")
+        
         created_at_val = selected_notification['created_at']
         if isinstance(created_at_val, str):
             try:
@@ -2458,6 +2506,16 @@ def show_classificacao_inicial():
             except ValueError:
                 pass
         st.markdown(f"**Criado em:** {created_at_val.strftime('%d/%m/%Y %H:%M')}")
+        
+        updated_at_val = selected_notification.get('updated_at')
+        if updated_at_val:
+            if isinstance(updated_at_val, str):
+                try:
+                    updated_at_val = datetime.fromisoformat(updated_at_val)
+                except ValueError:
+                    updated_at_val = None
+            if updated_at_val:
+                st.markdown(f"**Atualizado em:** {updated_at_val.strftime('%d/%m/%Y %H:%M')}")
         
         st.markdown(f"**Criado por:** {UI_TEXTS.text_na}")
     
@@ -2644,30 +2702,47 @@ def show_classificacao_inicial():
             tipo_evento_principal_final = st.session_state.get(tipo_evento_principal_key, UI_TEXTS.selectbox_default_tipo_principal)
             tipo_evento_sub_final = st.session_state.get(tipo_evento_sub_key, [])
             
-            # Validação
-            if classificacao_final == UI_TEXTS.selectbox_default_classificacao_nnc or \
-               prioridade == UI_TEXTS.selectbox_default_prioridade_resolucao or \
-               setor_notificante == UI_TEXTS.selectbox_default_department_select or \
-               setor_responsavel == UI_TEXTS.selectbox_default_department_select or \
-               never_event == UI_TEXTS.selectbox_never_event_na_text or \
-               evento_sentinela == UI_TEXTS.selectbox_default_evento_sentinela or \
-               tipo_evento_principal_final == UI_TEXTS.selectbox_default_tipo_principal:
-                st.error("❌ Por favor, preencha todos os campos obrigatórios!")
-                return
+            # VALIDAÇÃO DETALHADA COM NOME DOS CAMPOS
+            campos_faltantes = []
+            
+            if classificacao_final == UI_TEXTS.selectbox_default_classificacao_nnc:
+                campos_faltantes.append("📋 Classificação NNC")
             
             if classificacao_final == "Evento com dano" and (nivel_dano_final is None or nivel_dano_final == UI_TEXTS.selectbox_default_nivel_dano):
-                st.error("❌ Nível de dano é obrigatório para eventos com dano!")
-                return
+                campos_faltantes.append("⚠️ Nível de Dano")
+            
+            if tipo_evento_principal_final == UI_TEXTS.selectbox_default_tipo_principal:
+                campos_faltantes.append("📊 Tipo Principal de Evento")
             
             # Validação de subtipo - apenas se houver opções disponíveis
             if tipo_evento_principal_final != UI_TEXTS.selectbox_default_tipo_principal:
                 sub_options = FORM_DATA.tipos_evento_principal.get(tipo_evento_principal_final, [])
                 if sub_options and not tipo_evento_sub_final:
-                    st.error(f"❌ Selecione pelo menos uma especificação para o evento '{tipo_evento_principal_final}'!")
-                    return
+                    campos_faltantes.append(f"📊 Especifique o Evento {tipo_evento_principal_final}")
+            
+            if prioridade == UI_TEXTS.selectbox_default_prioridade_resolucao:
+                campos_faltantes.append("🎯 Prioridade")
+            
+            if never_event == UI_TEXTS.selectbox_never_event_na_text:
+                campos_faltantes.append("🚨 Never Event")
+            
+            if setor_notificante == UI_TEXTS.selectbox_default_department_select:
+                campos_faltantes.append("🏥 Setor Notificante")
+            
+            if setor_responsavel == UI_TEXTS.selectbox_default_department_select:
+                campos_faltantes.append("🏢 Setor Responsável")
+            
+            if evento_sentinela == UI_TEXTS.selectbox_default_evento_sentinela:
+                campos_faltantes.append("⚠️ Evento Sentinela")
             
             if not executores_selecionados:
-                st.error("❌ Selecione pelo menos um executor!")
+                campos_faltantes.append("👥 Executores Responsáveis")
+            
+            # Se houver campos faltantes, mostra erro detalhado
+            if campos_faltantes:
+                st.error("❌ **Os seguintes campos obrigatórios não foram preenchidos:**")
+                for campo in campos_faltantes:
+                    st.error(f"   • {campo}")
                 return
             
             # Converter nomes de executores para IDs
@@ -2712,12 +2787,28 @@ def show_classificacao_inicial():
             updated_notif = update_notification(notif_id, updated_notification_data)
 
             if updated_notif:
-                # Registrar no histórico
+                # Registrar no histórico com informações detalhadas
+                history_details = f"""Notificação classificada com sucesso.
+                
+**Classificação:**
+- NNC: {classificacao_final}
+{f'- Nível de Dano: {nivel_dano_final}' if nivel_dano_final else ''}
+- Prioridade: {prioridade}
+- Tipo Principal: {tipo_evento_principal_final}
+{f"- Subtipos: {', '.join(tipo_evento_sub_final)}" if tipo_evento_sub_final else ''}
+- Setor Notificante: {setor_notificante}
+- Setor Responsável: {setor_responsavel}
+- Never Event: {never_event if never_event != UI_TEXTS.selectbox_never_event_na_text else 'Não se aplica'}
+- Evento Sentinela: {evento_sentinela}
+- Prazo de Conclusão: {prazo_conclusao.strftime('%d/%m/%Y')}
+- Executores: {', '.join(executores_selecionados)}
+{f'- Observações: {observacoes_classificador}' if observacoes_classificador else ''}"""
+
                 add_history_entry(
                     notif_id,
                     'Classificação Inicial',
                     st.session_state.user_username,
-                    f"Notificação classificada. Status: {updated_notif.get('status')} | Prioridade: {prioridade}"
+                    history_details
                 )
                 
                 st.success(f"✅ Notificação classificada com sucesso! Prazo de conclusão: {prazo_conclusao.strftime('%d/%m/%Y')}")
@@ -2738,7 +2829,6 @@ def show_classificacao_inicial():
                 
             else:
                 st.error(f"❌ Erro ao salvar classificação.")
-
 @st_fragment
 def show_revisao_execucao():
     """
@@ -5271,6 +5361,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
