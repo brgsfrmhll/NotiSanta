@@ -3089,7 +3089,6 @@ def show_revisao_execucao():
                 
             else:
                 st.error(f"❌ Erro ao salvar revisão.")
-
 @st_fragment
 def show_notificacoes_encerradas():
     """
@@ -3226,6 +3225,20 @@ def show_notificacoes_encerradas():
         st.warning("⚠️ Nenhuma notificação encontrada com os filtros selecionados.")
         return
     
+    # FUNÇÃO AUXILIAR PARA CONVERTER PARA DATETIME
+    def to_datetime(value):
+        """Converte string ou datetime para datetime object"""
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value
+        if isinstance(value, str):
+            try:
+                return datetime.fromisoformat(value)
+            except (ValueError, TypeError):
+                return None
+        return None
+    
     df_data = []
     for n in filtered_notifications:
         status_icons = {
@@ -3236,16 +3249,15 @@ def show_notificacoes_encerradas():
         }
         status_icon = status_icons.get(n['status'], '❓')
         
+        # CORREÇÃO: Conversão segura de datas
         tempo_resolucao = "N/A"
-        if n.get('created_at') and n.get('updated_at'):
-            try:
-                created_dt = datetime.fromisoformat(n['created_at'])
-                updated_dt = datetime.fromisoformat(n['updated_at'])
-                delta = updated_dt - created_dt
-                dias = delta.days
-                tempo_resolucao = f"{dias} dia(s)"
-            except ValueError:
-                pass
+        created_dt = to_datetime(n.get('created_at'))
+        updated_dt = to_datetime(n.get('updated_at'))
+        
+        if created_dt and updated_dt:
+            delta = updated_dt - created_dt
+            dias = delta.days
+            tempo_resolucao = f"{dias} dia(s)"
         
         classification = n.get('classification')
         if classification is None:
@@ -3259,6 +3271,10 @@ def show_notificacoes_encerradas():
         if not isinstance(classification, dict):
             classification = {}
         
+        # Formatação segura de datas para exibição
+        created_str = created_dt.strftime('%d/%m/%Y') if created_dt else 'N/A'
+        updated_str = updated_dt.strftime('%d/%m/%Y') if updated_dt else 'N/A'
+        
         df_data.append({
             'ID': n['id'],
             'Status': f"{status_icon} {n['status']}",
@@ -3266,8 +3282,8 @@ def show_notificacoes_encerradas():
             'Classificação': classification.get('nnc', 'N/A'),
             'Prioridade': classification.get('prioridade', 'N/A'),
             'Setor': classification.get('responsible_sector', 'N/A'),
-            'Criado em': datetime.fromisoformat(n['created_at']).strftime('%d/%m/%Y') if n.get('created_at') else 'N/A',
-            'Encerrado em': datetime.fromisoformat(n['updated_at']).strftime('%d/%m/%Y') if n.get('updated_at') else 'N/A',
+            'Criado em': created_str,
+            'Encerrado em': updated_str,
             'Tempo': tempo_resolucao
         })
     
@@ -5364,6 +5380,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
