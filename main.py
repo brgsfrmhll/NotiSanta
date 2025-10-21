@@ -2501,14 +2501,16 @@ def show_classificacao_inicial():
                 help="Selecione o tipo de classificação principal do evento",
             )
             
+            # CORREÇÃO 1: Campo de nível de dano aparece corretamente
             nivel_dano = None
+            nivel_dano_key = f"nivel_dano_{notif_id}"
             if classificacao == "Evento com dano":
                 nivel_dano_options = [UI_TEXTS.selectbox_default_nivel_dano] + FORM_DATA.niveis_dano
                 nivel_dano = st.selectbox(
                     "⚠️ Nível de Dano *",
                     options=nivel_dano_options,
-                    index=nivel_dano_options.index(st.session_state.get(f"nivel_dano_{notif_id}", UI_TEXTS.selectbox_default_nivel_dano)) if st.session_state.get(f"nivel_dano_{notif_id}") in nivel_dano_options else 0,
-                    key=f"nivel_dano_{notif_id}",
+                    index=nivel_dano_options.index(st.session_state.get(nivel_dano_key, UI_TEXTS.selectbox_default_nivel_dano)) if st.session_state.get(nivel_dano_key) in nivel_dano_options else 0,
+                    key=nivel_dano_key,
                     help="Selecione o nível de dano ao paciente"
                 )
             
@@ -2522,6 +2524,16 @@ def show_classificacao_inicial():
             )
         
         with col_form2:
+            # CORREÇÃO 2: Adicionado campo de Setor Notificante
+            setor_notificante_options = [UI_TEXTS.selectbox_default_department_select] + FORM_DATA.SETORES
+            setor_notificante = st.selectbox(
+                "🏥 Setor Notificante *",
+                options=setor_notificante_options,
+                index=setor_notificante_options.index(st.session_state.get(f"setor_notificante_{notif_id}", UI_TEXTS.selectbox_default_department_select)) if st.session_state.get(f"setor_notificante_{notif_id}") in setor_notificante_options else 0,
+                key=f"setor_notificante_{notif_id}",
+                help="Setor que notificou o evento"
+            )
+            
             setor_options = [UI_TEXTS.selectbox_default_department_select] + FORM_DATA.SETORES
             setor_responsavel = st.selectbox(
                 "🏢 Setor Responsável *",
@@ -2566,25 +2578,28 @@ def show_classificacao_inicial():
             help="Classificação do tipo principal de evento"
         )
         
-        # Detectar mudança no tipo_evento_principal e limpar tipo_evento_sub (sem on_change)
+        # CORREÇÃO 3: Detectar mudança no tipo_evento_principal e limpar tipo_evento_sub
+        tipo_evento_sub_key = f"tipo_evento_sub_{notif_id}"
         if tipo_evento_principal != st.session_state[last_tipo_evento_principal_key]:
-            if tipo_evento_principal != UI_TEXTS.selectbox_default_tipo_principal: # Limpa apenas se uma seleção válida for feita
-                st.session_state[f"tipo_evento_sub_{notif_id}"] = [] # Limpa a seleção do subtipo
-            else: # Se voltou para o placeholder, limpa também
-                st.session_state[f"tipo_evento_sub_{notif_id}"] = []
-            st.session_state[last_tipo_evento_principal_key] = tipo_evento_principal # Atualiza a última seleção
+            # Limpa a seleção do subtipo quando o tipo principal muda
+            st.session_state[tipo_evento_sub_key] = []
+            st.session_state[last_tipo_evento_principal_key] = tipo_evento_principal
 
-
-        # Subtipo (se aplicável)
+        # Subtipo (se aplicável) - CORREÇÃO 3: Agora busca corretamente os subtipos
         tipo_evento_sub = []
         if tipo_evento_principal != UI_TEXTS.selectbox_default_tipo_principal and tipo_evento_principal in FORM_DATA.tipos_evento_principal:
             sub_options = FORM_DATA.tipos_evento_principal.get(tipo_evento_principal, [])
             if sub_options:
+                # Garante que o default seja uma lista vazia ou valores válidos
+                current_sub_values = st.session_state.get(tipo_evento_sub_key, [])
+                # Filtra apenas valores que ainda existem nas opções atuais
+                valid_defaults = [v for v in current_sub_values if v in sub_options]
+                
                 tipo_evento_sub = st.multiselect(
-                    f"Especifique o Evento {tipo_evento_principal}:",
+                    f"Especifique o Evento {tipo_evento_principal}: *",
                     options=sub_options,
-                    default=st.session_state.get(f"tipo_evento_sub_{notif_id}", []),
-                    key=f"tipo_evento_sub_{notif_id}",
+                    default=valid_defaults,
+                    key=tipo_evento_sub_key,
                     help="Selecione as sub-categorias aplicáveis"
                 )
         
@@ -2616,6 +2631,7 @@ def show_classificacao_inicial():
             # Validação
             if classificacao == UI_TEXTS.selectbox_default_classificacao_nnc or \
                prioridade == UI_TEXTS.selectbox_default_prioridade_resolucao or \
+               setor_notificante == UI_TEXTS.selectbox_default_department_select or \
                setor_responsavel == UI_TEXTS.selectbox_default_department_select or \
                never_event == UI_TEXTS.selectbox_never_event_na_text or \
                evento_sentinela == UI_TEXTS.selectbox_default_evento_sentinela or \
@@ -2626,6 +2642,13 @@ def show_classificacao_inicial():
             if classificacao == "Evento com dano" and (nivel_dano is None or nivel_dano == UI_TEXTS.selectbox_default_nivel_dano):
                 st.error("❌ Nível de dano é obrigatório para eventos com dano!")
                 return
+            
+            # Validação de subtipo
+            if tipo_evento_principal != UI_TEXTS.selectbox_default_tipo_principal:
+                sub_options = FORM_DATA.tipos_evento_principal.get(tipo_evento_principal, [])
+                if sub_options and not tipo_evento_sub:
+                    st.error(f"❌ Selecione pelo menos uma especificação para o evento {tipo_evento_principal}!")
+                    return
             
             if not executores_selecionados:
                 st.error("❌ Selecione pelo menos um executor!")
@@ -2657,6 +2680,7 @@ def show_classificacao_inicial():
                 "is_sentinel_event": evento_sentinela == "Sim",
                 "event_type_main": tipo_evento_principal,
                 "event_type_sub": tipo_evento_sub,
+                "notifying_sector": setor_notificante,
                 "responsible_sector": setor_responsavel,
                 "classifier_observations": observacoes_classificador,
                 "deadline": prazo_conclusao.isoformat(),
@@ -2683,17 +2707,18 @@ def show_classificacao_inicial():
                 st.success(f"✅ Notificação classificada com sucesso! Prazo de conclusão: {prazo_conclusao.strftime('%d/%m/%Y')}")
                 time_module.sleep(1.5)
                 # Limpa os estados do formulário para evitar que a próxima notificação "herde" os valores
-                st.session_state.pop(f"classificacao_{notif_id}", None)
-                st.session_state.pop(f"nivel_dano_{notif_id}", None)
+                st.session_state.pop(classificacao_key, None)
+                st.session_state.pop(nivel_dano_key, None)
                 st.session_state.pop(f"prioridade_{notif_id}", None)
+                st.session_state.pop(f"setor_notificante_{notif_id}", None)
                 st.session_state.pop(f"setor_{notif_id}", None)
                 st.session_state.pop(f"never_event_{notif_id}", None)
                 st.session_state.pop(f"evento_sentinela_{notif_id}", None)
-                st.session_state.pop(f"tipo_evento_{notif_id}", None)
-                st.session_state.pop(f"tipo_evento_sub_{notif_id}", None)
+                st.session_state.pop(tipo_evento_principal_key, None)
+                st.session_state.pop(tipo_evento_sub_key, None)
                 st.session_state.pop(f"executores_{notif_id}", None)
                 st.session_state.pop(f"obs_classif_{notif_id}", None)
-                st.session_state.pop(f"last_selected_{tipo_evento_principal_key}", None)
+                st.session_state.pop(last_tipo_evento_principal_key, None)
                 st.rerun()
                 
             else:
@@ -5231,3 +5256,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
