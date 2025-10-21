@@ -2486,34 +2486,87 @@ def show_classificacao_inicial():
     st.markdown("---")
     st.markdown("## 🏷️ Classificação da Notificação")
     
-    # Formulário de classificação
+    # CAMPOS FORA DO FORMULÁRIO PARA SEREM DINÂMICOS
+    col_pre1, col_pre2 = st.columns(2)
+    
+    with col_pre1:
+        classif_options = [UI_TEXTS.selectbox_default_classificacao_nnc] + FORM_DATA.classificacao_nnc
+        classificacao_key = f"classificacao_{notif_id}"
+        classificacao = st.selectbox(
+            "📋 Classificação NNC *",
+            options=classif_options,
+            index=classif_options.index(st.session_state.get(classificacao_key, UI_TEXTS.selectbox_default_classificacao_nnc)) if st.session_state.get(classificacao_key) in classif_options else 0,
+            key=classificacao_key,
+            help="Selecione o tipo de classificação principal do evento",
+        )
+    
+    with col_pre2:
+        # Campo de nível de dano - AGORA DINÂMICO
+        nivel_dano = None
+        nivel_dano_key = f"nivel_dano_{notif_id}"
+        if classificacao == "Evento com dano":
+            nivel_dano_options = [UI_TEXTS.selectbox_default_nivel_dano] + FORM_DATA.niveis_dano
+            nivel_dano = st.selectbox(
+                "⚠️ Nível de Dano *",
+                options=nivel_dano_options,
+                index=nivel_dano_options.index(st.session_state.get(nivel_dano_key, UI_TEXTS.selectbox_default_nivel_dano)) if st.session_state.get(nivel_dano_key) in nivel_dano_options else 0,
+                key=nivel_dano_key,
+                help="Selecione o nível de dano ao paciente"
+            )
+        else:
+            # Limpa o valor se não for "Evento com dano"
+            if nivel_dano_key in st.session_state:
+                st.session_state[nivel_dano_key] = UI_TEXTS.selectbox_default_nivel_dano
+    
+    # Tipo de evento principal - FORA DO FORMULÁRIO PARA SER DINÂMICO
+    st.markdown("---")
+    st.markdown("### 📊 Classificação do Tipo de Evento")
+    
+    tipo_evento_principal_options = [UI_TEXTS.selectbox_default_tipo_principal] + list(FORM_DATA.tipos_evento_principal.keys())
+    tipo_evento_principal_key = f"tipo_evento_{notif_id}"
+    
+    tipo_evento_principal = st.selectbox(
+        "Tipo Principal de Evento *",
+        options=tipo_evento_principal_options,
+        index=tipo_evento_principal_options.index(st.session_state.get(tipo_evento_principal_key, UI_TEXTS.selectbox_default_tipo_principal)) if st.session_state.get(tipo_evento_principal_key) in tipo_evento_principal_options else 0,
+        key=tipo_evento_principal_key,
+        help="Classificação do tipo principal de evento"
+    )
+    
+    # Subtipo - AGORA DINÂMICO
+    tipo_evento_sub = []
+    tipo_evento_sub_key = f"tipo_evento_sub_{notif_id}"
+    
+    if tipo_evento_principal and tipo_evento_principal != UI_TEXTS.selectbox_default_tipo_principal:
+        sub_options = FORM_DATA.tipos_evento_principal.get(tipo_evento_principal, [])
+        
+        if sub_options:
+            saved_sub_values = st.session_state.get(tipo_evento_sub_key, [])
+            valid_defaults = [v for v in saved_sub_values if v in sub_options]
+            
+            tipo_evento_sub = st.multiselect(
+                f"Especifique o Evento {tipo_evento_principal}: *",
+                options=sub_options,
+                default=valid_defaults,
+                key=tipo_evento_sub_key,
+                help=f"Selecione uma ou mais sub-categorias de {tipo_evento_principal}"
+            )
+        else:
+            st.info(f"ℹ️ Não há especificações adicionais para '{tipo_evento_principal}'")
+            if tipo_evento_sub_key in st.session_state:
+                st.session_state[tipo_evento_sub_key] = []
+    else:
+        # Limpa subtipos se não houver tipo principal selecionado
+        if tipo_evento_sub_key in st.session_state:
+            st.session_state[tipo_evento_sub_key] = []
+    
+    st.markdown("---")
+    
+    # Formulário com os campos restantes (não dinâmicos)
     with st.form(key=f"form_classif_inicial_{notif_id}"):
         col_form1, col_form2 = st.columns(2)
         
         with col_form1:
-            classif_options = [UI_TEXTS.selectbox_default_classificacao_nnc] + FORM_DATA.classificacao_nnc
-            classificacao_key = f"classificacao_{notif_id}"
-            classificacao = st.selectbox(
-                "📋 Classificação NNC *",
-                options=classif_options,
-                index=classif_options.index(st.session_state.get(classificacao_key, UI_TEXTS.selectbox_default_classificacao_nnc)) if st.session_state.get(classificacao_key) in classif_options else 0,
-                key=classificacao_key,
-                help="Selecione o tipo de classificação principal do evento",
-            )
-            
-            # Campo de nível de dano
-            nivel_dano = None
-            nivel_dano_key = f"nivel_dano_{notif_id}"
-            if classificacao == "Evento com dano":
-                nivel_dano_options = [UI_TEXTS.selectbox_default_nivel_dano] + FORM_DATA.niveis_dano
-                nivel_dano = st.selectbox(
-                    "⚠️ Nível de Dano *",
-                    options=nivel_dano_options,
-                    index=nivel_dano_options.index(st.session_state.get(nivel_dano_key, UI_TEXTS.selectbox_default_nivel_dano)) if st.session_state.get(nivel_dano_key) in nivel_dano_options else 0,
-                    key=nivel_dano_key,
-                    help="Selecione o nível de dano ao paciente"
-                )
-            
             prioridade_options = [UI_TEXTS.selectbox_default_prioridade_resolucao] + FORM_DATA.prioridades
             prioridade = st.selectbox(
                 "🎯 Prioridade *",
@@ -2522,9 +2575,17 @@ def show_classificacao_inicial():
                 key=f"prioridade_{notif_id}",
                 help="Defina a prioridade para investigação e resolução"
             )
+            
+            never_event_options = [UI_TEXTS.selectbox_never_event_na_text] + FORM_DATA.never_events
+            never_event = st.selectbox(
+                "🚨 Never Event *",
+                options=never_event_options,
+                index=never_event_options.index(st.session_state.get(f"never_event_{notif_id}", UI_TEXTS.selectbox_never_event_na_text)) if st.session_state.get(f"never_event_{notif_id}") in never_event_options else 0,
+                key=f"never_event_{notif_id}",
+                help="Selecione se o evento se enquadra como Never Event"
+            )
         
         with col_form2:
-            # Campo de Setor Notificante
             setor_notificante_options = [UI_TEXTS.selectbox_default_department_select] + FORM_DATA.SETORES
             setor_notificante = st.selectbox(
                 "🏥 Setor Notificante *",
@@ -2542,69 +2603,15 @@ def show_classificacao_inicial():
                 key=f"setor_{notif_id}",
                 help="Setor que deverá executar as ações corretivas"
             )
-            
-            never_event_options = [UI_TEXTS.selectbox_never_event_na_text] + FORM_DATA.never_events
-            never_event = st.selectbox(
-                "🚨 Never Event *",
-                options=never_event_options,
-                index=never_event_options.index(st.session_state.get(f"never_event_{notif_id}", UI_TEXTS.selectbox_never_event_na_text)) if st.session_state.get(f"never_event_{notif_id}") in never_event_options else 0,
-                key=f"never_event_{notif_id}",
-                help="Selecione se o evento se enquadra como Never Event"
-            )
-            
-            evento_sentinela_options = [UI_TEXTS.selectbox_default_evento_sentinela, "Sim", "Não"]
-            evento_sentinela = st.selectbox(
-                "⚠️ Evento Sentinela? *",
-                options=evento_sentinela_options,
-                index=evento_sentinela_options.index(st.session_state.get(f"evento_sentinela_{notif_id}", UI_TEXTS.selectbox_default_evento_sentinela)) if st.session_state.get(f"evento_sentinela_{notif_id}") in evento_sentinela_options else 0,
-                key=f"evento_sentinela_{notif_id}",
-                help="Indique se é um Evento Sentinela"
-            )
         
-        # CORREÇÃO CRÍTICA: Tipo de evento principal e subtipos
-        st.markdown("---")
-        st.markdown("### 📊 Classificação do Tipo de Evento")
-        
-        tipo_evento_principal_options = [UI_TEXTS.selectbox_default_tipo_principal] + list(FORM_DATA.tipos_evento_principal.keys())
-        tipo_evento_principal_key = f"tipo_evento_{notif_id}"
-        
-        tipo_evento_principal = st.selectbox(
-            "Tipo Principal de Evento *",
-            options=tipo_evento_principal_options,
-            key=tipo_evento_principal_key,
-            help="Classificação do tipo principal de evento"
+        evento_sentinela_options = [UI_TEXTS.selectbox_default_evento_sentinela, "Sim", "Não"]
+        evento_sentinela = st.selectbox(
+            "⚠️ Evento Sentinela? *",
+            options=evento_sentinela_options,
+            index=evento_sentinela_options.index(st.session_state.get(f"evento_sentinela_{notif_id}", UI_TEXTS.selectbox_default_evento_sentinela)) if st.session_state.get(f"evento_sentinela_{notif_id}") in evento_sentinela_options else 0,
+            key=f"evento_sentinela_{notif_id}",
+            help="Indique se é um Evento Sentinela"
         )
-        
-        # Subtipo (se aplicável) - RENDERIZAÇÃO DINÂMICA CORRIGIDA
-        tipo_evento_sub = []
-        tipo_evento_sub_key = f"tipo_evento_sub_{notif_id}"
-        
-        # Verifica se há subtipos disponíveis para o tipo principal selecionado
-        if tipo_evento_principal and tipo_evento_principal != UI_TEXTS.selectbox_default_tipo_principal:
-            sub_options = FORM_DATA.tipos_evento_principal.get(tipo_evento_principal, [])
-            
-            if sub_options:  # Se existem subtipos para este tipo principal
-                # Obtém os valores salvos anteriormente
-                saved_sub_values = st.session_state.get(tipo_evento_sub_key, [])
-                
-                # Filtra apenas valores válidos para as opções atuais
-                valid_defaults = [v for v in saved_sub_values if v in sub_options]
-                
-                tipo_evento_sub = st.multiselect(
-                    f"Especifique o Evento {tipo_evento_principal}: *",
-                    options=sub_options,
-                    default=valid_defaults,
-                    key=tipo_evento_sub_key,
-                    help=f"Selecione uma ou mais sub-categorias de {tipo_evento_principal}"
-                )
-            else:
-                # Se não há subtipos, mostra mensagem informativa
-                st.info(f"ℹ️ Não há especificações adicionais para '{tipo_evento_principal}'")
-                # Limpa qualquer valor anterior
-                if tipo_evento_sub_key in st.session_state:
-                    st.session_state[tipo_evento_sub_key] = []
-        
-        st.markdown("---")
         
         # Selecionar executores
         all_executors = get_users_by_role('executor')
@@ -2631,26 +2638,32 @@ def show_classificacao_inicial():
         submitted = st.form_submit_button("✅ Salvar Classificação", use_container_width=True, type="primary")
         
         if submitted:
+            # Pega os valores dos campos fora do formulário
+            classificacao_final = st.session_state.get(classificacao_key, UI_TEXTS.selectbox_default_classificacao_nnc)
+            nivel_dano_final = st.session_state.get(nivel_dano_key, UI_TEXTS.selectbox_default_nivel_dano) if classificacao_final == "Evento com dano" else None
+            tipo_evento_principal_final = st.session_state.get(tipo_evento_principal_key, UI_TEXTS.selectbox_default_tipo_principal)
+            tipo_evento_sub_final = st.session_state.get(tipo_evento_sub_key, [])
+            
             # Validação
-            if classificacao == UI_TEXTS.selectbox_default_classificacao_nnc or \
+            if classificacao_final == UI_TEXTS.selectbox_default_classificacao_nnc or \
                prioridade == UI_TEXTS.selectbox_default_prioridade_resolucao or \
                setor_notificante == UI_TEXTS.selectbox_default_department_select or \
                setor_responsavel == UI_TEXTS.selectbox_default_department_select or \
                never_event == UI_TEXTS.selectbox_never_event_na_text or \
                evento_sentinela == UI_TEXTS.selectbox_default_evento_sentinela or \
-               tipo_evento_principal == UI_TEXTS.selectbox_default_tipo_principal:
+               tipo_evento_principal_final == UI_TEXTS.selectbox_default_tipo_principal:
                 st.error("❌ Por favor, preencha todos os campos obrigatórios!")
                 return
             
-            if classificacao == "Evento com dano" and (nivel_dano is None or nivel_dano == UI_TEXTS.selectbox_default_nivel_dano):
+            if classificacao_final == "Evento com dano" and (nivel_dano_final is None or nivel_dano_final == UI_TEXTS.selectbox_default_nivel_dano):
                 st.error("❌ Nível de dano é obrigatório para eventos com dano!")
                 return
             
             # Validação de subtipo - apenas se houver opções disponíveis
-            if tipo_evento_principal != UI_TEXTS.selectbox_default_tipo_principal:
-                sub_options = FORM_DATA.tipos_evento_principal.get(tipo_evento_principal, [])
-                if sub_options and not tipo_evento_sub:
-                    st.error(f"❌ Selecione pelo menos uma especificação para o evento '{tipo_evento_principal}'!")
+            if tipo_evento_principal_final != UI_TEXTS.selectbox_default_tipo_principal:
+                sub_options = FORM_DATA.tipos_evento_principal.get(tipo_evento_principal_final, [])
+                if sub_options and not tipo_evento_sub_final:
+                    st.error(f"❌ Selecione pelo menos uma especificação para o evento '{tipo_evento_principal_final}'!")
                     return
             
             if not executores_selecionados:
@@ -2666,23 +2679,23 @@ def show_classificacao_inicial():
 
             # Calcular prazo baseado na classificação
             deadline_days = 0
-            if classificacao == "Evento com dano" and nivel_dano and nivel_dano != UI_TEXTS.selectbox_default_nivel_dano:
+            if classificacao_final == "Evento com dano" and nivel_dano_final and nivel_dano_final != UI_TEXTS.selectbox_default_nivel_dano:
                 deadline_mapping = DEADLINE_DAYS_MAPPING.get("Evento com dano", {})
-                deadline_days = deadline_mapping.get(nivel_dano, 30)
+                deadline_days = deadline_mapping.get(nivel_dano_final, 30)
             else:
-                deadline_days = DEADLINE_DAYS_MAPPING.get(classificacao, 30)
+                deadline_days = DEADLINE_DAYS_MAPPING.get(classificacao_final, 30)
             
             prazo_conclusao = datetime.now() + timedelta(days=deadline_days)
             
             # Preparar dados de classificação para JSONB
             classification_data = {
-                "nnc": classificacao,
-                "nivel_dano": nivel_dano if classificacao == "Evento com dano" and nivel_dano != UI_TEXTS.selectbox_default_nivel_dano else None,
+                "nnc": classificacao_final,
+                "nivel_dano": nivel_dano_final if classificacao_final == "Evento com dano" and nivel_dano_final != UI_TEXTS.selectbox_default_nivel_dano else None,
                 "prioridade": prioridade,
                 "never_event": never_event if never_event != UI_TEXTS.selectbox_never_event_na_text else None,
                 "is_sentinel_event": evento_sentinela == "Sim",
-                "event_type_main": tipo_evento_principal,
-                "event_type_sub": tipo_evento_sub if tipo_evento_sub else [],
+                "event_type_main": tipo_evento_principal_final,
+                "event_type_sub": tipo_evento_sub_final if tipo_evento_sub_final else [],
                 "notifying_sector": setor_notificante,
                 "responsible_sector": setor_responsavel,
                 "classifier_observations": observacoes_classificador,
@@ -5258,5 +5271,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
