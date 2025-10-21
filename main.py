@@ -2501,7 +2501,7 @@ def show_classificacao_inicial():
                 help="Selecione o tipo de classificação principal do evento",
             )
             
-            # CORREÇÃO 1: Campo de nível de dano aparece corretamente
+            # Campo de nível de dano
             nivel_dano = None
             nivel_dano_key = f"nivel_dano_{notif_id}"
             if classificacao == "Evento com dano":
@@ -2524,7 +2524,7 @@ def show_classificacao_inicial():
             )
         
         with col_form2:
-            # CORREÇÃO 2: Adicionado campo de Setor Notificante
+            # Campo de Setor Notificante
             setor_notificante_options = [UI_TEXTS.selectbox_default_department_select] + FORM_DATA.SETORES
             setor_notificante = st.selectbox(
                 "🏥 Setor Notificante *",
@@ -2561,47 +2561,50 @@ def show_classificacao_inicial():
                 help="Indique se é um Evento Sentinela"
             )
         
-        # Tipo de evento principal
+        # CORREÇÃO CRÍTICA: Tipo de evento principal e subtipos
+        st.markdown("---")
+        st.markdown("### 📊 Classificação do Tipo de Evento")
+        
         tipo_evento_principal_options = [UI_TEXTS.selectbox_default_tipo_principal] + list(FORM_DATA.tipos_evento_principal.keys())
         tipo_evento_principal_key = f"tipo_evento_{notif_id}"
         
-        # Guardar o valor anterior do tipo principal para detectar mudanças
-        last_tipo_evento_principal_key = f"last_selected_{tipo_evento_principal_key}"
-        if last_tipo_evento_principal_key not in st.session_state:
-            st.session_state[last_tipo_evento_principal_key] = UI_TEXTS.selectbox_default_tipo_principal
-
         tipo_evento_principal = st.selectbox(
-            "📊 Tipo Principal de Evento *",
+            "Tipo Principal de Evento *",
             options=tipo_evento_principal_options,
-            index=tipo_evento_principal_options.index(st.session_state.get(tipo_evento_principal_key, UI_TEXTS.selectbox_default_tipo_principal)) if st.session_state.get(tipo_evento_principal_key) in tipo_evento_principal_options else 0,
             key=tipo_evento_principal_key,
             help="Classificação do tipo principal de evento"
         )
         
-        # CORREÇÃO 3: Detectar mudança no tipo_evento_principal e limpar tipo_evento_sub
-        tipo_evento_sub_key = f"tipo_evento_sub_{notif_id}"
-        if tipo_evento_principal != st.session_state[last_tipo_evento_principal_key]:
-            # Limpa a seleção do subtipo quando o tipo principal muda
-            st.session_state[tipo_evento_sub_key] = []
-            st.session_state[last_tipo_evento_principal_key] = tipo_evento_principal
-
-        # Subtipo (se aplicável) - CORREÇÃO 3: Agora busca corretamente os subtipos
+        # Subtipo (se aplicável) - RENDERIZAÇÃO DINÂMICA CORRIGIDA
         tipo_evento_sub = []
-        if tipo_evento_principal != UI_TEXTS.selectbox_default_tipo_principal and tipo_evento_principal in FORM_DATA.tipos_evento_principal:
+        tipo_evento_sub_key = f"tipo_evento_sub_{notif_id}"
+        
+        # Verifica se há subtipos disponíveis para o tipo principal selecionado
+        if tipo_evento_principal and tipo_evento_principal != UI_TEXTS.selectbox_default_tipo_principal:
             sub_options = FORM_DATA.tipos_evento_principal.get(tipo_evento_principal, [])
-            if sub_options:
-                # Garante que o default seja uma lista vazia ou valores válidos
-                current_sub_values = st.session_state.get(tipo_evento_sub_key, [])
-                # Filtra apenas valores que ainda existem nas opções atuais
-                valid_defaults = [v for v in current_sub_values if v in sub_options]
+            
+            if sub_options:  # Se existem subtipos para este tipo principal
+                # Obtém os valores salvos anteriormente
+                saved_sub_values = st.session_state.get(tipo_evento_sub_key, [])
+                
+                # Filtra apenas valores válidos para as opções atuais
+                valid_defaults = [v for v in saved_sub_values if v in sub_options]
                 
                 tipo_evento_sub = st.multiselect(
                     f"Especifique o Evento {tipo_evento_principal}: *",
                     options=sub_options,
                     default=valid_defaults,
                     key=tipo_evento_sub_key,
-                    help="Selecione as sub-categorias aplicáveis"
+                    help=f"Selecione uma ou mais sub-categorias de {tipo_evento_principal}"
                 )
+            else:
+                # Se não há subtipos, mostra mensagem informativa
+                st.info(f"ℹ️ Não há especificações adicionais para '{tipo_evento_principal}'")
+                # Limpa qualquer valor anterior
+                if tipo_evento_sub_key in st.session_state:
+                    st.session_state[tipo_evento_sub_key] = []
+        
+        st.markdown("---")
         
         # Selecionar executores
         all_executors = get_users_by_role('executor')
@@ -2643,11 +2646,11 @@ def show_classificacao_inicial():
                 st.error("❌ Nível de dano é obrigatório para eventos com dano!")
                 return
             
-            # Validação de subtipo
+            # Validação de subtipo - apenas se houver opções disponíveis
             if tipo_evento_principal != UI_TEXTS.selectbox_default_tipo_principal:
                 sub_options = FORM_DATA.tipos_evento_principal.get(tipo_evento_principal, [])
                 if sub_options and not tipo_evento_sub:
-                    st.error(f"❌ Selecione pelo menos uma especificação para o evento {tipo_evento_principal}!")
+                    st.error(f"❌ Selecione pelo menos uma especificação para o evento '{tipo_evento_principal}'!")
                     return
             
             if not executores_selecionados:
@@ -2679,7 +2682,7 @@ def show_classificacao_inicial():
                 "never_event": never_event if never_event != UI_TEXTS.selectbox_never_event_na_text else None,
                 "is_sentinel_event": evento_sentinela == "Sim",
                 "event_type_main": tipo_evento_principal,
-                "event_type_sub": tipo_evento_sub,
+                "event_type_sub": tipo_evento_sub if tipo_evento_sub else [],
                 "notifying_sector": setor_notificante,
                 "responsible_sector": setor_responsavel,
                 "classifier_observations": observacoes_classificador,
@@ -2706,7 +2709,7 @@ def show_classificacao_inicial():
                 
                 st.success(f"✅ Notificação classificada com sucesso! Prazo de conclusão: {prazo_conclusao.strftime('%d/%m/%Y')}")
                 time_module.sleep(1.5)
-                # Limpa os estados do formulário para evitar que a próxima notificação "herde" os valores
+                # Limpa os estados do formulário
                 st.session_state.pop(classificacao_key, None)
                 st.session_state.pop(nivel_dano_key, None)
                 st.session_state.pop(f"prioridade_{notif_id}", None)
@@ -2718,7 +2721,6 @@ def show_classificacao_inicial():
                 st.session_state.pop(tipo_evento_sub_key, None)
                 st.session_state.pop(f"executores_{notif_id}", None)
                 st.session_state.pop(f"obs_classif_{notif_id}", None)
-                st.session_state.pop(last_tipo_evento_principal_key, None)
                 st.rerun()
                 
             else:
@@ -5256,4 +5258,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
