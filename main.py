@@ -2385,15 +2385,25 @@ def show_classificacao_inicial():
     
     st.info(f"📋 **{len(pending_notifications)} notificação(ões)** aguardando classificação inicial")
     
-    notification_options = [
-        f"ID {n['id']} - {n.get('title', 'Sem título')} ({datetime.fromisoformat(n['created_at']).strftime('%d/%m/%Y %H:%M')})"
-        for n in pending_notifications
-    ]
+    # Seleção de notificação
+    notification_options = []
+    for n in pending_notifications:
+        # CORREÇÃO: Garante que 'created_at' é um objeto datetime antes de formatar
+        created_at_dt = n['created_at']
+        if isinstance(created_at_dt, str):
+            try:
+                created_at_dt = datetime.fromisoformat(created_at_dt)
+            except ValueError:
+                pass # Em caso de erro, usa o string original ou N/A
+        
+        created_at_formatted = created_at_dt.strftime('%d/%m/%Y %H:%M') if isinstance(created_at_dt, datetime) else str(created_at_dt)
+        notification_options.append(f"ID {n['id']} - {n.get('title', 'Sem título')} ({created_at_formatted})")
     
     selected_index_key = "classif_inicial_select"
-    if selected_index_key not in st.session_state or st.session_state[selected_index_key] >= len(notification_options):
-        st.session_state[selected_index_key] = 0
-
+    # Adicionando verificação para garantir que o índice seja válido após a filtragem/carregamento
+    if selected_index_key not in st.session_state or st.session_state[selected_index_key] >= len(notification_options) or st.session_state[selected_index_key] < 0:
+        st.session_state[selected_index_key] = 0 # Define o primeiro item como padrão
+    
     selected_index = st.selectbox(
         "🔍 Selecione a notificação para classificar:",
         range(len(notification_options)),
@@ -2406,6 +2416,7 @@ def show_classificacao_inicial():
     
     st.markdown("---")
     
+    # Exibição dos detalhes da notificação
     col1, col2 = st.columns([2, 1])
     
     with col1:
@@ -2415,10 +2426,18 @@ def show_classificacao_inicial():
         st.markdown(f"**Turno:** {selected_notification.get('event_shift', 'Não informado')}")
         
         if selected_notification.get('occurrence_date'):
+            # Garante que occurrence_date é um objeto date
             occurrence_date_val = selected_notification['occurrence_date']
             if isinstance(occurrence_date_val, str):
-                occurrence_date_val = dt_date_class.fromisoformat(occurrence_date_val)
-            st.markdown(f"**Data da Ocorrência:** {occurrence_date_val.strftime('%d/%m/%Y')}")
+                try:
+                    occurrence_date_val = dt_date_class.fromisoformat(occurrence_date_val)
+                except ValueError:
+                    occurrence_date_val = None # Lidar com strings mal-formatadas
+            
+            if occurrence_date_val:
+                st.markdown(f"**Data da Ocorrência:** {occurrence_date_val.strftime('%d/%m/%Y')}")
+            else:
+                st.markdown(f"**Data da Ocorrência:** {UI_TEXTS.text_na}")
         
         if selected_notification.get('patient_involved'):
             st.markdown(f"**Paciente Envolvido:** Sim")
@@ -2429,13 +2448,18 @@ def show_classificacao_inicial():
         st.markdown("**📊 Informações**")
         st.markdown(f"**ID:** {notif_id}")
         st.markdown(f"**Status:** `{selected_notification['status']}`")
+        # created_at já é um objeto datetime
         created_at_val = selected_notification['created_at']
-        if isinstance(created_at_val, str):
-            created_at_val = datetime.fromisoformat(created_at_val)
+        if isinstance(created_at_val, str): # Verificação de segurança adicional
+            try:
+                created_at_val = datetime.fromisoformat(created_at_val)
+            except ValueError:
+                pass
         st.markdown(f"**Criado em:** {created_at_val.strftime('%d/%m/%Y %H:%M')}")
         
         st.markdown(f"**Criado por:** {UI_TEXTS.text_na}")
     
+    # Anexos
     attachments = get_notification_attachments(notif_id)
     if attachments:
         st.markdown("---")
@@ -2460,6 +2484,7 @@ def show_classificacao_inicial():
     st.markdown("---")
     st.markdown("## 🏷️ Classificação da Notificação")
     
+    # Formulário de classificação
     with st.form(key=f"form_classif_inicial_{notif_id}"):
         col_form1, col_form2 = st.columns(2)
         
@@ -2473,6 +2498,7 @@ def show_classificacao_inicial():
                 help="Selecione o tipo de classificação principal do evento",
             )
             
+            # Mostrar nível de dano apenas se for "Evento com dano"
             nivel_dano = None
             if classificacao == "Evento com dano":
                 nivel_dano_options = [UI_TEXTS.selectbox_default_nivel_dano] + FORM_DATA.niveis_dano
@@ -2521,16 +2547,19 @@ def show_classificacao_inicial():
                 help="Indique se é um Evento Sentinela"
             )
         
+        # Tipo de evento principal
         tipo_evento_principal_options = [UI_TEXTS.selectbox_default_tipo_principal] + list(FORM_DATA.tipos_evento_principal.keys())
+        tipo_evento_principal_key = f"tipo_evento_{notif_id}"
         tipo_evento_principal = st.selectbox(
             "📊 Tipo Principal de Evento *",
             options=tipo_evento_principal_options,
-            index=tipo_evento_principal_options.index(st.session_state.get(f"tipo_evento_{notif_id}", UI_TEXTS.selectbox_default_tipo_principal)) if st.session_state.get(f"tipo_evento_{notif_id}") in tipo_evento_principal_options else 0,
-            key=f"tipo_evento_{notif_id}",
+            index=tipo_evento_principal_options.index(st.session_state.get(tipo_evento_principal_key, UI_TEXTS.selectbox_default_tipo_principal)) if st.session_state.get(tipo_evento_principal_key) in tipo_evento_principal_options else 0,
+            key=tipo_evento_principal_key,
             help="Classificação do tipo principal de evento",
-            on_change=lambda: st.session_state.pop(f"tipo_evento_sub_{notif_id}", None)
+            on_change=lambda: st.session_state.pop(f"tipo_evento_sub_{notif_id}", None) # Limpa o sub-tipo ao mudar o tipo principal
         )
         
+        # Subtipo (se aplicável)
         tipo_evento_sub = []
         if tipo_evento_principal != UI_TEXTS.selectbox_default_tipo_principal and tipo_evento_principal in FORM_DATA.tipos_evento_principal:
             sub_options = FORM_DATA.tipos_evento_principal.get(tipo_evento_principal, [])
@@ -2538,28 +2567,29 @@ def show_classificacao_inicial():
                 tipo_evento_sub = st.multiselect(
                     f"Especifique o Evento {tipo_evento_principal}:",
                     options=sub_options,
-                    default=st.session_state.get(f"tipo_evento_sub_{notif_id}", []),
+                    default=st.session_state.get(f"tipo_evento_sub_{notif_id}", []), # Puxa o default do session_state
                     key=f"tipo_evento_sub_{notif_id}",
                     help="Selecione as sub-categorias aplicáveis"
                 )
         
+        # Selecionar executores
         all_executors = get_users_by_role('executor')
         executor_options = [f"{e['name']} ({e['username']})" for e in all_executors]
         
         executores_selecionados = st.multiselect(
             "👥 Atribuir Executores Responsáveis: *",
             options=executor_options,
-            default=st.session_state.get(f"executores_{notif_id}", []),
+            default=st.session_state.get(f"executores_{notif_id}", []), # Default do session_state
             key=f"executores_{notif_id}",
             help="Selecione os usuários que executarão as ações"
         )
         
         observacoes_classificador = st.text_area(
-            "📝 Observações do Classificador (opcional)",
+            "�� Observações do Classificador (opcional)",
             key=f"obs_classif_{notif_id}",
             height=100,
             placeholder="Adicione observações relevantes sobre a classificação...",
-            value=st.session_state.get(f"obs_classif_{notif_id}", "")
+            value=st.session_state.get(f"obs_classif_{notif_id}", "") # Puxa o default do session_state
         )
         
         st.markdown("<span class='required-field'>* Campos obrigatórios</span>", unsafe_allow_html=True)
@@ -2567,16 +2597,17 @@ def show_classificacao_inicial():
         submitted = st.form_submit_button("✅ Salvar Classificação", use_container_width=True, type="primary")
         
         if submitted:
+            # Validação
             if classificacao == UI_TEXTS.selectbox_default_classificacao_nnc or \
                prioridade == UI_TEXTS.selectbox_default_prioridade_resolucao or \
                setor_responsavel == UI_TEXTS.selectbox_default_department_select or \
                never_event == UI_TEXTS.selectbox_never_event_na_text or \
                evento_sentinela == UI_TEXTS.selectbox_default_evento_sentinela or \
-               tipo_evento_principal == UI_TEXTS.selectbox_default_tipo_principal:
+               tipo_evento_principal == UI_TEXTS.selectbox_default_tipo_principal: # Validação com placeholders
                 st.error("❌ Por favor, preencha todos os campos obrigatórios!")
                 return
             
-            if classificacao == "Evento com dano" and nivel_dano == UI_TEXTS.selectbox_default_nivel_dano:
+            if classificacao == "Evento com dano" and (nivel_dano is None or nivel_dano == UI_TEXTS.selectbox_default_nivel_dano): # Validação com placeholder
                 st.error("❌ Nível de dano é obrigatório para eventos com dano!")
                 return
             
@@ -2584,12 +2615,14 @@ def show_classificacao_inicial():
                 st.error("❌ Selecione pelo menos um executor!")
                 return
             
+            # Converter nomes de executores para IDs
             executor_name_to_id = {
                 f"{e['name']} ({e['username']})": e['id']
                 for e in all_executors
             }
             executor_ids = [executor_name_to_id[name] for name in executores_selecionados if name in executor_name_to_id]
 
+            # Calcular prazo baseado na classificação
             deadline_days = 0
             if classificacao == "Evento com dano" and nivel_dano and nivel_dano != UI_TEXTS.selectbox_default_nivel_dano:
                 deadline_mapping = DEADLINE_DAYS_MAPPING.get("Evento com dano", {})
@@ -2599,11 +2632,12 @@ def show_classificacao_inicial():
             
             prazo_conclusao = datetime.now() + timedelta(days=deadline_days)
             
+            # Preparar dados de classificação para JSONB
             classification_data = {
                 "nnc": classificacao,
-                "nivel_dano": nivel_dano if classificacao == "Evento com dano" and nivel_dano != UI_TEXTS.selectbox_default_nivel_dano else None,
+                "nivel_dano": nivel_dano if classificacao == "Evento com dano" and nivel_dano != UI_TEXTS.selectbox_default_nivel_dano else None, # Não salva placeholder
                 "prioridade": prioridade,
-                "never_event": never_event if never_event != UI_TEXTS.selectbox_never_event_na_text else None,
+                "never_event": never_event if never_event != UI_TEXTS.selectbox_never_event_na_text else None, # Não salva placeholder
                 "is_sentinel_event": evento_sentinela == "Sim",
                 "event_type_main": tipo_evento_principal,
                 "event_type_sub": tipo_evento_sub,
@@ -2611,7 +2645,7 @@ def show_classificacao_inicial():
                 "classifier_observations": observacoes_classificador,
                 "deadline": prazo_conclusao.isoformat(),
                 "classified_at": datetime.now().isoformat(),
-                "classified_by": st.session_state.user_id
+                "classified_by": st.session_state.user_username # Usa user_username do session_state
             }
             
             updated_notification_data = {
@@ -2619,9 +2653,10 @@ def show_classificacao_inicial():
                 'executors': executor_ids,
                 'status': 'classificada',
             }
-            updated_notif = update_notification(notif_id, updated_notification_data)
+            updated_notif = update_notification(notif_id, updated_notification_data) # Usa a função update_notification
 
             if updated_notif:
+                # Registrar no histórico
                 add_history_entry(
                     notif_id,
                     'Classificação Inicial',
@@ -2631,6 +2666,7 @@ def show_classificacao_inicial():
                 
                 st.success(f"✅ Notificação classificada com sucesso! Prazo de conclusão: {prazo_conclusao.strftime('%d/%m/%Y')}")
                 time_module.sleep(1.5)
+                # Limpa os estados do formulário para evitar que a próxima notificação "herde" os valores
                 st.session_state.pop(f"classificacao_{notif_id}", None)
                 st.session_state.pop(f"nivel_dano_{notif_id}", None)
                 st.session_state.pop(f"prioridade_{notif_id}", None)
@@ -2645,7 +2681,7 @@ def show_classificacao_inicial():
                 
             else:
                 st.error(f"❌ Erro ao salvar classificação.")
-
+                
 @st_fragment
 def show_revisao_execucao():
     """
