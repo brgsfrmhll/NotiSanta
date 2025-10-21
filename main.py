@@ -1,3 +1,4 @@
+
 # --- git pull https://github.com/brgsfrmhll/NotiSanta
 # --- sudo systemctl daemon-reload
 # --- sudo systemctl restart streamlit-app2.service
@@ -28,6 +29,9 @@ DB_CONFIG = {
 }
 
 def get_db_connection():
+    """
+    Estabelece e retorna uma conexão com o banco de dados PostgreSQL.
+    """
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         return conn
@@ -282,6 +286,7 @@ st.markdown(r"""
     }
 </style>
 """, unsafe_allow_html=True)
+
 
 from typing import Any
 
@@ -973,6 +978,7 @@ def update_user(user_id: int, updates: Dict) -> Optional[Dict]:
     finally:
         if conn:
             conn.close()
+
 def load_notifications() -> List[Dict]:
     """
     Carrega dados de notificação do banco de dados, incluindo dados relacionados.
@@ -1202,7 +1208,7 @@ def update_notification(notification_id: int, updates: Dict):
         values = []
 
         for key, value in updates.items():
-            if key in ['id', 'created_at', 'attachments', 'actions', 'history', 'updated_at']: # 'updated_at' é gerido automaticamente
+            if key in ['id', 'created_at', 'attachments', 'actions', 'history', 'updated_at']:
                 continue
             if key in column_mapping:
                 set_clauses.append(sql.Identifier(key) + sql.SQL(' = %s'))
@@ -2169,7 +2175,7 @@ placeholder="Descreva:\n• Quais ações foram tomadas?\n• Por quem foram exe
                     index=notified_dept_options.index(current_data['notified_department'])
                       if current_data['notified_department'] in notified_dept_options
                       else 0,
-                    help="Selecione o setor que será notificado sobre o evento",
+                help="Selecione o setor que será notificado sobre o evento",
                     key="create_notified_dept_refactored"
                 )
             with col8:
@@ -2388,21 +2394,19 @@ def show_classificacao_inicial():
     # Seleção de notificação
     notification_options = []
     for n in pending_notifications:
-        # CORREÇÃO: Garante que 'created_at' é um objeto datetime antes de formatar
         created_at_dt = n['created_at']
         if isinstance(created_at_dt, str):
             try:
                 created_at_dt = datetime.fromisoformat(created_at_dt)
             except ValueError:
-                pass # Em caso de erro, usa o string original ou N/A
+                created_at_dt = None
         
         created_at_formatted = created_at_dt.strftime('%d/%m/%Y %H:%M') if isinstance(created_at_dt, datetime) else str(created_at_dt)
         notification_options.append(f"ID {n['id']} - {n.get('title', 'Sem título')} ({created_at_formatted})")
     
     selected_index_key = "classif_inicial_select"
-    # Adicionando verificação para garantir que o índice seja válido após a filtragem/carregamento
     if selected_index_key not in st.session_state or st.session_state[selected_index_key] >= len(notification_options) or st.session_state[selected_index_key] < 0:
-        st.session_state[selected_index_key] = 0 # Define o primeiro item como padrão
+        st.session_state[selected_index_key] = 0
     
     selected_index = st.selectbox(
         "🔍 Selecione a notificação para classificar:",
@@ -2426,13 +2430,12 @@ def show_classificacao_inicial():
         st.markdown(f"**Turno:** {selected_notification.get('event_shift', 'Não informado')}")
         
         if selected_notification.get('occurrence_date'):
-            # Garante que occurrence_date é um objeto date
             occurrence_date_val = selected_notification['occurrence_date']
             if isinstance(occurrence_date_val, str):
                 try:
                     occurrence_date_val = dt_date_class.fromisoformat(occurrence_date_val)
                 except ValueError:
-                    occurrence_date_val = None # Lidar com strings mal-formatadas
+                    occurrence_date_val = None
             
             if occurrence_date_val:
                 st.markdown(f"**Data da Ocorrência:** {occurrence_date_val.strftime('%d/%m/%Y')}")
@@ -2448,9 +2451,8 @@ def show_classificacao_inicial():
         st.markdown("**📊 Informações**")
         st.markdown(f"**ID:** {notif_id}")
         st.markdown(f"**Status:** `{selected_notification['status']}`")
-        # created_at já é um objeto datetime
         created_at_val = selected_notification['created_at']
-        if isinstance(created_at_val, str): # Verificação de segurança adicional
+        if isinstance(created_at_val, str):
             try:
                 created_at_val = datetime.fromisoformat(created_at_val)
             except ValueError:
@@ -2490,15 +2492,15 @@ def show_classificacao_inicial():
         
         with col_form1:
             classif_options = [UI_TEXTS.selectbox_default_classificacao_nnc] + FORM_DATA.classificacao_nnc
+            classificacao_key = f"classificacao_{notif_id}"
             classificacao = st.selectbox(
                 "📋 Classificação NNC *",
                 options=classif_options,
-                index=classif_options.index(st.session_state.get(f"classificacao_{notif_id}", UI_TEXTS.selectbox_default_classificacao_nnc)) if st.session_state.get(f"classificacao_{notif_id}") in classif_options else 0,
-                key=f"classificacao_{notif_id}",
+                index=classif_options.index(st.session_state.get(classificacao_key, UI_TEXTS.selectbox_default_classificacao_nnc)) if st.session_state.get(classificacao_key) in classif_options else 0,
+                key=classificacao_key,
                 help="Selecione o tipo de classificação principal do evento",
             )
             
-            # Mostrar nível de dano apenas se for "Evento com dano"
             nivel_dano = None
             if classificacao == "Evento com dano":
                 nivel_dano_options = [UI_TEXTS.selectbox_default_nivel_dano] + FORM_DATA.niveis_dano
@@ -2550,15 +2552,29 @@ def show_classificacao_inicial():
         # Tipo de evento principal
         tipo_evento_principal_options = [UI_TEXTS.selectbox_default_tipo_principal] + list(FORM_DATA.tipos_evento_principal.keys())
         tipo_evento_principal_key = f"tipo_evento_{notif_id}"
+        
+        # Guardar o valor anterior do tipo principal para detectar mudanças
+        last_tipo_evento_principal_key = f"last_selected_{tipo_evento_principal_key}"
+        if last_tipo_evento_principal_key not in st.session_state:
+            st.session_state[last_tipo_evento_principal_key] = UI_TEXTS.selectbox_default_tipo_principal
+
         tipo_evento_principal = st.selectbox(
             "📊 Tipo Principal de Evento *",
             options=tipo_evento_principal_options,
             index=tipo_evento_principal_options.index(st.session_state.get(tipo_evento_principal_key, UI_TEXTS.selectbox_default_tipo_principal)) if st.session_state.get(tipo_evento_principal_key) in tipo_evento_principal_options else 0,
             key=tipo_evento_principal_key,
-            help="Classificação do tipo principal de evento",
-            on_change=lambda: st.session_state.pop(f"tipo_evento_sub_{notif_id}", None) # Limpa o sub-tipo ao mudar o tipo principal
+            help="Classificação do tipo principal de evento"
         )
         
+        # Detectar mudança no tipo_evento_principal e limpar tipo_evento_sub (sem on_change)
+        if tipo_evento_principal != st.session_state[last_tipo_evento_principal_key]:
+            if tipo_evento_principal != UI_TEXTS.selectbox_default_tipo_principal: # Limpa apenas se uma seleção válida for feita
+                st.session_state[f"tipo_evento_sub_{notif_id}"] = [] # Limpa a seleção do subtipo
+            else: # Se voltou para o placeholder, limpa também
+                st.session_state[f"tipo_evento_sub_{notif_id}"] = []
+            st.session_state[last_tipo_evento_principal_key] = tipo_evento_principal # Atualiza a última seleção
+
+
         # Subtipo (se aplicável)
         tipo_evento_sub = []
         if tipo_evento_principal != UI_TEXTS.selectbox_default_tipo_principal and tipo_evento_principal in FORM_DATA.tipos_evento_principal:
@@ -2567,7 +2583,7 @@ def show_classificacao_inicial():
                 tipo_evento_sub = st.multiselect(
                     f"Especifique o Evento {tipo_evento_principal}:",
                     options=sub_options,
-                    default=st.session_state.get(f"tipo_evento_sub_{notif_id}", []), # Puxa o default do session_state
+                    default=st.session_state.get(f"tipo_evento_sub_{notif_id}", []),
                     key=f"tipo_evento_sub_{notif_id}",
                     help="Selecione as sub-categorias aplicáveis"
                 )
@@ -2579,17 +2595,17 @@ def show_classificacao_inicial():
         executores_selecionados = st.multiselect(
             "👥 Atribuir Executores Responsáveis: *",
             options=executor_options,
-            default=st.session_state.get(f"executores_{notif_id}", []), # Default do session_state
+            default=st.session_state.get(f"executores_{notif_id}", []),
             key=f"executores_{notif_id}",
             help="Selecione os usuários que executarão as ações"
         )
         
         observacoes_classificador = st.text_area(
-            "�� Observações do Classificador (opcional)",
+            "📝 Observações do Classificador (opcional)",
             key=f"obs_classif_{notif_id}",
             height=100,
             placeholder="Adicione observações relevantes sobre a classificação...",
-            value=st.session_state.get(f"obs_classif_{notif_id}", "") # Puxa o default do session_state
+            value=st.session_state.get(f"obs_classif_{notif_id}", "")
         )
         
         st.markdown("<span class='required-field'>* Campos obrigatórios</span>", unsafe_allow_html=True)
@@ -2603,11 +2619,11 @@ def show_classificacao_inicial():
                setor_responsavel == UI_TEXTS.selectbox_default_department_select or \
                never_event == UI_TEXTS.selectbox_never_event_na_text or \
                evento_sentinela == UI_TEXTS.selectbox_default_evento_sentinela or \
-               tipo_evento_principal == UI_TEXTS.selectbox_default_tipo_principal: # Validação com placeholders
+               tipo_evento_principal == UI_TEXTS.selectbox_default_tipo_principal:
                 st.error("❌ Por favor, preencha todos os campos obrigatórios!")
                 return
             
-            if classificacao == "Evento com dano" and (nivel_dano is None or nivel_dano == UI_TEXTS.selectbox_default_nivel_dano): # Validação com placeholder
+            if classificacao == "Evento com dano" and (nivel_dano is None or nivel_dano == UI_TEXTS.selectbox_default_nivel_dano):
                 st.error("❌ Nível de dano é obrigatório para eventos com dano!")
                 return
             
@@ -2635,9 +2651,9 @@ def show_classificacao_inicial():
             # Preparar dados de classificação para JSONB
             classification_data = {
                 "nnc": classificacao,
-                "nivel_dano": nivel_dano if classificacao == "Evento com dano" and nivel_dano != UI_TEXTS.selectbox_default_nivel_dano else None, # Não salva placeholder
+                "nivel_dano": nivel_dano if classificacao == "Evento com dano" and nivel_dano != UI_TEXTS.selectbox_default_nivel_dano else None,
                 "prioridade": prioridade,
-                "never_event": never_event if never_event != UI_TEXTS.selectbox_never_event_na_text else None, # Não salva placeholder
+                "never_event": never_event if never_event != UI_TEXTS.selectbox_never_event_na_text else None,
                 "is_sentinel_event": evento_sentinela == "Sim",
                 "event_type_main": tipo_evento_principal,
                 "event_type_sub": tipo_evento_sub,
@@ -2645,7 +2661,7 @@ def show_classificacao_inicial():
                 "classifier_observations": observacoes_classificador,
                 "deadline": prazo_conclusao.isoformat(),
                 "classified_at": datetime.now().isoformat(),
-                "classified_by": st.session_state.user_username # Usa user_username do session_state
+                "classified_by": st.session_state.user_username
             }
             
             updated_notification_data = {
@@ -2653,7 +2669,7 @@ def show_classificacao_inicial():
                 'executors': executor_ids,
                 'status': 'classificada',
             }
-            updated_notif = update_notification(notif_id, updated_notification_data) # Usa a função update_notification
+            updated_notif = update_notification(notif_id, updated_notification_data)
 
             if updated_notif:
                 # Registrar no histórico
@@ -2677,11 +2693,12 @@ def show_classificacao_inicial():
                 st.session_state.pop(f"tipo_evento_sub_{notif_id}", None)
                 st.session_state.pop(f"executores_{notif_id}", None)
                 st.session_state.pop(f"obs_classif_{notif_id}", None)
+                st.session_state.pop(f"last_selected_{tipo_evento_principal_key}", None)
                 st.rerun()
                 
             else:
                 st.error(f"❌ Erro ao salvar classificação.")
-                
+
 @st_fragment
 def show_revisao_execucao():
     """
@@ -2736,7 +2753,7 @@ def show_revisao_execucao():
         notification_options.append(f"ID {n['id']} - {n.get('title', 'Sem título')} - {nnc} ({executor_names}) ({created_at_formatted})")
     
     selected_option_key = f"revisao_exec_select"
-    if selected_option_key not in st.session_state or st.session_state[selected_option_key] >= len(notification_options):
+    if selected_option_key not in st.session_state or st.session_state[selected_option_key] >= len(notification_options) or st.session_state[selected_option_key] < 0:
         st.session_state[selected_option_key] = 0
     
     selected_index = st.selectbox(
@@ -2852,7 +2869,7 @@ def show_revisao_execucao():
         decisao = st.radio(
             "📋 Decisão da Revisão *",
             options=decisao_options,
-            index=decisao_options.index(st.session_state[decisao_key]),
+            index=decisao_options.index(st.session_state[decisao_key]) if st.session_state[decisao_key] in decisao_options else 0,
             key=decisao_key,
             help="Aprovar envia para aprovação final. Solicitar correções retorna para execução."
         )
@@ -2911,7 +2928,6 @@ def show_revisao_execucao():
             if new_status == 'em_execucao':
                  updates['rejection_execution_review'] = None
             elif new_status == 'aguardando_aprovacao':
-                # Busca a notificação para obter o approver_id que foi definido na classificação
                 current_notification = next((n for n in load_notifications() if n['id'] == notif_id), None)
                 if current_notification and current_notification.get('classification'):
                     classif_data = current_notification['classification']
@@ -2920,7 +2936,7 @@ def show_revisao_execucao():
                         except json.JSONDecodeError: pass
                     
                     if isinstance(classif_data, dict) and classif_data.get('approver_id'):
-                        updates['approver'] = classif_data['approver_id'] # Atribui o aprovador definido na classificação
+                        updates['approver'] = classif_data['approver_id']
 
             updated_notif = update_notification(notif_id, updates)
 
@@ -3166,6 +3182,7 @@ def show_notificacoes_encerradas():
         
         with st.expander(f"📋 **Ver Detalhes Completos da Notificação {selected_notification['id']}**", expanded=True):
             display_notification_full_details(selected_notification, st.session_state.user_id, st.session_state.user_username)
+
 @st_fragment
 def show_execution():
     """Renderiza a página para executores visualizarem notificações atribuídas e registrarem ações."""
@@ -3206,8 +3223,7 @@ def show_execution():
         return
     st.success(f"Você tem {len(user_active_notifications)} notificação(ões) atribuída(s) aguardando ou em execução.")
     tab_active_notifications, tab_closed_my_exec_notifs = st.tabs(
-        ["🔄 Notificações Atribuídas (Ativas)", f"✅ Minhas Ações Encerradas ({len(closed_my_exec_notifications)})"]
-    )
+        ["🔄 Notificações Atribuídas (Ativas)", f"✅ Minhas Ações Encerradas ({len(closed_my_exec_notifications)})"])
     with tab_active_notifications:
         st.markdown("### Notificações Aguardando ou Em Execução")
         priority_order = {p: i for i, p in enumerate(FORM_DATA.prioridades)}
@@ -3249,7 +3265,7 @@ def show_execution():
                 st.markdown("#### ⚡ Histórico de Ações Realizadas")
                 with st.expander(
                         f"Ver histórico de ações para Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
-                    sorted_actions = sorted(notification['actions'], key=lambda x: x.get('timestamp', ''))
+                    sorted_actions = sorted(notification['actions'], key=lambda x: x.get('timestamp', '')) # CORREÇÃO: Removido o cólon aqui
                     for action in sorted_actions:
                         action_type = "🏁 CONCLUSÃO (Executor)" if action.get(
                             'final_action_by_executor') else "📝 AÇÃO Registrada"
@@ -3334,7 +3350,7 @@ def show_execution():
                         "Descrição detalhada da ação realizada*",
                         value=st.session_state.get(
                             f"exec_action_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored", ""),
-                        placeholder="Descreva:\n• O QUÊ foi feito?\n• POR QUÊ foi feito (qual o objetivo)?\n• ONDE foi realizado?\n• QUANDO foi realizado (data/hora)?\n• QUEM executou (se aplicável)?\n• COMO foi executado (passos, métodos)?\n• QUANTO CUSTOU (recursos, tempo)?\n• QUÃO FREQUENTE (se for uma ação contínua)?",
+                        placeholder="Descreva:\\n• O QUÊ foi feito?\\n• POR QUÊ foi feito (qual o objetivo)?\\n• ONDE foi realizado?\\n• QUANDO foi realizado (data/hora)?\\n• QUEM executou (se aplicável)?\\n• COMO foi executado (passos, métodos)?\\n• QUANTO CUSTOU (recursos, tempo)?\\n• QUÃO FREQUENTE (se for uma ação contínua)?",
                         height=180,
                         key=f"exec_action_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored"
                     ).strip()
@@ -3462,7 +3478,7 @@ def show_execution():
                                                 f"Aguardando conclusão dos seguintes executores: {', '.join(remaining_executors_names) or 'Nenhum'}.")
                                         elif all_executors_concluded:
                                             st.info(
-                                                f"Todos os executores concluíram suas partes. A notificação foi enviada para revisão final pelo classificador.\n\nEvidência da tratativa:\n{evidence_description_state}\n\nAnexos: {len(saved_evidence_attachments) if saved_evidence_attachments else 0}")
+                                                f"Todos os executores concluíram suas partes. A notificação foi enviada para revisão final pelo classificador.\\n\\nEvidência da tratativa:\\n{evidence_description_state}\\n\\nAnexos: {len(saved_evidence_attachments) if saved_evidence_attachments else 0}")
                                     _clear_execution_form_state(notification['id'])
                                     st.rerun()
                 with st.expander("👥 Adicionar Executor Adicional"):
@@ -3588,7 +3604,6 @@ def show_execution():
                     with st.expander(
                             f"👁️ Visualizar Detalhes - Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
                         display_notification_full_details(notification, user_id_logged_in, user_username_logged_in)
-
 @st_fragment
 def show_approval():
     """Renderiza a página para aprovadores revisarem e aprovarem/rejeitarem notificações."""
@@ -3622,8 +3637,7 @@ def show_approval():
     st.success(f"⏳ Você tem {len(pending_approval)} notificação(ões) aguardando sua aprovação.")
 
     tab_pending_approval, tab_closed_my_approval_notifs = st.tabs(
-        ["⏳ Aguardando Minha Aprovação", f"✅ Minhas Aprovações Encerradas ({len(closed_my_approval_notifications)})"]
-    )
+        ["⏳ Aguardando Minha Aprovação", f"✅ Minhas Aprovações Encerradas ({len(closed_my_approval_notifications)})"])
     with tab_pending_approval:
         priority_order = {p: i for i, p in enumerate(FORM_DATA.prioridades)}
         pending_approval.sort(key=lambda x: (
@@ -3728,7 +3742,7 @@ def show_approval():
                 st.info(notification.get('description', UI_TEXTS.text_na))
                 if classif.get('classifier_observations'):
                     st.markdown("**📋 Orientações / Observações do Classificador (Classificação Inicial)**")
-                    st.info(classif.get('classifier_observations', UI_TEXTS.text_na))
+                    st.success(classif.get('classifier_observations', UI_TEXTS.text_na))
 
                 if notification.get('patient_involved'):
                     st.markdown("**🏥 Informações do Paciente Afetado**")
@@ -3874,7 +3888,7 @@ def show_approval():
                     approval_notes_input = st.text_area(
                         "Observações da Aprovação/Reprovação:*",
                         value=current_approval_data.get('notes', ''),
-                        placeholder="• Avalie a completude e eficácia das ações executadas e a revisão do classificador...\n• Indique se as ações foram satisfatórias para mitigar o risco ou resolver o evento.\n• Forneça recomendações adicionais, se necessário.\n• Em caso de reprovação, explique claramente o motivo e o que precisa ser revisado ou corrigido pelo classificador.",
+                        placeholder="• Avalie a completude e eficácia das ações executadas e a revisão do classificador...\\n• Indique se as ações foram satisfatórias para mitigar o risco ou resolver o evento.\\n• Forneça recomendações adicionais, se necessário.\\n• Em caso de reprovação, explique claramente o motivo e o que precisa ser revisado ou corrigido pelo classificador.",
                         height=120, key=f"approval_notes_{notification.get('id', UI_TEXTS.text_na)}_refactored",
                         help="Forneça sua avaliação sobre as ações executadas, a revisão do classificador, e a decisão final.").strip()
                     current_approval_data['notes'] = approval_notes_input
@@ -4122,7 +4136,7 @@ def show_admin():
                                      'name': name_state,
                                      'email': email_state, 'roles': roles_to_save}
                         if create_user(user_data):
-                            st.success(f"✅ Usuário '{name_state}' criado com sucesso!\n\n")
+                            st.success(f"✅ Usuário '{name_state}' criado com sucesso!\\n\\n")
                             st.rerun()
                         else:
                             st.error("❌ Nome de usuário já existe. Por favor, escolha outro.")
@@ -4316,7 +4330,6 @@ def show_admin():
                 "Gera um arquivo JSON contendo todos os dados de usuários e notificações cadastrados no sistema.")
             if st.button("📥 Gerar Backup (JSON)", use_container_width=True,
                          key="generate_backup_btn"):
-                # Carrega todos os dados do banco para o backup
                 all_users_for_backup = load_users()
                 all_notifications_for_backup = load_notifications()
                 def prepare_for_json(data):
@@ -4516,7 +4529,7 @@ def show_admin():
                                         f"SELECT setval('notifications_id_seq', (SELECT MAX(id) FROM notifications));")
                                     conn.commit()
                                     st.success(
-                                        "✅ Dados restaurados com sucesso a partir do arquivo!\n\n")
+                                        "✅ Dados restaurados com sucesso a partir do arquivo!\\n\\n")
                                     st.info(
                                         "A página será recarregada para refletir os dados restaurados.")
                                     st.session_state.pop('admin_restore_file_uploader', None)
@@ -5111,7 +5124,7 @@ def show_dashboard():
                 else:
                     st.info("Nenhum dado de setor notificante para o período.")
             else:
-                st.info("Nenhum dado de setor notificante para o período.")
+                st.info("Nenhuma dado de setor notificante para o período.")
 
         st.markdown("---")
 
