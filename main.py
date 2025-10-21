@@ -2634,13 +2634,14 @@ def show_classificacao_inicial():
                 help="Defina a prioridade para investigação e resolução"
             )
             
+            # CORREÇÃO: Never Event agora aceita "Não Aplicável (N/A)" como resposta válida
             never_event_options = [UI_TEXTS.selectbox_never_event_na_text] + FORM_DATA.never_events
             never_event = st.selectbox(
                 "🚨 Never Event *",
                 options=never_event_options,
                 index=never_event_options.index(st.session_state.get(f"never_event_{notif_id}", UI_TEXTS.selectbox_never_event_na_text)) if st.session_state.get(f"never_event_{notif_id}") in never_event_options else 0,
                 key=f"never_event_{notif_id}",
-                help="Selecione se o evento se enquadra como Never Event"
+                help="Selecione se o evento se enquadra como Never Event ou N/A se não aplicável"
             )
         
         with col_form2:
@@ -2723,8 +2724,8 @@ def show_classificacao_inicial():
             if prioridade == UI_TEXTS.selectbox_default_prioridade_resolucao:
                 campos_faltantes.append("🎯 Prioridade")
             
-            if never_event == UI_TEXTS.selectbox_never_event_na_text:
-                campos_faltantes.append("🚨 Never Event")
+            # CORREÇÃO: Never Event não é mais obrigatório - aceita o placeholder como resposta válida
+            # Removida a validação que impedia o uso de "Não Aplicável (N/A)"
             
             if setor_notificante == UI_TEXTS.selectbox_default_department_select:
                 campos_faltantes.append("🏥 Setor Notificante")
@@ -2763,11 +2764,12 @@ def show_classificacao_inicial():
             prazo_conclusao = datetime.now() + timedelta(days=deadline_days)
             
             # Preparar dados de classificação para JSONB
+            # CORREÇÃO: Never Event salva o valor selecionado, incluindo "Não Aplicável (N/A)"
             classification_data = {
                 "nnc": classificacao_final,
                 "nivel_dano": nivel_dano_final if classificacao_final == "Evento com dano" and nivel_dano_final != UI_TEXTS.selectbox_default_nivel_dano else None,
                 "prioridade": prioridade,
-                "never_event": never_event if never_event != UI_TEXTS.selectbox_never_event_na_text else None,
+                "never_event": never_event,  # Salva o valor selecionado, incluindo o placeholder
                 "is_sentinel_event": evento_sentinela == "Sim",
                 "event_type_main": tipo_evento_principal_final,
                 "event_type_sub": tipo_evento_sub_final if tipo_evento_sub_final else [],
@@ -2798,7 +2800,7 @@ def show_classificacao_inicial():
 {f"- Subtipos: {', '.join(tipo_evento_sub_final)}" if tipo_evento_sub_final else ''}
 - Setor Notificante: {setor_notificante}
 - Setor Responsável: {setor_responsavel}
-- Never Event: {never_event if never_event != UI_TEXTS.selectbox_never_event_na_text else 'Não se aplica'}
+- Never Event: {never_event}
 - Evento Sentinela: {evento_sentinela}
 - Prazo de Conclusão: {prazo_conclusao.strftime('%d/%m/%Y')}
 - Executores: {', '.join(executores_selecionados)}
@@ -2829,6 +2831,7 @@ def show_classificacao_inicial():
                 
             else:
                 st.error(f"❌ Erro ao salvar classificação.")
+
 @st_fragment
 def show_revisao_execucao():
     """
@@ -5361,6 +5364,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
