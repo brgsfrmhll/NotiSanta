@@ -2645,22 +2645,38 @@ def show_classificacao_inicial():
             )
         
         with col_form2:
+            # SETOR NOTIFICANTE - PRÉ-CARREGADO COM reporting_department
             setor_notificante_options = [UI_TEXTS.selectbox_default_department_select] + FORM_DATA.SETORES
+            
+            # Pega o valor pré-carregado da notificação
+            setor_notificante_default = selected_notification.get('reporting_department', UI_TEXTS.selectbox_default_department_select)
+            setor_notificante_index = 0
+            if setor_notificante_default in setor_notificante_options:
+                setor_notificante_index = setor_notificante_options.index(setor_notificante_default)
+            
             setor_notificante = st.selectbox(
                 "🏥 Setor Notificante *",
                 options=setor_notificante_options,
-                index=setor_notificante_options.index(st.session_state.get(f"setor_notificante_{notif_id}", UI_TEXTS.selectbox_default_department_select)) if st.session_state.get(f"setor_notificante_{notif_id}") in setor_notificante_options else 0,
+                index=setor_notificante_index,
                 key=f"setor_notificante_{notif_id}",
                 help="Setor que notificou o evento"
             )
             
+            # SETOR NOTIFICADO (antes "Setor Responsável") - PRÉ-CARREGADO COM notified_department
             setor_options = [UI_TEXTS.selectbox_default_department_select] + FORM_DATA.SETORES
+            
+            # Pega o valor pré-carregado da notificação
+            setor_notificado_default = selected_notification.get('notified_department', UI_TEXTS.selectbox_default_department_select)
+            setor_notificado_index = 0
+            if setor_notificado_default in setor_options:
+                setor_notificado_index = setor_options.index(setor_notificado_default)
+            
             setor_responsavel = st.selectbox(
-                "🏢 Setor Responsável *",
+                "🏢 Setor Notificado *",  # ← Label alterado de "Setor Responsável" para "Setor Notificado"
                 options=setor_options,
-                index=setor_options.index(st.session_state.get(f"setor_{notif_id}", UI_TEXTS.selectbox_default_department_select)) if st.session_state.get(f"setor_{notif_id}") in setor_options else 0,
+                index=setor_notificado_index,
                 key=f"setor_{notif_id}",
-                help="Setor que deverá executar as ações corretivas"
+                help="Setor que foi notificado do evento"
             )
         
         evento_sentinela_options = [UI_TEXTS.selectbox_default_evento_sentinela, "Sim", "Não"]
@@ -5380,6 +5396,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
