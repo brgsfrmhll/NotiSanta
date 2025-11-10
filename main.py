@@ -4889,6 +4889,10 @@ def show_dashboard():
         
         all_option_text = UI_TEXTS.multiselect_all_option
         
+        # CALCULAR PRIMEIRO DIA DO MÊS ATUAL
+        today = dt_date_class.today()
+        first_day_of_current_month = dt_date_class(today.year, today.month, 1)
+        
         # Inicializar estados de sessão
         if 'dashboard_filter_status' not in st.session_state:
             st.session_state.dashboard_filter_status = [all_option_text]
@@ -4897,9 +4901,9 @@ def show_dashboard():
         if 'dashboard_filter_priority' not in st.session_state:
             st.session_state.dashboard_filter_priority = [all_option_text]
         if 'dashboard_filter_date_start' not in st.session_state:
-            st.session_state.dashboard_filter_date_start = None
+            st.session_state.dashboard_filter_date_start = first_day_of_current_month
         if 'dashboard_filter_date_end' not in st.session_state:
-            st.session_state.dashboard_filter_date_end = None
+            st.session_state.dashboard_filter_date_end = today
         if 'dashboard_search_query_input' not in st.session_state:
             st.session_state.dashboard_search_query_input = ""
         if 'dashboard_sort_column' not in st.session_state:
@@ -4990,13 +4994,9 @@ def show_dashboard():
             
             applied_priority_filters = [p for p in st.session_state.dashboard_filter_priority if p != all_option_text]
             
-            # Filtros de Data
-            date_start_default = st.session_state.dashboard_filter_date_start or (
-                df_notifications['created_at_dt'].min().date() if not df_notifications.empty else dt_date_class.today() - timedelta(days=365)
-            )
-            date_end_default = st.session_state.dashboard_filter_date_end or (
-                df_notifications['created_at_dt'].max().date() if not df_notifications.empty else dt_date_class.today()
-            )
+            # Filtros de Data - LIMITADO AO MÊS ATUAL POR PADRÃO
+            date_start_default = st.session_state.dashboard_filter_date_start
+            date_end_default = st.session_state.dashboard_filter_date_end
             
             dashboard_date_start = st.date_input(
                 "Data Inicial (Criação):",
@@ -5066,7 +5066,7 @@ def show_dashboard():
                 if parse_classification(n.get('classification', {})).get('prioridade') in applied_priority_filters
             ]
         
-        # Filtro de data
+        # Filtro de data - APLICADO AUTOMATICAMENTE COM O MÊS ATUAL
         if st.session_state.dashboard_filter_date_start and st.session_state.dashboard_filter_date_end:
             filtered_notifications = [
                 n for n in filtered_notifications
@@ -5083,7 +5083,7 @@ def show_dashboard():
                    search_query in n.get('description', '').lower()
             ]
         
-        st.info(f"🔍 Exibindo **{len(filtered_notifications)}** notificação(ões) após filtros")
+        st.info(f"🔍 Exibindo **{len(filtered_notifications)}** notificação(ões) após filtros (período: {st.session_state.dashboard_filter_date_start.strftime('%d/%m/%Y')} a {st.session_state.dashboard_filter_date_end.strftime('%d/%m/%Y')})")
         
         if not filtered_notifications:
             st.warning("⚠️ Nenhuma notificação encontrada com os filtros aplicados.")
@@ -5119,8 +5119,13 @@ def show_dashboard():
         st.info("Explore os indicadores e tendências das notificações, com filtros de período.")
         st.markdown("### Seleção de Período para Indicadores")
         
-        min_date = df_notifications['created_at_dt'].min().date() if not df_notifications.empty else dt_date_class.today() - timedelta(days=365)
-        max_date = df_notifications['created_at_dt'].max().date() if not df_notifications.empty else dt_date_class.today()
+        # FILTRO INICIAL LIMITADO AO MÊS ATUAL
+        today = dt_date_class.today()
+        first_day_of_current_month = dt_date_class(today.year, today.month, 1)
+        
+        # Valores padrão para a aba de indicadores
+        min_date = first_day_of_current_month
+        max_date = today
         
         col_date1, col_date2 = st.columns(2)
         
@@ -5249,8 +5254,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
 
 
 
