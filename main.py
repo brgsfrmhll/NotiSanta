@@ -4772,7 +4772,7 @@ def show_admin():
         st.write(f"**Desenvolvido por:** FIA Softworks")
         st.markdown("##### Suporte Técnico:")
         st.write(f"**Email:** borges@fiasoftworks.com.br")
-        
+
 @st_fragment
 def show_dashboard():
     """
@@ -5130,24 +5130,25 @@ def show_dashboard():
         col_date1, col_date2 = st.columns(2)
         
         with col_date1:
+            # CORREÇÃO: key diferente para evitar conflito
             start_date_indicators = st.date_input(
                 "Data de Início",
                 value=min_date,
-                key="start_date_indicators"
+                key="indicators_start_date_input"
             )
-            st.session_state.start_date_indicators = start_date_indicators
         
         with col_date2:
+            # CORREÇÃO: key diferente para evitar conflito
             end_date_indicators = st.date_input(
                 "Data de Fim",
                 value=max_date,
-                key="end_date_indicators"
+                key="indicators_end_date_input"
             )
-            st.session_state.end_date_indicators = end_date_indicators
         
+        # Usar os valores diretamente dos widgets (não precisa session_state)
         df_filtered_by_period = df_notifications[
-            (df_notifications['created_at_dt'].dt.date >= st.session_state.start_date_indicators) &
-            (df_notifications['created_at_dt'].dt.date <= st.session_state.end_date_indicators)
+            (df_notifications['created_at_dt'].dt.date >= start_date_indicators) &
+            (df_notifications['created_at_dt'].dt.date <= end_date_indicators)
         ].copy()
         
         if df_filtered_by_period.empty:
@@ -5170,8 +5171,8 @@ def show_dashboard():
         monthly_counts = df_monthly.groupby(['month_year', 'status_category']).size().unstack(fill_value=0)
         
         all_months_in_range = pd.period_range(
-            start=st.session_state.start_date_indicators,
-            end=st.session_state.end_date_indicators,
+            start=start_date_indicators,
+            end=end_date_indicators,
             freq='M'
         ).astype(str)
         monthly_counts = monthly_counts.reindex(all_months_in_range, fill_value=0)
