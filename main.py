@@ -4798,6 +4798,20 @@ def show_dashboard():
         df_notifications['created_at'], errors='coerce'
     )
     
+    # DEFINIÇÃO DO status_mapping - DEVE ESTAR NO INÍCIO
+    status_mapping = {
+        'pendente_classificacao': 'Pendente Classif.Inicial',
+        'classificada_aguardando_execucao': 'Classificada (Aguardando Exec.)',
+        'em_execucao': 'Em Execução',
+        'revisao_classificador_execucao': 'Aguardando Revisão Exec.',
+        'aguardando_classificador': 'Aguardando Classif.(Revisão)',
+        'concluida_aguardando_aprovacao': 'Aguardando Aprovação',
+        'aprovada': 'Concluída (Aprovada)',
+        'rejeitada_classificacao': 'Rejeitada (Classif.Inicial)',
+        'rejeitada_aprovacao': 'Rejeitada (Aprovação)',
+        'encerrada': 'Encerrada'
+    }
+    
     # Processar campo de classificação JSON
     def parse_classification(classif_val):
         if pd.isna(classif_val) or classif_val is None:
@@ -4976,7 +4990,7 @@ def show_dashboard():
             
             applied_priority_filters = [p for p in st.session_state.dashboard_filter_priority if p != all_option_text]
             
-            # Filtros de Data - CORRIGIDO
+            # Filtros de Data
             date_start_default = st.session_state.dashboard_filter_date_start or (
                 df_notifications['created_at_dt'].min().date() if not df_notifications.empty else dt_date_class.today() - timedelta(days=365)
             )
@@ -4984,7 +4998,6 @@ def show_dashboard():
                 df_notifications['created_at_dt'].max().date() if not df_notifications.empty else dt_date_class.today()
             )
             
-            # CORREÇÃO: Usar variável diferente do nome da key
             dashboard_date_start = st.date_input(
                 "Data Inicial (Criação):",
                 value=date_start_default,
@@ -5112,7 +5125,6 @@ def show_dashboard():
         col_date1, col_date2 = st.columns(2)
         
         with col_date1:
-            # CORREÇÃO: Usar variável diferente do nome da key
             start_date_indicators = st.date_input(
                 "Data de Início",
                 value=min_date,
@@ -5121,7 +5133,6 @@ def show_dashboard():
             st.session_state.start_date_indicators = start_date_indicators
         
         with col_date2:
-            # CORREÇÃO: Usar variável diferente do nome da key
             end_date_indicators = st.date_input(
                 "Data de Fim",
                 value=max_date,
@@ -5192,7 +5203,7 @@ def show_dashboard():
             st.line_chart(monthly_pending_counts.set_index('month_year'))
         else:
             st.info("Nenhuma notificação pendente de análise encontrada no período selecionado.")
-            
+
 def main():
     """Main function to run the Streamlit application."""
     init_database()
@@ -5238,6 +5249,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
