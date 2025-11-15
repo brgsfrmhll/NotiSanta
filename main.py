@@ -2539,7 +2539,7 @@ def show_classificacao_inicial():
             
             # Classificação NNC
             classificacao_key = f"classificacao_{notif_id}"
-            classificacao_options = [UI_TEXTS.selectbox_default_classificacao_nnc] + FORM_DATA.classificacoes_nnc
+            classificacao_options = [UI_TEXTS.selectbox_default_classificacao_nnc] + FORM_DATA.classificacao_nnc
             classificacao = st.selectbox(
                 "📋 Classificação NNC *",
                 options=classificacao_options,
@@ -5156,6 +5156,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
