@@ -2787,7 +2787,7 @@ def show_classificacao_inicial():
                     'status': 'classificada_aguardando_execucao',
                     'classification': classification_data,
                     'executors': executor_ids,
-                    'deadline_date': prazo_conclusao.isoformat()
+                    #'deadline_date': prazo_conclusao.isoformat()
                 }
                 
                 updated_notif = update_notification(notif_id, updates)
@@ -5222,6 +5222,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
