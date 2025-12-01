@@ -416,7 +416,7 @@ def load_notifications_by_status(status: str):
         status: Status da notificação
         
     Returns:
-        Lista de notificações no formato dict
+        Lista de notificações no formato dict COM ANEXOS
     """
     conn = get_db_connection()
     try:
@@ -426,13 +426,24 @@ def load_notifications_by_status(status: str):
             WHERE status = %s 
             ORDER BY created_at DESC
         """, (status,))
-        return [dict(row) for row in cursor.fetchall()]
+        notifications = [dict(row) for row in cursor.fetchall()]
+        
+        # ✅ NOVO: Buscar anexos para todas as notificações
+        if notifications:
+            notification_ids = [n['id'] for n in notifications]
+            attachments_map = _get_attachments_map_by_ids(conn, notification_ids)
+            
+            # Adicionar anexos a cada notificação
+            for notif in notifications:
+                notif['attachments'] = attachments_map.get(notif['id'], [])
+        
+        return notifications
+        
     except Exception as e:
         st.error(f"Erro ao carregar notificações: {str(e)}")
         return []
     finally:
         conn.close()
-
 
 def load_notifications_by_statuses(statuses: list):
     """
@@ -442,7 +453,7 @@ def load_notifications_by_statuses(statuses: list):
         statuses: Lista de status das notificações
         
     Returns:
-        Lista de notificações no formato dict
+        Lista de notificações no formato dict COM ANEXOS
     """
     conn = get_db_connection()
     try:
@@ -452,13 +463,24 @@ def load_notifications_by_statuses(statuses: list):
             WHERE status = ANY(%s) 
             ORDER BY created_at DESC
         """, (statuses,))
-        return [dict(row) for row in cursor.fetchall()]
+        notifications = [dict(row) for row in cursor.fetchall()]
+        
+        # ✅ NOVO: Buscar anexos para todas as notificações
+        if notifications:
+            notification_ids = [n['id'] for n in notifications]
+            attachments_map = _get_attachments_map_by_ids(conn, notification_ids)
+            
+            # Adicionar anexos a cada notificação
+            for notif in notifications:
+                notif['attachments'] = attachments_map.get(notif['id'], [])
+        
+        return notifications
+        
     except Exception as e:
         st.error(f"Erro ao carregar notificações: {str(e)}")
         return []
     finally:
         conn.close()
-
 
 class UI_TEXTS:
     selectbox_default_event_shift = "Selecionar Turno"
@@ -1762,6 +1784,14 @@ def show_sidebar():
 
 def display_notification_full_details(notification: Dict, user_id_logged_in: Optional[int] = None,
                                       user_username_logged_in: Optional[str] = None):
+    """
+    Exibe os detalhes completos de uma notificação, incluindo anexos com preview e download.
+    
+    Args:
+        notification: Dicionário com os dados da notificação
+        user_id_logged_in: ID do usuário logado (opcional)
+        user_username_logged_in: Username do usuário logado (opcional)
+    """
     st.markdown("###    Detalhes da Notificação")
     col_det1, col_det2 = st.columns(2)
     with col_det1:
@@ -1779,6 +1809,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
         if notification.get('immediate_actions_taken') and notification.get('immediate_action_description'):
             st.info(
                 f"**Ações Imediatas Reportadas:** {notification.get('immediate_action_description', UI_TEXTS.text_na)[:300]}...")
+    
     with col_det2:
         st.markdown("**⏱️ Informações de Gestão e Classificação**")
         classif = notification.get('classification') or {}
@@ -1814,8 +1845,10 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
                 unsafe_allow_html=True)
         else:
             st.write(f"**Prazo de Conclusão:** {UI_TEXTS.deadline_days_nan}")
+    
     st.markdown("**📝 Descrição Completa do Evento**")
     st.info(notification.get('description', UI_TEXTS.text_na))
+    
     if classif.get('classifier_observations'):
         st.markdown("**📋 Orientações / Observações do Classificador**")
         st.success(classif.get('classifier_observations', UI_TEXTS.text_na))
@@ -1885,6 +1918,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
                                     st.write(f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
                     st.markdown(f"""</div>""", unsafe_allow_html=True)
             st.markdown("---")
+    
     if notification.get('review_execution'):
         st.markdown("#### 🛠️ Revisão de Execução")
         review_exec = notification['review_execution']
@@ -1899,6 +1933,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
         st.write(f"**Observações:** {review_exec.get('observations', UI_TEXTS.text_na)}")
         if review_exec.get('rejection_reason'):
             st.write(f"**Motivo Rejeição:** {review_exec.get('rejection_reason', UI_TEXTS.text_na)}")
+    
     if notification.get('approval'):
         st.markdown("#### ✅ Aprovação Final")
         approval_info = notification['approval']
@@ -1921,6 +1956,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
             st.write(f"**Decisão:** {approval_info.get('decision', UI_TEXTS.text_na)}")
             st.write(f"**Aprovado por:** {approval_info.get('approved_by', UI_TEXTS.text_na)}")
             st.write(f"**Observações:** {approval_info.get('notes', UI_TEXTS.text_na)}")
+    
     if notification.get('rejection_classification'):
         st.markdown("#### ❌ Rejeição na Classificação Inicial")
         rej_classif = notification['rejection_classification']
@@ -1931,6 +1967,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
                 rej_classif = {}
         st.write(f"**Motivo:** {rej_classif.get('reason', UI_TEXTS.text_na)}")
         st.write(f"**Rejeitado por:** {rej_classif.get('classified_by', UI_TEXTS.text_na)}")
+    
     if notification.get('rejection_approval'):
         st.markdown("#### ⛔ Reprovada na Aprovação")
         rej_appr = notification['rejection_approval']
@@ -1942,14 +1979,15 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
         if user_username_logged_in and rej_appr.get('rejected_by') == user_username_logged_in:
             st.markdown(f"""
             <div style='background-color: #ffe6e6; padding: 10px; border-radius: 5px; border-left: 3px solid #f44336;'>
-                <strong>Motivo:** {rej_appr.get('reason', UI_TEXTS.text_na)}
+                <strong>Motivo:</strong> {rej_appr.get('reason', UI_TEXTS.text_na)}
                 <br>
-                <strong>Reprovado por:** VOCÊ ({rej_appr.get('rejected_by', UI_TEXTS.text_na)})
+                <strong>Reprovado por:</strong> VOCÊ ({rej_appr.get('rejected_by', UI_TEXTS.text_na)})
             </div>
             """, unsafe_allow_html=True)
         else:
             st.write(f"**Motivo:** {rej_appr.get('reason', UI_TEXTS.text_na)}")
             st.write(f"**Reprovado por:** {rej_appr.get('rejected_by', UI_TEXTS.text_na)}")
+    
     if notification.get('rejection_execution_review'):
         st.markdown("#### 🔄 Execução Rejeitada (Revisão do Classificador)")
         rej_exec_review = notification['rejection_execution_review']
@@ -1961,40 +1999,127 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
         if user_username_logged_in and rej_exec_review.get('reviewed_by') == user_username_logged_in:
             st.markdown(f"""
             <div style='background-color: #ffe6e6; padding: 10px; border-radius: 5px; border-left: 3px solid #f44336;'>
-                <strong>Motivo:** {rej_exec_review.get('reason', UI_TEXTS.text_na)}
+                <strong>Motivo:</strong> {rej_exec_review.get('reason', UI_TEXTS.text_na)}
                 <br>
-                <strong>Rejeitado por:** VOCÊ ({rej_exec_review.get('reviewed_by', UI_TEXTS.text_na)})
+                <strong>Rejeitado por:</strong> VOCÊ ({rej_exec_review.get('reviewed_by', UI_TEXTS.text_na)})
             </div>
             """, unsafe_allow_html=True)
         else:
             st.write(f"**Motivo:** {rej_exec_review.get('reason', UI_TEXTS.text_na)}")
             st.write(f"**Rejeitado por:** {rej_exec_review.get('reviewed_by', UI_TEXTS.text_na)}")
-    if notification.get('attachments'):
-        st.markdown("#### 📎 Anexos")
-        for attach_info in notification['attachments']:
+    
+    # ========== SEÇÃO DE ANEXOS MELHORADA ==========
+    st.markdown("---")
+    st.markdown("#### 📎 Documentos e Evidências Anexados")
+    
+    attachments = notification.get('attachments', [])
+    
+    if attachments and len(attachments) > 0:
+        # Header com contagem
+        st.success(f"✅ **{len(attachments)} arquivo(s) anexado(s) à notificação original**")
+        
+        # Iterar sobre cada anexo
+        for idx, attach_info in enumerate(attachments):
             unique_name_to_use = None
             original_name_to_use = None
-            if isinstance(attach_info,
-                                      dict) and 'unique_name' in attach_info and 'original_name' in attach_info:
+            
+            # Determinar nomes dos arquivos
+            if isinstance(attach_info, dict) and 'unique_name' in attach_info and 'original_name' in attach_info:
                 unique_name_to_use = attach_info['unique_name']
                 original_name_to_use = attach_info['original_name']
             elif isinstance(attach_info, str):
                 unique_name_to_use = attach_info
                 original_name_to_use = attach_info
+            
             if unique_name_to_use:
+                # Obter dados do arquivo
                 file_content = get_attachment_data(unique_name_to_use)
+                
                 if file_content:
-                    st.download_button(
-                        label=f"Baixar {original_name_to_use}",
-                        data=file_content,
-                        file_name=original_name_to_use,
-                        mime="application/octet-stream",
-                        key=f"download_approval_{notification['id']}_{unique_name_to_use}"
-                    )
+                    # Determinar extensão do arquivo
+                    file_extension = original_name_to_use.split('.')[-1].lower() if '.' in original_name_to_use else ''
+                    
+                    # Determinar ícone baseado no tipo de arquivo
+                    file_icon = "📄"
+                    if file_extension in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']:
+                        file_icon = "🖼️"
+                    elif file_extension == 'pdf':
+                        file_icon = "📕"
+                    elif file_extension in ['doc', 'docx']:
+                        file_icon = "📘"
+                    elif file_extension in ['xls', 'xlsx']:
+                        file_icon = "📊"
+                    elif file_extension in ['zip', 'rar', '7z']:
+                        file_icon = "📦"
+                    elif file_extension in ['mp4', 'avi', 'mov']:
+                        file_icon = "🎥"
+                    
+                    # Container para cada anexo
+                    with st.container():
+                        st.markdown(f"##### {file_icon} Anexo {idx + 1}")
+                        
+                        col_file_info, col_file_action = st.columns([3, 1])
+                        
+                        with col_file_info:
+                            st.write(f"**Nome:** {original_name_to_use}")
+                            
+                            # Calcular e exibir tamanho do arquivo
+                            file_size_bytes = len(file_content)
+                            if file_size_bytes < 1024:
+                                file_size_display = f"{file_size_bytes} bytes"
+                            elif file_size_bytes < 1024 * 1024:
+                                file_size_display = f"{file_size_bytes / 1024:.2f} KB"
+                            else:
+                                file_size_display = f"{file_size_bytes / (1024 * 1024):.2f} MB"
+                            
+                            st.write(f"**Tamanho:** {file_size_display}")
+                            
+                            if file_extension:
+                                st.write(f"**Tipo:** {file_extension.upper()}")
+                        
+                        with col_file_action:
+                            # Botão de download
+                            st.download_button(
+                                label="⬇️ Baixar",
+                                data=file_content,
+                                file_name=original_name_to_use,
+                                mime="application/octet-stream",
+                                key=f"download_attachment_{notification['id']}_{unique_name_to_use}_{idx}",
+                                use_container_width=True
+                            )
+                        
+                        # Preview de imagens
+                        if file_extension in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']:
+                            try:
+                                from PIL import Image
+                                import io
+                                img = Image.open(io.BytesIO(file_content))
+                                
+                                st.markdown("**📷 Preview da Imagem:**")
+                                st.image(img, caption=original_name_to_use, use_container_width=True)
+                            except Exception as e:
+                                st.warning(f"⚠️ Não foi possível exibir preview da imagem: {original_name_to_use}")
+                        
+                        # Informação adicional para PDFs
+                        elif file_extension == 'pdf':
+                            st.info("📄 Arquivo PDF - Use o botão de download para visualizar o conteúdo completo")
+                        
+                        st.markdown("---")
+                
                 else:
-                    st.write(f"Anexo: {original_name_to_use} (arquivo não encontrado ou corrompido)")
+                    # Arquivo não encontrado
+                    st.error(f"❌ **Anexo {idx + 1}:** {original_name_to_use}")
+                    st.write("⚠️ Arquivo não encontrado ou corrompido no servidor")
+                    st.markdown("---")
+            else:
+                st.warning(f"⚠️ **Anexo {idx + 1}:** Informações de arquivo incompletas")
+                st.markdown("---")
+    
+    else:
+        # Sem anexos
+        st.info("ℹ️ Nenhum arquivo foi anexado a esta notificação.")
+    
     st.markdown("---")
-
 
 @st_fragment
 def show_create_notification():
@@ -5222,7 +5347,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 
 
