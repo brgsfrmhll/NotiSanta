@@ -1799,7 +1799,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
         st.write(f"**Título:** {notification.get('title', UI_TEXTS.text_na)}")
         st.write(f"**Local:** {notification.get('location', UI_TEXTS.text_na)}")
         occurrence_datetime_summary = format_date_time_summary(notification.get('occurrence_date'),
-                                                               notification.get('occurrence_time'))
+ notification.get('occurrence_time'))
         st.write(f"**Data/Hora Ocorrência:** {occurrence_datetime_summary}")
         reporting_department = notification.get('reporting_department', UI_TEXTS.text_na)
         reporting_complement = notification.get('reporting_department_complement')
@@ -1835,6 +1835,13 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
         if sub_type_display_closed: st.write(f"**Especificação:** {sub_type_display_closed}")
         st.write(f"**Classificação OMS:** {', '.join(classif.get('oms', [UI_TEXTS.text_na]))}")
         st.write(f"**Classificado por:** {classif.get('classified_by', UI_TEXTS.text_na)}")
+        
+        # ADIÇÃO: Setor Notificado
+        notified_department = notification.get('notified_department', UI_TEXTS.text_na)
+        notified_complement = notification.get('notified_department_complement')
+        notified_dept_display = f"{notified_department}{f' ({notified_complement})' if notified_complement else ''}"
+        st.write(f"**🏢 Setor Notificado:** {notified_dept_display}")
+        
         deadline_date_str = classif.get('deadline')
         if deadline_date_str:
             deadline_date_formatted = datetime.fromisoformat(deadline_date_str).strftime('%d/%m/%Y')
@@ -1918,208 +1925,6 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
                                     st.write(f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
                     st.markdown(f"""</div>""", unsafe_allow_html=True)
             st.markdown("---")
-    
-    if notification.get('review_execution'):
-        st.markdown("#### 🛠️ Revisão de Execução")
-        review_exec = notification['review_execution']
-        if isinstance(review_exec, str):
-            try:
-                review_exec = json.loads(review_exec)
-            except json.JSONDecodeError:
-                review_exec = {}
-        st.write(f"**Decisão:** {review_exec.get('decision', UI_TEXTS.text_na)}")
-        reviewed_by_display = review_exec.get('reviewed_by_name') or review_exec.get('reviewed_by', UI_TEXTS.text_na)
-        st.write(f"**Revisado por:** {reviewed_by_display}")
-        st.write(f"**Observações:** {review_exec.get('observations', UI_TEXTS.text_na)}")
-        if review_exec.get('rejection_reason'):
-            st.write(f"**Motivo Rejeição:** {review_exec.get('rejection_reason', UI_TEXTS.text_na)}")
-    
-    if notification.get('approval'):
-        st.markdown("#### ✅ Aprovação Final")
-        approval_info = notification['approval']
-        if isinstance(approval_info, str):
-            try:
-                approval_info = json.loads(approval_info)
-            except json.JSONDecodeError:
-                approval_info = {}
-        if user_username_logged_in and approval_info.get('approved_by') == user_username_logged_in:
-            st.markdown(f"""
-            <div style='background-color: #e6ffe6; padding: 10px; border-radius: 5px; border-left: 3px solid #4CAF50;'>
-                <strong>Decisão:</strong> {approval_info.get('decision', UI_TEXTS.text_na)}
-                <br>
-                <strong>Aprovado por:</strong> VOCÊ ({approval_info.get('approved_by', UI_TEXTS.text_na)})
-                <br>
-                <strong>Observações:</strong> {approval_info.get('notes', UI_TEXTS.text_na)}
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.write(f"**Decisão:** {approval_info.get('decision', UI_TEXTS.text_na)}")
-            st.write(f"**Aprovado por:** {approval_info.get('approved_by', UI_TEXTS.text_na)}")
-            st.write(f"**Observações:** {approval_info.get('notes', UI_TEXTS.text_na)}")
-    
-    if notification.get('rejection_classification'):
-        st.markdown("#### ❌ Rejeição na Classificação Inicial")
-        rej_classif = notification['rejection_classification']
-        if isinstance(rej_classif, str):
-            try:
-                rej_classif = json.loads(rej_classif)
-            except json.JSONDecodeError:
-                rej_classif = {}
-        st.write(f"**Motivo:** {rej_classif.get('reason', UI_TEXTS.text_na)}")
-        st.write(f"**Rejeitado por:** {rej_classif.get('classified_by', UI_TEXTS.text_na)}")
-    
-    if notification.get('rejection_approval'):
-        st.markdown("#### ⛔ Reprovada na Aprovação")
-        rej_appr = notification['rejection_approval']
-        if isinstance(rej_appr, str):
-            try:
-                rej_appr = json.loads(rej_appr)
-            except json.JSONDecodeError:
-                rej_appr = {}
-        if user_username_logged_in and rej_appr.get('rejected_by') == user_username_logged_in:
-            st.markdown(f"""
-            <div style='background-color: #ffe6e6; padding: 10px; border-radius: 5px; border-left: 3px solid #f44336;'>
-                <strong>Motivo:</strong> {rej_appr.get('reason', UI_TEXTS.text_na)}
-                <br>
-                <strong>Reprovado por:</strong> VOCÊ ({rej_appr.get('rejected_by', UI_TEXTS.text_na)})
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.write(f"**Motivo:** {rej_appr.get('reason', UI_TEXTS.text_na)}")
-            st.write(f"**Reprovado por:** {rej_appr.get('rejected_by', UI_TEXTS.text_na)}")
-    
-    if notification.get('rejection_execution_review'):
-        st.markdown("#### 🔄 Execução Rejeitada (Revisão do Classificador)")
-        rej_exec_review = notification['rejection_execution_review']
-        if isinstance(rej_exec_review, str):
-            try:
-                rej_exec_review = json.loads(rej_exec_review)
-            except json.JSONDecodeError:
-                rej_exec_review = {}
-        if user_username_logged_in and rej_exec_review.get('reviewed_by') == user_username_logged_in:
-            st.markdown(f"""
-            <div style='background-color: #ffe6e6; padding: 10px; border-radius: 5px; border-left: 3px solid #f44336;'>
-                <strong>Motivo:</strong> {rej_exec_review.get('reason', UI_TEXTS.text_na)}
-                <br>
-                <strong>Rejeitado por:</strong> VOCÊ ({rej_exec_review.get('reviewed_by', UI_TEXTS.text_na)})
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.write(f"**Motivo:** {rej_exec_review.get('reason', UI_TEXTS.text_na)}")
-            st.write(f"**Rejeitado por:** {rej_exec_review.get('reviewed_by', UI_TEXTS.text_na)}")
-    
-    # ========== SEÇÃO DE ANEXOS MELHORADA ==========
-    st.markdown("---")
-    st.markdown("#### 📎 Documentos e Evidências Anexados")
-    
-    attachments = notification.get('attachments', [])
-    
-    if attachments and len(attachments) > 0:
-        # Header com contagem
-        st.success(f"✅ **{len(attachments)} arquivo(s) anexado(s) à notificação original**")
-        
-        # Iterar sobre cada anexo
-        for idx, attach_info in enumerate(attachments):
-            unique_name_to_use = None
-            original_name_to_use = None
-            
-            # Determinar nomes dos arquivos
-            if isinstance(attach_info, dict) and 'unique_name' in attach_info and 'original_name' in attach_info:
-                unique_name_to_use = attach_info['unique_name']
-                original_name_to_use = attach_info['original_name']
-            elif isinstance(attach_info, str):
-                unique_name_to_use = attach_info
-                original_name_to_use = attach_info
-            
-            if unique_name_to_use:
-                # Obter dados do arquivo
-                file_content = get_attachment_data(unique_name_to_use)
-                
-                if file_content:
-                    # Determinar extensão do arquivo
-                    file_extension = original_name_to_use.split('.')[-1].lower() if '.' in original_name_to_use else ''
-                    
-                    # Determinar ícone baseado no tipo de arquivo
-                    file_icon = "📄"
-                    if file_extension in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']:
-                        file_icon = "🖼️"
-                    elif file_extension == 'pdf':
-                        file_icon = "📕"
-                    elif file_extension in ['doc', 'docx']:
-                        file_icon = "📘"
-                    elif file_extension in ['xls', 'xlsx']:
-                        file_icon = "📊"
-                    elif file_extension in ['zip', 'rar', '7z']:
-                        file_icon = "📦"
-                    elif file_extension in ['mp4', 'avi', 'mov']:
-                        file_icon = "🎥"
-                    
-                    # Container para cada anexo
-                    with st.container():
-                        st.markdown(f"##### {file_icon} Anexo {idx + 1}")
-                        
-                        col_file_info, col_file_action = st.columns([3, 1])
-                        
-                        with col_file_info:
-                            st.write(f"**Nome:** {original_name_to_use}")
-                            
-                            # Calcular e exibir tamanho do arquivo
-                            file_size_bytes = len(file_content)
-                            if file_size_bytes < 1024:
-                                file_size_display = f"{file_size_bytes} bytes"
-                            elif file_size_bytes < 1024 * 1024:
-                                file_size_display = f"{file_size_bytes / 1024:.2f} KB"
-                            else:
-                                file_size_display = f"{file_size_bytes / (1024 * 1024):.2f} MB"
-                            
-                            st.write(f"**Tamanho:** {file_size_display}")
-                            
-                            if file_extension:
-                                st.write(f"**Tipo:** {file_extension.upper()}")
-                        
-                        with col_file_action:
-                            # Botão de download
-                            st.download_button(
-                                label="⬇️ Baixar",
-                                data=file_content,
-                                file_name=original_name_to_use,
-                                mime="application/octet-stream",
-                                key=f"download_attachment_{notification['id']}_{unique_name_to_use}_{idx}",
-                                use_container_width=True
-                            )
-                        
-                        # Preview de imagens
-                        if file_extension in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']:
-                            try:
-                                from PIL import Image
-                                import io
-                                img = Image.open(io.BytesIO(file_content))
-                                
-                                st.markdown("**📷 Preview da Imagem:**")
-                                st.image(img, caption=original_name_to_use, use_container_width=True)
-                            except Exception as e:
-                                st.warning(f"⚠️ Não foi possível exibir preview da imagem: {original_name_to_use}")
-                        
-                        # Informação adicional para PDFs
-                        elif file_extension == 'pdf':
-                            st.info("📄 Arquivo PDF - Use o botão de download para visualizar o conteúdo completo")
-                        
-                        st.markdown("---")
-                
-                else:
-                    # Arquivo não encontrado
-                    st.error(f"❌ **Anexo {idx + 1}:** {original_name_to_use}")
-                    st.write("⚠️ Arquivo não encontrado ou corrompido no servidor")
-                    st.markdown("---")
-            else:
-                st.warning(f"⚠️ **Anexo {idx + 1}:** Informações de arquivo incompletas")
-                st.markdown("---")
-    
-    else:
-        # Sem anexos
-        st.info("ℹ️ Nenhum arquivo foi anexado a esta notificação.")
-    
-    st.markdown("---")
 
 @st_fragment
 def show_create_notification():
@@ -2977,6 +2782,7 @@ def show_revisao_execucao():
             conn = get_db_connection()
             try:
                 cursor = conn.cursor(cursor_factory=RealDictCursor)
+                # Using sql.Literal for the list of IDs
                 query = sql.SQL("SELECT name FROM users WHERE id = ANY({executors_ids})").format(
                     executors_ids=sql.Literal(n['executors'])
                 )
@@ -3050,6 +2856,16 @@ def show_revisao_execucao():
                 st.warning(f"Erro ao processar prazo: {e}")
     
     st.markdown("---")
+
+    # NOVO: Expander com detalhes completos da notificação
+    with st.expander("📋 Detalhes Completos da Notificação", expanded=False):
+        st.session_state.user_id = st.session_state.get('user_id', 1) # Mock user_id for example
+        st.session_state.user_username = st.session_state.get('user_username', 'classificador_teste') # Mock user_username for example
+        display_notification_full_details(
+            selected_notification, 
+            st.session_state.user_id, 
+            st.session_state.user_username
+        )
     
     st.markdown("### 🔧 Ações Realizadas pelos Executores")
     
@@ -3197,6 +3013,7 @@ def show_revisao_execucao():
                 
             else:
                 st.error(f"❌ Erro ao salvar revisão.")
+
 @st_fragment
 def show_notificacoes_encerradas():
     """
@@ -5347,7 +5164,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 
 
