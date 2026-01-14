@@ -1669,7 +1669,7 @@ def _reset_form_state():
     }
 
 
-sidebar():
+def sidebar():
     """Renderiza a barra lateral com navegação e informações do usuário/login."""
     with st.sidebar:
         st.image("logo.png", use_container_width=True)
@@ -5161,6 +5161,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
