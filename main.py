@@ -2300,7 +2300,6 @@ unsafe_allow_html=True)
                         except Exception as e:
                             st.error(f"❌ Ocorreu um erro ao finalizar a notificação: {e}")
                             st.warning("Por favor, revise as informações e tente enviar novamente.")
-
 @st_fragment
 def show_classificacao_inicial():
     """
@@ -2573,7 +2572,7 @@ def show_classificacao_inicial():
                                 'status': 'classificada_aguardando_execucao',
                                 'classification': classification_data,
                                 'executors': executor_ids,
-                                'deadline_date': prazo_conclusao.isoformat()
+                                'deadline': prazo_conclusao.isoformat() # CORRIGIDO: deadline_date -> deadline
                             }
                             
                             if update_notification(notif_id, updates):
@@ -2591,7 +2590,7 @@ def show_classificacao_inicial():
         
         all_notifications = load_notifications() 
         
-        # CORREÇÃO CRÍTICA AQUI: (n.get('classification') or {}) previne o erro NoneType
+        # Proteção contra NoneType e filtro
         my_classifications = [
             n for n in all_notifications 
             if (n.get('classification') or {}).get('classified_by') == st.session_state.user_username
@@ -2664,7 +2663,7 @@ def show_classificacao_inicial():
                             updates = {
                                 'classification': curr_class,
                                 'executors': new_exec_ids,
-                                'deadline_date': new_prazo.isoformat()
+                                'deadline': new_prazo.isoformat() # CORRIGIDO: deadline_date -> deadline
                             }
                             
                             if update_notification(edit_id, updates):
@@ -2696,10 +2695,12 @@ def show_classificacao_inicial():
                     n_id = n['id']
                     title = n.get('title', 'Sem título')
                     status = n.get('status', '').replace('_', ' ').capitalize()
-                    classif_data = n.get('classification') or {} # Proteção aqui também
+                    classif_data = n.get('classification') or {}
                     nnc = classif_data.get('nnc', 'N/A')
                     
-                    deadline_str = n.get('deadline_date')
+                    # Lógica de Atraso
+                    # Tenta pegar 'deadline' primeiro, se não existir, tenta 'deadline_date' (retrocompatibilidade)
+                    deadline_str = n.get('deadline') or n.get('deadline_date')
                     is_late = False
                     deadline_display = "Sem prazo"
                     
@@ -5161,6 +5162,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
