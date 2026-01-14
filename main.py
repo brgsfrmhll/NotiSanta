@@ -1669,7 +1669,7 @@ def _reset_form_state():
     }
 
 
-def show_sidebar():
+sidebar():
     """Renderiza a barra lateral com navegação e informações do usuário/login."""
     with st.sidebar:
         st.image("logo.png", use_container_width=True)
@@ -1927,7 +1927,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
             st.markdown("---")
 
 @st_fragment
-def show_create_notification():
+create_notification():
     """
     Renderiza a página para criar novas notificações como um formulário multi-etapa.
     """
@@ -2316,7 +2316,7 @@ def show_classificacao_inicial():
     tab_pendentes, tab_historico = st.tabs(["📥 Pendentes de Classificação", "🗂️ Minhas Classificações"])
     
     # ==============================================================================
-    # ABA 1: PENDENTES (Lógica Original)
+    # ABA 1: PENDENTES (Fluxo Original)
     # ==============================================================================
     with tab_pendentes:
         st.markdown("### 📥 Notificações Aguardando Classificação")
@@ -2538,18 +2538,13 @@ def show_classificacao_inicial():
                     submitted = st.form_submit_button("✅ Salvar Classificação", use_container_width=True, type="primary")
                     
                     if submitted:
-                        # (Lógica de validação e salvamento original mantida aqui)
-                        # ... [Código de validação idêntico ao anterior] ...
-                        
-                        # Validação Simplificada para brevidade (mas mantenha a sua completa)
+                        # Validação Simplificada
                         if classificacao == UI_TEXTS.selectbox_default_classificacao_nnc or not executores_selecionados:
-                            st.error("❌ Preencha todos os campos obrigatórios.")
+                            st.error("❌ Preencha todos os campos obrigatórios (Classificação e Executores são essenciais).")
                         else:
-                            # Converter executores
                             executor_name_to_id = {f"{e['name']} ({e['username']})": e['id'] for e in all_executors}
                             executor_ids = [executor_name_to_id[name] for name in executores_selecionados if name in executor_name_to_id]
                             
-                            # Calcular prazo
                             deadline_days = 0
                             if classificacao == "Evento com dano" and nivel_dano and nivel_dano != UI_TEXTS.selectbox_default_nivel_dano:
                                 deadline_mapping = DEADLINE_DAYS_MAPPING.get("Evento com dano", {})
@@ -2594,22 +2589,20 @@ def show_classificacao_inicial():
         st.markdown("### 🗂️ Gerenciamento de Classificações Realizadas")
         st.markdown("Acompanhe o status das notificações classificadas por você e realize ajustes se necessário.")
         
-        # Carregar todas e filtrar pelo usuário atual
-        # Nota: Idealmente criar uma função load_notifications_by_classifier no backend para performance
         all_notifications = load_notifications() 
+        
+        # CORREÇÃO CRÍTICA AQUI: (n.get('classification') or {}) previne o erro NoneType
         my_classifications = [
             n for n in all_notifications 
-            if n.get('classification', {}).get('classified_by') == st.session_state.user_username
-            and n.get('status') != 'rejeitada' # Opcional: não mostrar rejeitadas
+            if (n.get('classification') or {}).get('classified_by') == st.session_state.user_username
+            and n.get('status') != 'rejeitada'
         ]
         
         if not my_classifications:
             st.info("ℹ️ Você ainda não classificou nenhuma notificação.")
         else:
-            # Ordenar por data (mais recentes primeiro)
             my_classifications.sort(key=lambda x: x['created_at'], reverse=True)
             
-            # Verificar se estamos em modo de edição
             editing_id_key = "editing_classification_id"
             if editing_id_key not in st.session_state:
                 st.session_state[editing_id_key] = None
@@ -2627,10 +2620,8 @@ def show_classificacao_inicial():
                 st.warning("⚠️ Atenção: Alterar a classificação pode redefinir prazos e executores.")
                 
                 with st.container(border=True):
-                    # Recuperar dados atuais
                     curr_class = notif_to_edit.get('classification', {})
                     
-                    # Formulário de Edição (Cópia simplificada da lógica de classificação)
                     new_nnc = st.selectbox("Classificação NNC", FORM_DATA.classificacao_nnc, index=FORM_DATA.classificacao_nnc.index(curr_class.get('nnc')) if curr_class.get('nnc') in FORM_DATA.classificacao_nnc else 0, key=f"edit_nnc_{edit_id}")
                     
                     new_dano = None
@@ -2639,11 +2630,9 @@ def show_classificacao_inicial():
                     
                     new_prioridade = st.selectbox("Prioridade", FORM_DATA.prioridades, index=FORM_DATA.prioridades.index(curr_class.get('prioridade')) if curr_class.get('prioridade') in FORM_DATA.prioridades else 0, key=f"edit_prio_{edit_id}")
                     
-                    # Executores
                     all_execs = get_users_by_role('executor')
                     exec_options = [f"{e['name']} ({e['username']})" for e in all_execs]
                     
-                    # Tentar recuperar executores atuais (IDs para Nomes)
                     current_exec_ids = notif_to_edit.get('executors', [])
                     default_execs = []
                     for e in all_execs:
@@ -2655,11 +2644,9 @@ def show_classificacao_inicial():
                     col_b1, col_b2 = st.columns(2)
                     with col_b1:
                         if st.button("💾 Salvar Alterações", type="primary", use_container_width=True, key=f"save_edit_{edit_id}"):
-                            # Lógica de salvar edição
                             executor_name_to_id = {f"{e['name']} ({e['username']})": e['id'] for e in all_execs}
                             new_exec_ids = [executor_name_to_id[name] for name in new_execs if name in executor_name_to_id]
                             
-                            # Recalcular prazo
                             deadline_days = 0
                             if new_nnc == "Evento com dano" and new_dano:
                                 deadline_days = DEADLINE_DAYS_MAPPING.get("Evento com dano", {}).get(new_dano, 30)
@@ -2667,12 +2654,11 @@ def show_classificacao_inicial():
                                 deadline_days = DEADLINE_DAYS_MAPPING.get(new_nnc, 30)
                             new_prazo = datetime.now() + timedelta(days=deadline_days)
                             
-                            # Atualizar objeto classification mantendo outros campos
                             curr_class.update({
                                 "nnc": new_nnc,
                                 "nivel_dano": new_dano,
                                 "prioridade": new_prioridade,
-                                "classified_at": datetime.now().isoformat() # Atualiza data da classificação
+                                "classified_at": datetime.now().isoformat()
                             })
                             
                             updates = {
@@ -2695,7 +2681,6 @@ def show_classificacao_inicial():
 
             # --- MODO LISTA (TABELA) ---
             else:
-                # Cabeçalho da Tabela
                 st.markdown("""
                 <div style="display: grid; grid-template-columns: 0.5fr 2fr 1fr 1fr 1fr 0.8fr; gap: 10px; font-weight: bold; padding: 10px; background-color: #f0f2f6; border-radius: 5px; margin-bottom: 10px;">
                     <div>ID</div>
@@ -2711,10 +2696,9 @@ def show_classificacao_inicial():
                     n_id = n['id']
                     title = n.get('title', 'Sem título')
                     status = n.get('status', '').replace('_', ' ').capitalize()
-                    classif_data = n.get('classification', {})
+                    classif_data = n.get('classification') or {} # Proteção aqui também
                     nnc = classif_data.get('nnc', 'N/A')
                     
-                    # Lógica de Atraso
                     deadline_str = n.get('deadline_date')
                     is_late = False
                     deadline_display = "Sem prazo"
@@ -2728,22 +2712,19 @@ def show_classificacao_inicial():
                         except:
                             pass
                     
-                    # Formatação Visual do Prazo
                     deadline_html = f"<span>{deadline_display}</span>"
                     if is_late:
                         deadline_html = f"<span style='color: #d9534f; font-weight: bold;'>⚠️ {deadline_display} (Atrasado)</span>"
                     elif status in ['Concluida', 'Encerrada']:
                          deadline_html = f"<span style='color: #28a745;'>✅ Concluído</span>"
                     
-                    # Status Badge
-                    status_color = "#6c757d" # cinza
-                    if "execucao" in status.lower(): status_color = "#ffc107" # amarelo
-                    if "aprovacao" in status.lower(): status_color = "#17a2b8" # azul
-                    if "concluida" in status.lower(): status_color = "#28a745" # verde
+                    status_color = "#6c757d"
+                    if "execucao" in status.lower(): status_color = "#ffc107"
+                    if "aprovacao" in status.lower(): status_color = "#17a2b8"
+                    if "concluida" in status.lower(): status_color = "#28a745"
                     
                     status_badge = f"<span style='background-color: {status_color}; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8em;'>{status}</span>"
 
-                    # Renderizar Linha
                     col1, col2, col3, col4, col5, col6 = st.columns([0.5, 2, 1, 1, 1, 0.8])
                     
                     with col1: st.write(f"**#{n_id}**")
@@ -2752,7 +2733,6 @@ def show_classificacao_inicial():
                     with col4: st.markdown(status_badge, unsafe_allow_html=True)
                     with col5: st.markdown(deadline_html, unsafe_allow_html=True)
                     with col6:
-                        # Botão Reclassificar (só permite se não estiver concluída/encerrada)
                         if status not in ['Concluida', 'Encerrada', 'Rejeitada']:
                             if st.button("✏️ Editar", key=f"btn_reclass_{n_id}", help="Reclassificar esta notificação"):
                                 st.session_state[editing_id_key] = n_id
@@ -2761,7 +2741,7 @@ def show_classificacao_inicial():
                             st.write("🔒")
                     
                     st.markdown("<hr style='margin: 5px 0;'>", unsafe_allow_html=True)
-
+                    
 @st_fragment
 def show_revisao_execucao():
     """
@@ -5181,6 +5161,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
