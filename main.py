@@ -2552,6 +2552,7 @@ def show_classificacao_inicial():
                                 deadline_days = DEADLINE_DAYS_MAPPING.get(classificacao, 30)
                             prazo_conclusao = datetime.now() + timedelta(days=deadline_days)
                             
+                            # CORREÇÃO: Salvando o prazo DENTRO do JSON de classificação
                             classification_data = {
                                 "nnc": classificacao,
                                 "nivel_dano": nivel_dano if classificacao == "Evento com dano" else None,
@@ -2565,14 +2566,15 @@ def show_classificacao_inicial():
                                 "responsible_sector": setor_responsavel,
                                 "classified_by": st.session_state.user_username,
                                 "classified_at": datetime.now().isoformat(),
-                                "observations": observacoes_classificador
+                                "observations": observacoes_classificador,
+                                "deadline_calculated": prazo_conclusao.isoformat() # <--- SALVANDO AQUI
                             }
                             
                             updates = {
                                 'status': 'classificada_aguardando_execucao',
                                 'classification': classification_data,
-                                'executors': executor_ids,
-                                'deadline': prazo_conclusao.isoformat() # CORRIGIDO: deadline_date -> deadline
+                                'executors': executor_ids
+                                # 'deadline': ... REMOVIDO PARA EVITAR ERRO DE COLUNA
                             }
                             
                             if update_notification(notif_id, updates):
@@ -2590,7 +2592,6 @@ def show_classificacao_inicial():
         
         all_notifications = load_notifications() 
         
-        # Proteção contra NoneType e filtro
         my_classifications = [
             n for n in all_notifications 
             if (n.get('classification') or {}).get('classified_by') == st.session_state.user_username
@@ -2657,13 +2658,14 @@ def show_classificacao_inicial():
                                 "nnc": new_nnc,
                                 "nivel_dano": new_dano,
                                 "prioridade": new_prioridade,
-                                "classified_at": datetime.now().isoformat()
+                                "classified_at": datetime.now().isoformat(),
+                                "deadline_calculated": new_prazo.isoformat() # <--- SALVANDO AQUI NA EDIÇÃO
                             })
                             
                             updates = {
                                 'classification': curr_class,
-                                'executors': new_exec_ids,
-                                'deadline': new_prazo.isoformat() # CORRIGIDO: deadline_date -> deadline
+                                'executors': new_exec_ids
+                                # 'deadline': ... REMOVIDO
                             }
                             
                             if update_notification(edit_id, updates):
@@ -2698,9 +2700,13 @@ def show_classificacao_inicial():
                     classif_data = n.get('classification') or {}
                     nnc = classif_data.get('nnc', 'N/A')
                     
-                    # Lógica de Atraso
-                    # Tenta pegar 'deadline' primeiro, se não existir, tenta 'deadline_date' (retrocompatibilidade)
-                    deadline_str = n.get('deadline') or n.get('deadline_date')
+                    # Lógica de Atraso: Agora busca dentro do JSON 'classification'
+                    deadline_str = classif_data.get('deadline_calculated')
+                    
+                    # Fallback para tentar achar em outros lugares se for antigo
+                    if not deadline_str:
+                         deadline_str = n.get('deadline') or n.get('deadline_date')
+
                     is_late = False
                     deadline_display = "Sem prazo"
                     
@@ -2742,7 +2748,6 @@ def show_classificacao_inicial():
                             st.write("🔒")
                     
                     st.markdown("<hr style='margin: 5px 0;'>", unsafe_allow_html=True)
-
 @st_fragment
 def show_revisao_execucao():
     """
@@ -5162,6 +5167,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
