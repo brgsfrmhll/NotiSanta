@@ -3279,7 +3279,7 @@ def show_execution():
         for user in all_users
     }
     user_active_notifications = []
-    active_execution_statuses = ['classificada', 'em_execucao']
+    active_execution_statuses = ['classificada_aguardando_execucao', 'classificada', 'em_execucao']
     for notification in all_notifications:
         is_assigned_to_current_user = False
         assigned_executors_raw = notification.get('executors', [])
@@ -3508,7 +3508,7 @@ def show_execution():
                                     }
                                     add_notification_action(notification['id'], action_data_to_add)
                                     if st.session_state[action_choice_key] == "Registrar Ação":
-                                        if current_notification_in_list.get('status') == 'classificada':
+                                        if current_notification_in_list.get('status') in ['classificada_aguardando_execucao', 'classificada']:
                                             update_notification(notification['id'], {'status': 'em_execucao'})
                                         add_history_entry(notification['id'],
                                                           "Ação registrada (Execução)",
@@ -5167,6 +5167,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
