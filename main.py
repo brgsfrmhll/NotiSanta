@@ -8,6 +8,7 @@ import streamlit as st
 import json
 import hashlib
 import os
+import io
 from datetime import datetime, date as dt_date_class, time as dt_time_class, timedelta
 from typing import Dict, List, Optional, Any
 import uuid
@@ -18,6 +19,12 @@ from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 from streamlit import fragment as st_fragment
+# PDF (relatórios bonitos)
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+
 
 load_dotenv()
 
@@ -312,8 +319,96 @@ def _get_attachments_map_by_ids(conn, ids: List[int]) -> Dict[int, List[Dict[str
             "original_name": orig,
             "uploaded_at": up_at.isoformat() if hasattr(up_at, "isoformat") else up_at
         })
-    return mp
 
+def get_notification_actions(notification_id: int) -> List[Dict]:
+    """Retorna lista de ações registradas pelos executores para uma notificação."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        mp = _get_actions_map_by_ids(conn, [int(notification_id)])
+        return mp.get(int(notification_id), []) or []
+    except Exception as e:
+        log_error(f"Erro ao buscar ações da notificação {notification_id}: {e}")
+        return []
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+def add_notification_action(notification_id: int, action_data: Dict) -> bool:
+    """Insere uma ação de executor na tabela notification_actions.
+
+    action_data esperado:
+      - executor_id (int | None)
+      - executor_name (str | None)
+      - description (str) [obrigatório]
+      - timestamp (str ISO | None)
+      - final_action_by_executor (bool)
+      - evidence_description (str | None)
+      - evidence_attachments (list[dict] | None) -> [{unique_name, original_name, saved_at, size_bytes}, ...]
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        desc = (action_data.get("description") or "").strip()
+        if not desc:
+            return False
+
+        ts = action_data.get("timestamp")
+        # aceitar ISO string ou None (usa default do banco)
+        action_ts = None
+        if isinstance(ts, str) and ts.strip():
+            try:
+                action_ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            except Exception:
+                action_ts = None
+
+        evidence_attachments = action_data.get("evidence_attachments")
+        if evidence_attachments is not None and not isinstance(evidence_attachments, (list, dict, str)):
+            evidence_attachments = None
+
+        cur.execute(
+            """
+            INSERT INTO notification_actions
+                (notification_id, executor_id, executor_name, description, action_timestamp,
+                 final_action_by_executor, evidence_description, evidence_attachments)
+            VALUES
+                (%s, %s, %s, %s, COALESCE(%s, CURRENT_TIMESTAMP),
+                 %s, %s, %s)
+            """,
+            (
+                int(notification_id),
+                action_data.get("executor_id"),
+                action_data.get("executor_name"),
+                desc,
+                action_ts,
+                bool(action_data.get("final_action_by_executor", False)),
+                (action_data.get("evidence_description") or None),
+                json.dumps(evidence_attachments, ensure_ascii=False) if isinstance(evidence_attachments, (list, dict)) else evidence_attachments
+            ),
+        )
+        conn.commit()
+        cur.close()
+        return True
+    except Exception as e:
+        if conn:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        log_error(f"Erro ao adicionar ação para notificação {notification_id}: {e}")
+        return False
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 def add_history_entry(notification_id: int, action_type: str, performed_by: str, details: str,
@@ -2127,6 +2222,281 @@ def build_notification_report(notification_id: int) -> str:
                 pass
 
 
+
+def build_notification_report_pdf(notification_id: int) -> bytes:
+    """Gera um PDF bem formatado com todo o histórico (notificação + classificação + execução + revisões + aprovações + auditoria).
+
+    Retorna bytes do PDF para uso em st.download_button.
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT
+                id, title, description, location, occurrence_date, occurrence_time,
+                reporting_department, reporting_department_complement, notified_department,
+                notified_department_complement, event_shift,
+                immediate_actions_taken, immediate_action_description,
+                patient_involved, patient_id, patient_outcome_obito,
+                additional_notes, status, created_at, updated_at,
+                classification, rejection_classification, review_execution, approval,
+                rejection_approval, rejection_execution_review, conclusion,
+                executors, approver
+            FROM notifications
+            WHERE id = %s
+            """,
+            (notification_id,),
+        )
+        row = cur.fetchone()
+
+        if not row:
+            buf = io.BytesIO()
+            doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=36, rightMargin=36, topMargin=42, bottomMargin=36)
+            styles = getSampleStyleSheet()
+            story = [Paragraph(f"Relatório — Notificação #{notification_id}", styles['Title']),
+                     Spacer(1, 12),
+                     Paragraph("Notificação não encontrada.", styles['Normal'])]
+            doc.build(story)
+            return buf.getvalue()
+
+        keys = [
+            "id","title","description","location","occurrence_date","occurrence_time",
+            "reporting_department","reporting_department_complement","notified_department",
+            "notified_department_complement","event_shift",
+            "immediate_actions_taken","immediate_action_description",
+            "patient_involved","patient_id","patient_outcome_obito",
+            "additional_notes","status","created_at","updated_at",
+            "classification","rejection_classification","review_execution","approval",
+            "rejection_approval","rejection_execution_review","conclusion",
+            "executors","approver"
+        ]
+        n = dict(zip(keys, row))
+
+        # Histórico (auditoria)
+        cur.execute(
+            """
+            SELECT action_timestamp, action, user_name, details
+            FROM notification_history
+            WHERE notification_id = %s
+            ORDER BY action_timestamp ASC
+            """,
+            (notification_id,),
+        )
+        history_rows = cur.fetchall()
+
+        cur.close()
+
+        def _json_to_obj(v):
+            if v is None:
+                return None
+            if isinstance(v, (dict, list)):
+                return v
+            if isinstance(v, str):
+                vv = v.strip()
+                if not vv:
+                    return None
+                try:
+                    return json.loads(vv)
+                except Exception:
+                    return v
+            return v
+
+        classification = _json_to_obj(n.get("classification")) or {}
+        review_execution = _json_to_obj(n.get("review_execution")) or {}
+        approval = _json_to_obj(n.get("approval")) or {}
+        conclusion = _json_to_obj(n.get("conclusion")) or {}
+
+        # Anexos da notificação
+        notif_atts = []
+        try:
+            notif_atts = get_notification_attachments(notification_id) or []
+        except Exception:
+            notif_atts = []
+
+        # Ações dos executores + evidências
+        actions = get_notification_actions(notification_id) or []
+
+        # Montagem do PDF
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=36, rightMargin=36, topMargin=42, bottomMargin=36)
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name="H2", parent=styles["Heading2"], spaceBefore=12, spaceAfter=6))
+        styles.add(ParagraphStyle(name="Small", parent=styles["Normal"], fontSize=9, leading=11))
+        styles.add(ParagraphStyle(name="Mono", parent=styles["Normal"], fontName="Courier", fontSize=9, leading=11))
+
+        def _kv_table(rows):
+            t = Table(rows, colWidths=[140, 360])
+            t.setStyle(TableStyle([
+                ("VALIGN", (0,0), (-1,-1), "TOP"),
+                ("LINEBELOW", (0,0), (-1,-1), 0.25, colors.lightgrey),
+                ("FONTNAME", (0,0), (-1,-1), "Helvetica"),
+                ("FONTSIZE", (0,0), (-1,-1), 9),
+                ("LEFTPADDING", (0,0), (-1,-1), 6),
+                ("RIGHTPADDING", (0,0), (-1,-1), 6),
+                ("TOPPADDING", (0,0), (-1,-1), 3),
+                ("BOTTOMPADDING", (0,0), (-1,-1), 3),
+            ]))
+            return t
+
+        def _fmt_dt(v):
+            if not v:
+                return UI_TEXTS.text_na
+            try:
+                if isinstance(v, str):
+                    return v.replace("T", " ").replace("+00:00", "Z")
+                return str(v)
+            except Exception:
+                return str(v)
+
+        story = []
+        story.append(Paragraph(f"RELATÓRIO COMPLETO — NOTIFICAÇÃO #{n['id']}", styles["Title"]))
+        story.append(Paragraph("NotiSanta • Ciclo completo (Notificação → Classificação → Execução → Revisões/Aprovações)", styles["Small"]))
+        story.append(Spacer(1, 12))
+
+        # [1] Notificação
+        story.append(Paragraph("1) Notificação", styles["H2"]))
+        notif_rows = [
+            ["Título", n.get("title") or UI_TEXTS.text_na],
+            ["Status atual", (n.get("status") or UI_TEXTS.text_na)],
+            ["Criada em", _fmt_dt(n.get("created_at"))],
+            ["Atualizada em", _fmt_dt(n.get("updated_at"))],
+            ["Local", n.get("location") or UI_TEXTS.text_na],
+            ["Data/Hora ocorrência", f"{n.get('occurrence_date') or UI_TEXTS.text_na} {n.get('occurrence_time') or ''}".strip()],
+            ["Depto notificante", f"{n.get('reporting_department') or UI_TEXTS.text_na} {n.get('reporting_department_complement') or ''}".strip()],
+            ["Depto notificado", f"{n.get('notified_department') or UI_TEXTS.text_na} {n.get('notified_department_complement') or ''}".strip()],
+            ["Turno", n.get("event_shift") or UI_TEXTS.text_na],
+            ["Ações imediatas tomadas", "Sim" if n.get("immediate_actions_taken") else "Não"],
+            ["Paciente envolvido", "Sim" if n.get("patient_involved") else "Não"],
+        ]
+        story.append(_kv_table(notif_rows))
+        story.append(Spacer(1, 10))
+
+        if (n.get("description") or "").strip():
+            story.append(Paragraph("Descrição", styles["Heading3"]))
+            story.append(Paragraph((n.get("description") or "").replace("\n", "<br/>") , styles["Normal"]))
+            story.append(Spacer(1, 8))
+
+        if (n.get("additional_notes") or "").strip():
+            story.append(Paragraph("Observações adicionais", styles["Heading3"]))
+            story.append(Paragraph((n.get("additional_notes") or "").replace("\n", "<br/>") , styles["Normal"]))
+            story.append(Spacer(1, 8))
+
+        if notif_atts:
+            story.append(Paragraph("Anexos da notificação", styles["Heading3"]))
+            for att in notif_atts:
+                if isinstance(att, dict):
+                    story.append(Paragraph(f"• {att.get('original_name') or att.get('unique_name')}", styles["Small"]))
+            story.append(Spacer(1, 8))
+
+        # [2] Classificação
+        story.append(Paragraph("2) Classificação", styles["H2"]))
+        if classification:
+            cls_pretty = json.dumps(classification, ensure_ascii=False, indent=2)
+            story.append(Paragraph("Resumo (JSON)", styles["Heading3"]))
+            story.append(Paragraph(f"<pre>{cls_pretty}</pre>", styles["Mono"]))
+        else:
+            story.append(Paragraph("Sem classificação registrada.", styles["Normal"]))
+        story.append(Spacer(1, 10))
+
+        # [3] Execução
+        story.append(Paragraph("3) Execução — ações dos executores", styles["H2"]))
+        if actions:
+            for i, a in enumerate(actions, start=1):
+                ex = a.get("executor_name") or UI_TEXTS.text_na
+                when = _fmt_dt(a.get("action_timestamp"))
+                desc = (a.get("description") or "").strip()
+                story.append(Paragraph(f"Ação {i} — {ex}", styles["Heading3"]))
+                story.append(_kv_table([
+                    ["Quando", when],
+                    ["Concluiu sua parte", "Sim" if a.get("final_action_by_executor") else "Não"],
+                ]))
+                if desc:
+                    story.append(Spacer(1, 6))
+                    story.append(Paragraph(desc.replace("\n", "<br/>") , styles["Normal"]))
+                ev_desc = (a.get("evidence_description") or "").strip()
+                ev_atts = a.get("evidence_attachments") or []
+                if ev_desc or (isinstance(ev_atts, list) and ev_atts):
+                    story.append(Spacer(1, 6))
+                    story.append(Paragraph("Evidências", styles["Heading4"]))
+                    if ev_desc:
+                        story.append(Paragraph(ev_desc.replace("\n", "<br/>") , styles["Small"]))
+                    if isinstance(ev_atts, list) and ev_atts:
+                        for att in ev_atts:
+                            if isinstance(att, dict):
+                                story.append(Paragraph(f"• {att.get('original_name') or att.get('unique_name')}", styles["Small"]))
+                story.append(Spacer(1, 8))
+        else:
+            story.append(Paragraph("Nenhuma ação registrada.", styles["Normal"]))
+        story.append(Spacer(1, 10))
+
+        # [4] Revisão da execução
+        story.append(Paragraph("4) Revisão da execução", styles["H2"]))
+        if review_execution:
+            rv = json.dumps(review_execution, ensure_ascii=False, indent=2)
+            story.append(Paragraph(f"<pre>{rv}</pre>", styles["Mono"]))
+        else:
+            story.append(Paragraph("Sem revisão registrada.", styles["Normal"]))
+        story.append(Spacer(1, 10))
+
+        # [5] Aprovação final / superior (se houver)
+        story.append(Paragraph("5) Aprovação(ões)", styles["H2"]))
+        if approval:
+            ap = json.dumps(approval, ensure_ascii=False, indent=2)
+            story.append(Paragraph(f"<pre>{ap}</pre>", styles["Mono"]))
+        else:
+            story.append(Paragraph("Sem aprovação final registrada.", styles["Normal"]))
+        story.append(Spacer(1, 10))
+
+        # [6] Conclusão
+        story.append(Paragraph("6) Conclusão", styles["H2"]))
+        if conclusion:
+            cc = json.dumps(conclusion, ensure_ascii=False, indent=2)
+            story.append(Paragraph(f"<pre>{cc}</pre>", styles["Mono"]))
+        else:
+            story.append(Paragraph("Sem conclusão registrada.", styles["Normal"]))
+        story.append(Spacer(1, 10))
+
+        # [7] Histórico
+        story.append(Paragraph("7) Histórico (auditoria)", styles["H2"]))
+        if history_rows:
+            for ts, action, user_name, details in history_rows:
+                details_str = (details or "").strip()
+                line = f"{_fmt_dt(ts)} • {user_name or UI_TEXTS.text_na} • {action or ''}"
+                story.append(Paragraph(line, styles["Small"]))
+                if details_str:
+                    story.append(Paragraph(details_str.replace("\n", "<br/>") , styles["Small"]))
+                story.append(Spacer(1, 4))
+        else:
+            story.append(Paragraph("Sem histórico.", styles["Normal"]))
+        doc.build(story)
+        return buf.getvalue()
+
+    except Exception as e:
+        # fallback simples
+        try:
+            buf = io.BytesIO()
+            doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=36, rightMargin=36, topMargin=42, bottomMargin=36)
+            styles = getSampleStyleSheet()
+            doc.build([Paragraph(f"Relatório — Notificação #{notification_id}", styles['Title']),
+                       Spacer(1, 12),
+                       Paragraph(f"Erro ao gerar PDF: {e}", styles['Normal'])])
+            return buf.getvalue()
+        except Exception:
+            return b""
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+
+
+
 @st_fragment
 def show_create_notification():
     """
@@ -3530,6 +3900,60 @@ def show_notificacoes_encerradas():
             'Tempo': st.column_config.TextColumn('Tempo', width='small')
         }
     )
+
+    st.markdown("---")
+    st.markdown("### 🔍 Visualizar Detalhes e Baixar Relatório")
+
+    notification_display_options = [UI_TEXTS.selectbox_default_notification_select] + [
+        f"ID {n['id']} - {n.get('title', 'Sem título')} ({n.get('status', UI_TEXTS.text_na)})"
+        for n in filtered_notifications
+    ]
+
+    selected_detail_option_key = "detalhes_encerrada_select"
+    if selected_detail_option_key not in st.session_state or st.session_state[selected_detail_option_key] >= len(notification_display_options) or st.session_state[selected_detail_option_key] < 0:
+        st.session_state[selected_detail_option_key] = 0
+
+    selected_index_details = st.selectbox(
+        "Selecione uma notificação para ver detalhes completos e baixar o relatório:",
+        range(len(notification_display_options)),
+        format_func=lambda i: notification_display_options[i],
+        key=selected_detail_option_key
+    )
+
+    if notification_display_options[selected_index_details] != UI_TEXTS.selectbox_default_notification_select:
+        selected_notification = filtered_notifications[selected_index_details - 1]
+
+        with st.expander(f"📋 **Ver Detalhes Completos da Notificação {selected_notification['id']}**", expanded=True):
+            display_notification_full_details(selected_notification, st.session_state.user_id, st.session_state.user_username)
+
+            st.markdown("---")
+            st.markdown("### 📦 Relatório completo (download)")
+
+            notif_id_int = int(selected_notification['id'])
+            pdf_bytes = build_notification_report_pdf(notif_id_int)
+            if pdf_bytes:
+                st.download_button(
+                    label="⬇️ Baixar relatório (PDF)",
+                    data=pdf_bytes,
+                    file_name=f"notificacao_{notif_id_int}_relatorio.pdf",
+                    mime="application/pdf",
+                    key=f"dl_relatorio_pdf_{notif_id_int}"
+                )
+            else:
+                st.warning("Não foi possível gerar o PDF desta notificação.")
+
+            report_txt = build_notification_report(notif_id_int)
+            st.download_button(
+                label="⬇️ Baixar relatório (TXT)",
+                data=report_txt.encode("utf-8"),
+                file_name=f"notificacao_{notif_id_int}_relatorio.txt",
+                mime="text/plain",
+                key=f"dl_relatorio_txt_{notif_id_int}"
+            )
+
+            with st.expander("👀 Prévia rápida do relatório (TXT)", expanded=False):
+                st.text_area("Relatório", report_txt, height=320, key=f"preview_rel_txt_{notif_id_int}")
+
     
     st.markdown("---")
     
@@ -3556,33 +3980,6 @@ def show_notificacoes_encerradas():
         
         with st.expander(f"📋 **Ver Detalhes Completos da Notificação {selected_notification['id']}**", expanded=True):
             display_notification_full_details(selected_notification, st.session_state.user_id, st.session_state.user_username)
-
-            st.markdown('---')
-            st.markdown('### 📦 Relatório completo (download)')
-            report_txt = build_notification_report(int(selected_notification['id']))
-            st.download_button(
-                label='⬇️ Baixar relatório completo (.txt)',
-                data=report_txt.encode('utf-8'),
-                file_name=f"notificacao_{int(selected_notification['id'])}_relatorio.txt",
-                mime='text/plain',
-                key=f"dl_relatorio_encerrada_{int(selected_notification['id'])}"
-            )
-            with st.expander("👀 Prévia do relatório", expanded=False):
-                st.text_area("Relatório", report_txt, height=350)
-
-
-            st.markdown('---')
-            st.markdown('### 📦 Relatório completo (download)')
-            report_txt = build_notification_report(int(selected_notification['id']))
-            st.download_button(
-                label='⬇️ Baixar relatório completo (.txt)',
-                data=report_txt.encode('utf-8'),
-                file_name=f"notificacao_{int(selected_notification['id'])}_relatorio.txt",
-                mime='text/plain',
-                key=f"dl_relatorio_enc_{int(selected_notification['id'])}"
-            )
-            with st.expander('Pré-visualização do relatório', expanded=False):
-                st.text_area('Relatório', report_txt, height=400, key=f"preview_rel_{int(selected_notification['id'])}")
 
 @st_fragment
 def show_execution():
