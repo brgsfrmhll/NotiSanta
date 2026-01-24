@@ -3787,135 +3787,135 @@ def show_revisao_execucao():
 
                 labels, label_to_id, default_index = _approver_options_for_select(selected_notification)
 
-                with st.form(key=f"form_revisao_{notif_id}"):
-                    decisao_options = [UI_TEXTS.selectbox_default_decisao_revisao, "✅ Aprovar Execução", "🔄 Solicitar Correções"]
-                    decisao = st.radio(
-                        "📋 Decisão da Revisão *",
-                        options=decisao_options,
-                        index=0,
-                        key=f"decisao_revisao_{notif_id}",
-                        help="Aprovar: encerra a revisão. Opcionalmente você pode encaminhar para aprovação superior. Solicitar correções retorna para execução."
-                    )
-
-                    observacoes_revisao = st.text_area(
-                        "📝 Observações da Revisão *",
-                        key=f"obs_revisao_{notif_id}",
-                        height=140,
-                        placeholder="Descreva sua análise da execução. Se solicitar correções, especifique o que precisa ser ajustado.",
-                    )
-
-                    encaminhar = False
-                    selected_approver_id = None
-
-                    if decisao == "✅ Aprovar Execução":
-                        # Se a notificação exigir aprovação superior, torna obrigatório escolher um aprovador.
-                        _classif = selected_notification.get("classification") or {}
-                        if isinstance(_classif, str):
-                            try:
-                                _classif = json.loads(_classif)
-                            except Exception:
-                                _classif = {}
-                        requires_sup = truthy(_classif.get('requires_approval')) or truthy(selected_notification.get('requires_approval'))
-
-                        if requires_sup:
-                            encaminhar = True
+                # --- Revisão de Execução (UI reativa fora de st.form para permitir escolher aprovador ANTES de salvar) ---
+                decisao_options = [UI_TEXTS.selectbox_default_decisao_revisao, "✅ Aprovar Execução", "🔄 Solicitar Correções"]
+                decisao = st.radio(
+                    "📋 Decisão da Revisão *",
+                    options=decisao_options,
+                    index=0,
+                    key=f"decisao_revisao_{notif_id}",
+                    help="Aprovar: encerra a revisão. Opcionalmente você pode encaminhar para aprovação superior. Solicitar correções retorna para execução."
+                )
+                
+                observacoes_revisao = st.text_area(
+                    "📝 Observações da Revisão *",
+                    key=f"obs_revisao_{notif_id}",
+                    height=140,
+                    placeholder="Descreva sua análise da execução. Se solicitar correções, especifique o que precisa ser ajustado.",
+                )
+                
+                encaminhar = False
+                selected_approver_id = None
+                
+                if decisao == "✅ Aprovar Execução":
+                    # Se a notificação exigir aprovação superior, torna obrigatório escolher um aprovador.
+                    _classif = selected_notification.get("classification") or {}
+                    if isinstance(_classif, str):
+                        try:
+                            _classif = json.loads(_classif)
+                        except Exception:
+                            _classif = {}
+                    requires_sup = truthy(_classif.get('requires_approval')) or truthy(selected_notification.get('requires_approval'))
+                
+                    if requires_sup:
+                        encaminhar = True
+                        if labels:
+                            selected_label = st.selectbox(
+                                "👤 Aprovador superior (obrigatório)",
+                                options=labels,
+                                index=default_index,
+                                key=f"selected_approver_label_{notif_id}",
+                                help="Esta notificação exige aprovação superior após a revisão da execução."
+                            )
+                            selected_approver_id = label_to_id.get(selected_label)
+                        else:
+                            st.error("❌ Nenhum usuário com perfil 'aprovador' foi encontrado. Cadastre um aprovador para prosseguir.")
+                            selected_approver_id = None
+                    else:
+                        encaminhar = st.checkbox(
+                            "➡️ Encaminhar para aprovação superior (opcional)",
+                            value=st.session_state.get(forward_key, False),
+                            key=forward_key
+                        )
+                        if encaminhar:
                             if labels:
                                 selected_label = st.selectbox(
-                                    "👤 Aprovador superior (obrigatório)",
+                                    "👤 Aprovador superior",
                                     options=labels,
                                     index=default_index,
                                     key=f"selected_approver_label_{notif_id}",
-                                    help="Esta notificação exige aprovação superior após a revisão da execução."
+                                    help="Será encaminhado para este aprovador após você aprovar a execução."
                                 )
                                 selected_approver_id = label_to_id.get(selected_label)
                             else:
-                                st.error("❌ Nenhum usuário com perfil 'aprovador' foi encontrado. Cadastre um aprovador para prosseguir.")
+                                st.warning("⚠️ Nenhum usuário com perfil 'aprovador' foi encontrado.")
                                 selected_approver_id = None
+                
+                st.markdown("<span class='required-field'>* Campos obrigatórios</span>", unsafe_allow_html=True)
+                submitted = st.button("💾 Salvar Revisão", use_container_width=True, type="primary", key=f"btn_salvar_revisao_{notif_id}")
+                
+                if submitted:
+                    if decisao == UI_TEXTS.selectbox_default_decisao_revisao:
+                        st.error("❌ Por favor, selecione uma decisão para a revisão!")
+                        st.stop()
+                
+                    if not (observacoes_revisao or "").strip():
+                        st.error("❌ Por favor, preencha as observações da revisão!")
+                        st.stop()
+                
+                    # Se marcou encaminhamento (ou é obrigatório), precisa escolher um aprovador válido
+                    if decisao == "✅ Aprovar Execução" and encaminhar and not selected_approver_id:
+                        st.error("❌ Selecione um aprovador superior para encaminhar a aprovação.")
+                        st.stop()
+                
+                    if decisao == "🔄 Solicitar Correções":
+                        new_status = "em_execucao"
+                    else:
+                        # aprovado
+                        if encaminhar and selected_approver_id:
+                            new_status = "aguardando_aprovacao"
                         else:
-                            encaminhar = st.checkbox(
-                                "➡️ Encaminhar para aprovação superior (opcional)",
-                                value=st.session_state.get(forward_key, False),
-                                key=forward_key
-                            )
-                            if encaminhar:
-                                if labels:
-                                    selected_label = st.selectbox(
-                                        "👤 Aprovador superior",
-                                        options=labels,
-                                        index=default_index,
-                                        key=f"selected_approver_label_{notif_id}",
-                                        help="Será encaminhado para este aprovador após você aprovar a execução."
-                                    )
-                                    selected_approver_id = label_to_id.get(selected_label)
-                                else:
-                                    st.warning("⚠️ Nenhum usuário com perfil 'aprovador' foi encontrado.")
-                                    selected_approver_id = None
-
-                    st.markdown("<span class='required-field'>* Campos obrigatórios</span>", unsafe_allow_html=True)
-                    submitted = st.form_submit_button("💾 Salvar Revisão", use_container_width=True, type="primary")
-
-                    if submitted:
-                        if decisao == UI_TEXTS.selectbox_default_decisao_revisao:
-                            st.error("❌ Por favor, selecione uma decisão para a revisão!")
-                            st.stop()
-
-                        if not (observacoes_revisao or "").strip():
-                            st.error("❌ Por favor, preencha as observações da revisão!")
-                            st.stop()
-
-                        
-                        # Se marcou encaminhamento (ou é obrigatório), precisa escolher um aprovador válido
-                        if decisao == "✅ Aprovar Execução" and encaminhar and not selected_approver_id:
-                            st.error("❌ Selecione um aprovador superior para encaminhar a aprovação.")
-                            st.stop()
-
-                        if decisao == "🔄 Solicitar Correções":
-                            new_status = "em_execucao"
-                        else:
-                            # aprovado
-                            if encaminhar and selected_approver_id:
-                                new_status = "aguardando_aprovacao"
-                            else:
-                                new_status = "concluida"
-
-                        review_data = {
-                            "decision": decisao,
-                            "observations": observacoes_revisao.strip(),
-                            "reviewed_at": datetime.now().isoformat(),
-                            "reviewed_by_id": st.session_state.get('user_id', None),
-                            "reviewed_by_username": st.session_state.get('user_username', None),
-                            "forwarded_to_approver_id": int(selected_approver_id) if selected_approver_id else None,
-                            "forwarded_to_approver": bool(encaminhar and selected_approver_id)
+                            new_status = "concluida"
+                
+                    review_data = {
+                        "decision": decisao,
+                        "observations": observacoes_revisao.strip(),
+                        "reviewed_at": datetime.now().isoformat(),
+                        "reviewed_by_id": st.session_state.get('user_id', None),
+                        "reviewed_by_username": st.session_state.get('user_username', None),
+                        "forwarded_to_approver_id": int(selected_approver_id) if selected_approver_id else None,
+                        "forwarded_to_approver": bool(encaminhar and selected_approver_id)
+                    }
+                
+                    updates = {
+                        "status": new_status,
+                        "review_execution": review_data,
+                    }
+                
+                    if new_status == "em_execucao":
+                        updates["rejection_execution_review"] = {
+                            "reason": observacoes_revisao.strip(),
+                            "rejected_at": datetime.now().isoformat(),
+                            "rejected_by_id": st.session_state.get('user_id', None),
+                            "rejected_by_username": st.session_state.get('user_username', None),
                         }
+                
+                    if new_status == "aguardando_aprovacao" and selected_approver_id:
+                        updates["approver"] = selected_approver_id
+                
+                    updated_notif = update_notification(notif_id, updates)
+                
+                    if updated_notif:
+                        add_history_entry(
+                            notif_id,
+                            f"🔎 Revisão de execução registrada: {decisao}",
+                            st.session_state.get('user_username', UI_TEXTS.text_na)
+                        )
+                        st.success("✅ Revisão salva com sucesso!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Erro ao atualizar a notificação. Verifique o log do servidor.")
 
-                        updates = {
-                            "status": new_status,
-                            "review_execution": review_data,
-                        }
-
-                        if new_status == "em_execucao":
-                            updates["rejection_execution_review"] = {
-                                "reason": observacoes_revisao.strip(),
-                                "rejected_at": datetime.now().isoformat(),
-                                "rejected_by_id": st.session_state.get('user_id', None),
-                                "rejected_by_username": st.session_state.get('user_username', None),
-                            }
-
-                        if new_status == "aguardando_aprovacao" and selected_approver_id:
-                            updates["approver"] = selected_approver_id
-
-                        updated_notif = update_notification(notif_id, updates)
-
-                        if updated_notif:
-                            add_history_entry(
-                                notif_id,
-                                f"🔎 Revisão de execução registrada: {decisao}",
-                                st.session_state.get('user_username', UI_TEXTS.text_na)
-                            )
-                            st.success("✅ Revisão salva com sucesso!")
-                            st.rerun()
-                        else:
-                            st.error("❌ Erro ao atualizar a notificação. Verifique o log do servidor.")
 def show_notificacoes_encerradas():
     """
     Tela dedicada para visualização de notificações encerradas.
