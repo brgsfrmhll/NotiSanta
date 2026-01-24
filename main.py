@@ -2822,9 +2822,11 @@ def show_revisao_execucao():
 
         status = n.get('status', 'N/A')
         return f"#{notif_id} | {title} | Criada: {created_disp} | Prazo: {prazo_disp} | Status: {status}"
-
     def _render_actions_with_attachments(notif_id):
-        actions = _get_actions_map_by_ids(get_db_connection(), [notif_id]).get(notif_id, [])
+        # ✅ Fonte única de verdade: sempre ler ações da tabela notification_actions
+        # (evita a tela dizer "nenhuma ação" quando existe registro no banco)
+        actions = get_notification_actions(int(notif_id))
+
         if not actions:
             st.info("ℹ️ Nenhuma ação registrada ainda.")
             return
@@ -2844,32 +2846,20 @@ def show_revisao_execucao():
                 st.markdown("**Descrição da Ação:**")
                 st.markdown(action.get('description', 'Sem descrição'))
 
+                if action.get('final_action_by_executor'):
+                    st.caption("🏁 Marcada como conclusão do executor")
+
                 if action.get('evidence_description'):
                     st.markdown("**Evidências:**")
                     st.markdown(action.get('evidence_description'))
 
-                # Anexos da Ação (execução)
-                anexos_exec = action.get('attachments') or []
-                if isinstance(anexos_exec, list) and anexos_exec:
-                    st.markdown("**📎 Anexos da Ação:**")
-                    for att_idx, anexo in enumerate(anexos_exec):
-                        unique_name = (anexo or {}).get('unique_name')
-                        original_name = (anexo or {}).get('original_name')
-                        if unique_name and original_name:
-                            file_content = get_attachment_data(unique_name)
-                            if file_content:
-                                st.download_button(
-                                    f"⬇️ {original_name}",
-                                    file_content,
-                                    file_name=original_name,
-                                    mime="application/octet-stream",
-                                    key=f"download_action_attach_rev_{notif_id}_{unique_name}_{att_idx}"
-                                )
-                            else:
-                                st.write(f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
-
-                # Anexos de Evidência (quando finalizar)
                 anexos_ev = action.get('evidence_attachments') or []
+                if isinstance(anexos_ev, str):
+                    try:
+                        anexos_ev = json.loads(anexos_ev) or []
+                    except Exception:
+                        anexos_ev = []
+
                 if isinstance(anexos_ev, list) and anexos_ev:
                     st.markdown("**📎 Anexos de Evidência:**")
                     for att_idx, anexo in enumerate(anexos_ev):
@@ -2882,6 +2872,7 @@ def show_revisao_execucao():
                                     f"⬇️ {original_name}",
                                     file_content,
                                     file_name=original_name,
+                                    mime="application/octet-stream",
                                     key=f"download_evid_rev_{notif_id}_{unique_name}_{att_idx}"
                                 )
                             else:
