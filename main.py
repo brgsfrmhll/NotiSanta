@@ -372,6 +372,8 @@ def add_notification_action(notification_id: int, action_data: Dict) -> bool:
                 action_ts = None
 
         evidence_attachments = action_data.get("evidence_attachments")
+        if evidence_attachments is None:
+            evidence_attachments = action_data.get("attachments")
         if evidence_attachments is not None and not isinstance(evidence_attachments, (list, dict, str)):
             evidence_attachments = None
 
@@ -2472,18 +2474,39 @@ def build_notification_report_pdf(notification_id: int) -> bytes:
             story.append(_p(n.get("additional_notes") or "—", "BodyText"))
             story.append(Spacer(1, 12))
 
-        # ---- Anexos da notificação (sem diferenciar agora)
+        # ---- Anexos (separando Notificação vs Execução)
         try:
-            notif_atts = get_notification_attachments(int(notification_id))
+            groups = split_attachments_by_origin(int(notification_id))
+            notif_atts = groups.get("notification", []) or []
+            exec_atts = groups.get("execution", []) or []
         except Exception:
-            notif_atts = []
-        if notif_atts:
-            story.append(_p("Anexos da Notificação", "Heading3"))
-            rows = [[f"• {a.get('original_name') or a.get('unique_name')}"] for a in notif_atts]
-            t = Table(rows, colWidths=[520])
-            t.setStyle(TableStyle([("BOX",(0,0),(-1,-1),0.5,colors.lightgrey),("INNERGRID",(0,0),(-1,-1),0.25,colors.lightgrey)]))
-            story.append(t)
-            story.append(Spacer(1, 12))
+            notif_atts, exec_atts = [], []
+
+        if notif_atts or exec_atts:
+            story.append(_p("Anexos", "Heading2"))
+            story.append(Spacer(1, 6))
+
+            if notif_atts:
+                story.append(_p("Anexos da Notificação", "Heading3"))
+                rows = [[f"• {a.get('original_name') or a.get('unique_name')}"] for a in notif_atts if isinstance(a, dict)]
+                if rows:
+                    t = Table(rows, colWidths=[520])
+                    t.setStyle(TableStyle([("BOX",(0,0),(-1,-1),0.5,colors.lightgrey),
+                                           ("INNERGRID",(0,0),(-1,-1),0.25,colors.lightgrey),
+                                           ("VALIGN",(0,0),(-1,-1),"TOP")]))
+                    story.append(t)
+                story.append(Spacer(1, 10))
+
+            if exec_atts:
+                story.append(_p("Anexos da Execução", "Heading3"))
+                rows = [[f"• {a.get('original_name') or a.get('unique_name')}"] for a in exec_atts if isinstance(a, dict)]
+                if rows:
+                    t = Table(rows, colWidths=[520])
+                    t.setStyle(TableStyle([("BOX",(0,0),(-1,-1),0.5,colors.lightgrey),
+                                           ("INNERGRID",(0,0),(-1,-1),0.25,colors.lightgrey),
+                                           ("VALIGN",(0,0),(-1,-1),"TOP")]))
+                    story.append(t)
+                story.append(Spacer(1, 12))
 
         # ---- 3) Classificação
         story.append(_p("3) Classificação do Evento", "Heading2"))
@@ -2602,8 +2625,8 @@ def build_notification_report_pdf(notification_id: int) -> bytes:
         )
         cols = {r[0] for r in (cur.fetchall() or [])}
 
-        ts_col = "timestamp" if "timestamp" in cols else ("action_timestamp" if "action_timestamp" in cols else None)
-        user_col = "username" if "username" in cols else ("user_name" if "user_name" in cols else None)
+        ts_col = "timestamp" if "timestamp" in cols else ("action_timestamp" if "action_timestamp" in cols else ("created_at" if "created_at" in cols else None))
+        user_col = "username" if "username" in cols else ("user_name" if "user_name" in cols else ("user" if "user" in cols else None))
         action_col = "action" if "action" in cols else ("action_text" if "action_text" in cols else ("description" if "description" in cols else None))
         details_col = "details" if "details" in cols else None
 
@@ -3760,24 +3783,48 @@ def show_revisao_execucao():
                     selected_approver_id = None
 
                     if decisao == "✅ Aprovar Execução":
-                        encaminhar = st.checkbox(
-                            "➡️ Encaminhar para aprovação superior (opcional)",
-                            value=st.session_state.get(forward_key, False),
-                            key=forward_key
-                        )
-                        if encaminhar:
+                        # Se a notificação exigir aprovação superior, torna obrigatório escolher um aprovador.
+                        _classif = selected_notification.get("classification") or {}
+                        if isinstance(_classif, str):
+                            try:
+                                _classif = json.loads(_classif)
+                            except Exception:
+                                _classif = {}
+                        requires_sup = bool(_classif.get("requires_approval") or selected_notification.get("requires_approval"))
+
+                        if requires_sup:
+                            encaminhar = True
                             if labels:
                                 selected_label = st.selectbox(
-                                    "👤 Aprovador superior",
+                                    "👤 Aprovador superior (obrigatório)",
                                     options=labels,
                                     index=default_index,
                                     key=f"selected_approver_label_{notif_id}",
-                                    help="Será encaminhado para este aprovador após você aprovar a execução."
+                                    help="Esta notificação exige aprovação superior após a revisão da execução."
                                 )
                                 selected_approver_id = label_to_id.get(selected_label)
                             else:
-                                st.warning("⚠️ Nenhum usuário com perfil 'aprovador' foi encontrado.")
+                                st.error("❌ Nenhum usuário com perfil 'aprovador' foi encontrado. Cadastre um aprovador para prosseguir.")
                                 selected_approver_id = None
+                        else:
+                            encaminhar = st.checkbox(
+                                "➡️ Encaminhar para aprovação superior (opcional)",
+                                value=st.session_state.get(forward_key, False),
+                                key=forward_key
+                            )
+                            if encaminhar:
+                                if labels:
+                                    selected_label = st.selectbox(
+                                        "👤 Aprovador superior",
+                                        options=labels,
+                                        index=default_index,
+                                        key=f"selected_approver_label_{notif_id}",
+                                        help="Será encaminhado para este aprovador após você aprovar a execução."
+                                    )
+                                    selected_approver_id = label_to_id.get(selected_label)
+                                else:
+                                    st.warning("⚠️ Nenhum usuário com perfil 'aprovador' foi encontrado.")
+                                    selected_approver_id = None
 
                     st.markdown("<span class='required-field'>* Campos obrigatórios</span>", unsafe_allow_html=True)
                     submitted = st.form_submit_button("💾 Salvar Revisão", use_container_width=True, type="primary")
@@ -3789,6 +3836,12 @@ def show_revisao_execucao():
 
                         if not (observacoes_revisao or "").strip():
                             st.error("❌ Por favor, preencha as observações da revisão!")
+                            st.stop()
+
+                        
+                        # Se marcou encaminhamento (ou é obrigatório), precisa escolher um aprovador válido
+                        if decisao == "✅ Aprovar Execução" and encaminhar and not selected_approver_id:
+                            st.error("❌ Selecione um aprovador superior para encaminhar a aprovação.")
                             st.stop()
 
                         if decisao == "🔄 Solicitar Correções":
@@ -4343,6 +4396,7 @@ def show_execution():
                                 "description": action_desc.strip(),
                                 "timestamp": datetime.now().isoformat(),
                                 "final_action_by_executor": bool(conclui),
+                                "evidence_attachments": saved_attachments,
                                 "attachments": saved_attachments
                             }
 
