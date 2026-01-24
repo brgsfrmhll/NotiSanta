@@ -2905,23 +2905,27 @@ def show_revisao_execucao():
                 if anexos:
                     st.markdown("**📎 Anexos da Ação:**")
                     for at in anexos:
-                        # Pode vir como dict com attachment_id
+                        # Formatos aceitos:
+                        #  - dict: {"unique_name": "...", "original_name": "..."}
+                        #  - str: unique_name
                         if isinstance(at, dict):
-                            att_id = at.get('attachment_id') or at.get('id')
-                            filename = at.get('filename') or at.get('name') or f"anexo_{att_id}"
+                            unique_name = at.get('unique_name') or at.get('attachment_id') or at.get('id')
+                            original_name = at.get('original_name') or at.get('filename') or at.get('name') or (unique_name or 'anexo')
                         else:
-                            att_id = at
-                            filename = f"anexo_{att_id}"
-                        if not att_id:
+                            unique_name = at
+                            original_name = str(at)
+
+                        if not unique_name:
                             continue
-                        att_data = get_attachment_data(att_id)
-                        if att_data:
+
+                        att_bytes = get_attachment_data(str(unique_name))
+                        if att_bytes:
                             st.download_button(
-                                label=f"⬇️ {filename}",
-                                data=att_data['data'],
-                                file_name=att_data.get('filename', filename),
-                                mime=att_data.get('mime', 'application/octet-stream'),
-                                key=f"dl_action_att_{notif_id_int}_{idx}_{att_id}"
+                                label=f"⬇️ {original_name}",
+                                data=att_bytes,
+                                file_name=original_name,
+                                mime="application/octet-stream",
+                                key=f"dl_action_att_{notif_id_int}_{idx}_{hash(str(unique_name))}"
                             )
 
                 # Evidências (texto + anexos)
@@ -2934,21 +2938,23 @@ def show_revisao_execucao():
                     st.markdown("**📎 Anexos de Evidência:**")
                     for at in anexos_ev:
                         if isinstance(at, dict):
-                            att_id = at.get('attachment_id') or at.get('id')
-                            filename = at.get('filename') or at.get('name') or f"evidencia_{att_id}"
+                            unique_name = at.get('unique_name') or at.get('attachment_id') or at.get('id')
+                            original_name = at.get('original_name') or at.get('filename') or at.get('name') or (unique_name or 'evidencia')
                         else:
-                            att_id = at
-                            filename = f"evidencia_{att_id}"
-                        if not att_id:
+                            unique_name = at
+                            original_name = str(at)
+
+                        if not unique_name:
                             continue
-                        att_data = get_attachment_data(att_id)
-                        if att_data:
+
+                        att_bytes = get_attachment_data(str(unique_name))
+                        if att_bytes:
                             st.download_button(
-                                label=f"⬇️ {filename}",
-                                data=att_data['data'],
-                                file_name=att_data.get('filename', filename),
-                                mime=att_data.get('mime', 'application/octet-stream'),
-                                key=f"dl_ev_att_{notif_id_int}_{idx}_{att_id}"
+                                label=f"⬇️ {original_name}",
+                                data=att_bytes,
+                                file_name=original_name,
+                                mime="application/octet-stream",
+                                key=f"dl_ev_att_{notif_id_int}_{idx}_{hash(str(unique_name))}"
                             )
     def _approver_options_for_select(n):
         classification = n.get('classification') or {}
@@ -3564,6 +3570,25 @@ def show_execution():
                                 saved_info = save_uploaded_file_to_disk(f, notif_id)
                                 if saved_info:
                                     saved_attachments.append(saved_info)
+
+                                # também registra na tabela de anexos da notificação (para o classificador ver nos detalhes)
+                                try:
+                                    conn_att = get_db_connection()
+                                    cur_att = conn_att.cursor()
+                                    cur_att.execute(
+                                        "INSERT INTO notification_attachments (notification_id, unique_name, original_name) VALUES (%s, %s, %s)",
+                                        (int(notif_id), saved_info.get('unique_name'), saved_info.get('original_name'))
+                                    )
+                                    conn_att.commit()
+                                    cur_att.close()
+                                    conn_att.close()
+                                except Exception:
+                                    try:
+                                        if 'conn_att' in locals():
+                                            conn_att.rollback()
+                                            conn_att.close()
+                                    except Exception:
+                                        pass
 
                             # registra ação
                             action_entry = {
