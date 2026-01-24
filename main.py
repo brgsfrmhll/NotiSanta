@@ -2069,7 +2069,7 @@ format="DD/MM/YYYY")
                 "👤 Aprovador (usado se você aprovar a execução)",
                 options=approver_labels,
                 index=default_index,
-                key=f"review_exec_approver_{notif_id}",
+                key="create_notification_approver_select",
                 help="Se a execução for aprovada, a notificação será encaminhada para este aprovador."
             )
             selected_approver_id = approver_label_to_id.get(selected_approver_label)
