@@ -1899,38 +1899,41 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
                     <em>{action.get('description', UI_TEXTS.text_na)}</em>
                 </div>
                 """, unsafe_allow_html=True)
-                        # 📎 Anexos vinculados a esta ação (podem existir mesmo sem conclusão)
+            # 📎 Anexos vinculados a esta ação (podem existir mesmo sem conclusão)
             action_attachments = action.get('attachments') or []
-            if action_attachments:
+            if isinstance(action_attachments, list) and action_attachments:
                 st.markdown("**📎 Anexos desta ação:**")
-                if isinstance(action_attachments, list):
-                    for attach_info in action_attachments:
-                        unique_name = attach_info.get('unique_name') if isinstance(attach_info, dict) else None
-                        original_name = attach_info.get('original_name') if isinstance(attach_info, dict) else None
-                        if unique_name and original_name:
-                            file_content = get_attachment_data(unique_name)
-                            if file_content:
-                                st.download_button(
-                                    label=f"⬇️ {original_name}",
-                                    data=file_content,
-                                    file_name=original_name,
-                                    mime="application/octet-stream",
-                                    key=f"download_action_attachment_{notification.get('id')}_{unique_name}"
-                                )
-                            else:
-                                st.write(f"Anexo: {original_name} (arquivo não encontrado)")
-                st.markdown("---")
+                for attach_info in action_attachments:
+                    if not isinstance(attach_info, dict):
+                        continue
+                    unique_name = attach_info.get('unique_name')
+                    original_name = attach_info.get('original_name')
+                    if unique_name and original_name:
+                        file_content = get_attachment_data(unique_name)
+                        if file_content:
+                            st.download_button(
+                                label=f"⬇️ {original_name}",
+                                data=file_content,
+                                file_name=original_name,
+                                mime="application/octet-stream",
+                                key=f"download_action_attachment_{notification.get('id')}_{unique_name}"
+                            )
+                        else:
+                            st.write(f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
 
-if action.get('final_action_by_executor'):
-                evidence_desc = action.get('evidence_description', '').strip()
-                evidence_atts = action.get('evidence_attachments', [])
+            # Evidências da conclusão (quando o executor finalizou)
+            if action.get('final_action_by_executor'):
+                evidence_desc = (action.get('evidence_description') or '').strip()
+                evidence_atts = action.get('evidence_attachments') or []
                 if evidence_desc or evidence_atts:
-                    st.markdown(f"""<div class='evidence-section'>""", unsafe_allow_html=True)
+                    st.markdown("<div class='evidence-section'>", unsafe_allow_html=True)
                     st.markdown("<h6>Evidências da Conclusão:</h6>", unsafe_allow_html=True)
                     if evidence_desc:
                         st.info(evidence_desc)
-                    if evidence_atts:
+                    if isinstance(evidence_atts, list) and evidence_atts:
                         for attach_info in evidence_atts:
+                            if not isinstance(attach_info, dict):
+                                continue
                             unique_name = attach_info.get('unique_name')
                             original_name = attach_info.get('original_name')
                             if unique_name and original_name:
@@ -1941,11 +1944,12 @@ if action.get('final_action_by_executor'):
                                         data=file_content,
                                         file_name=original_name,
                                         mime="application/octet-stream",
-                                        key=f"download_action_evidence_{notification['id']}_{unique_name}"
+                                        key=f"download_action_evidence_{notification.get('id')}_{unique_name}"
                                     )
                                 else:
                                     st.write(f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
-                    st.markdown(f"""</div>""", unsafe_allow_html=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
+
             st.markdown("---")
 
 @st_fragment
@@ -2071,7 +2075,7 @@ format="DD/MM/YYYY")
             st.warning("⚠️ Nenhum usuário com perfil 'aprovador' foi encontrado.")
 
         st.markdown("<span class='required-field'>* Campos obrigatórios</span>", unsafe_allow_html=True)
-            st.markdown("---")
+        st.markdown("---")
     elif st.session_state.form_step == 2:
         with st.container():
             st.markdown("""
@@ -3550,7 +3554,7 @@ def show_execution():
                         key=f"exec_action_attachments_{notification.get('id', UI_TEXTS.text_na)}_refactored"
                     )
 
-st.markdown(\"<span class='required-field'>* Campo obrigatório (Descrição da Ação)</span>\", unsafe_allow_html=True)
+                    st.markdown("<span class='required-field'>* Campo obrigatório (Descrição da Ação)</span>", unsafe_allow_html=True)
                     submit_button = st.form_submit_button("✔️ Confirmar Ação",
                                                           use_container_width=True)
                     st.markdown("---")
