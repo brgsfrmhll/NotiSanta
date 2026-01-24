@@ -3493,7 +3493,7 @@ def show_execution():
 
                             saved_attachments = []
                             for f in (up_files or []):
-                                saved_info = save_uploaded_file_to_disk(f)
+                                saved_info = save_uploaded_file_to_disk(f, notif_id)
                                 if saved_info:
                                     saved_attachments.append(saved_info)
 
