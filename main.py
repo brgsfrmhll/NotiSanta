@@ -3706,31 +3706,70 @@ def show_revisao_execucao():
     ])
 
     # --- TAB: Em execução (somente lista + abrir detalhes) ---
+    
+    # --- CSS: radio como "cards" clicáveis (sem botão) ---
+    st.markdown("""
+    <style>
+    div[data-testid="stRadio"] > div { gap: 0.6rem; }
+    div[data-testid="stRadio"] label {
+        border: 1px solid rgba(49, 51, 63, 0.2);
+        border-radius: 12px;
+        padding: 10px 12px;
+        margin: 0px;
+        display: block;
+        width: 100%;
+        background: rgba(255,255,255,0.02);
+    }
+    div[data-testid="stRadio"] label:hover {
+        border-color: rgba(49, 51, 63, 0.45);
+        background: rgba(255,255,255,0.05);
+    }
+    /* esconde o "bolinha" do radio */
+    div[data-testid="stRadio"] label > div:first-child { display: none; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # --- TAB: Em execução (lista à esquerda + painel à direita) ---
     with tab_exec:
-        page_items, filtered, total = _paginate(em_execucao, "revexec_exec")
-        st.caption("Abra um item para visualizar detalhes e acompanhar ações/arquivos.")
-        for n in page_items:
-            nid = int(n.get("id"))
-            with st.expander(_header_label(n), expanded=False):
-                cols = st.columns([1, 3])
-                with cols[0]:
-                    if st.button("📖 Abrir", key=f"open_exec_{nid}", use_container_width=True):
-                        st.session_state["revexec_selected_exec_id"] = nid
-                        st.rerun()
-                with cols[1]:
-                    st.caption("Dica: use a busca/paginação acima para achar rápido.")
+        left, right = st.columns([2, 3], gap="large")
 
-        sel_id = st.session_state.get("revexec_selected_exec_id")
-        if sel_id:
-            selected_notification = next((x for x in em_execucao if int(x.get("id", -1)) == int(sel_id)), None)
-            if selected_notification:
-                st.markdown("### 📌 Detalhes — Em execução")
-                st.info(_header_label(selected_notification))
-                # aqui pode reutilizar seus renders atuais, mas evitando loops grandes
-                st.markdown("#### 🔧 Ações Realizadas pelos Executores")
-                _render_actions_with_attachments(sel_id, selected_notification)
+        with left:
+            page_items, filtered, total = _paginate(em_execucao, "revexec_exec")
+            st.caption("Clique no card para abrir os detalhes no painel ao lado.")
+            opts = [str(int(n.get("id"))) for n in page_items if n.get("id") is not None]
+            if not opts:
+                st.info("Sem itens em execução.")
+                st.session_state.pop("revexec_selected_exec_id", None)
+            else:
+                label_map = {str(int(n.get("id"))): _header_label(n) for n in page_items if n.get("id") is not None}
+                current = str(st.session_state.get("revexec_selected_exec_id") or opts[0])
+                if current not in opts:
+                    current = opts[0]
+                sel = st.radio(
+                    "Selecionar notificação",
+                    options=opts,
+                    index=opts.index(current),
+                    key="revexec_exec_radio",
+                    format_func=lambda v: label_map.get(v, v),
+                    label_visibility="collapsed",
+                )
+                st.session_state["revexec_selected_exec_id"] = int(sel)
 
-    # --- TAB: Revisão de execução (lista + detalhe único com seletor de aprovador) ---
+        with right:
+            sel_id = st.session_state.get("revexec_selected_exec_id")
+            if sel_id:
+                selected_notification = next((x for x in em_execucao if int(x.get("id", -1)) == int(sel_id)), None)
+                if selected_notification:
+                    st.markdown("### 📌 Detalhes — Em execução")
+                    st.info(_header_label(selected_notification))
+
+                    # Detalhes completos (leve)
+                    st.markdown("#### 🧾 Notificação")
+                    _render_notification_details(selected_notification)
+
+                    st.markdown("#### 🔧 Ações Realizadas pelos Executores")
+                    _render_actions_with_attachments(sel_id, selected_notification)
+# --- TAB: Revisão de execução (lista + detalhe único com seletor de aprovador) ---
     with tab_rev:
         # Layout em 2 colunas para evitar precisar rolar a página:
         # - Esquerda: lista paginada (leve)
@@ -3739,18 +3778,26 @@ def show_revisao_execucao():
 
         with left:
             page_items, filtered, total = _paginate(aguardando_revisao, "revexec_rev")
-            st.caption("Clique em **🔎 Revisar** para abrir os detalhes no painel ao lado (sem rolagem).")
+            st.caption("Clique no card para abrir os detalhes no painel ao lado (sem rolagem).")
 
-            for n in page_items:
-                nid = int(n.get("id"))
-                with st.expander(_header_label(n), expanded=False):
-                    cols = st.columns([1, 3])
-                    with cols[0]:
-                        if st.button("🔎 Revisar", key=f"open_rev_{nid}", use_container_width=True, type="primary"):
-                            st.session_state["revexec_selected_rev_id"] = nid
-                            st.rerun()
-                    with cols[1]:
-                        st.caption("Abre os detalhes no painel à direita.")
+            opts = [str(int(n.get("id"))) for n in page_items if n.get("id") is not None]
+            if not opts:
+                st.info("Sem itens para revisão de execução.")
+                st.session_state.pop("revexec_selected_rev_id", None)
+            else:
+                label_map = {str(int(n.get("id"))): _header_label(n) for n in page_items if n.get("id") is not None}
+                current = str(st.session_state.get("revexec_selected_rev_id") or opts[0])
+                if current not in opts:
+                    current = opts[0]
+                sel = st.radio(
+                    "Selecionar notificação",
+                    options=opts,
+                    index=opts.index(current),
+                    key="revexec_rev_radio",
+                    format_func=lambda v: label_map.get(v, v),
+                    label_visibility="collapsed",
+                )
+                st.session_state["revexec_selected_rev_id"] = int(sel)
 
         with right:
             sel_id = st.session_state.get("revexec_selected_rev_id")
