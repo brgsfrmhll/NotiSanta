@@ -2035,47 +2035,6 @@ format="DD/MM/YYYY")
                 placeholder="Descreva:\n• O que aconteceu?\n• Quando aconteceu?\n• Onde aconteceu?\n• Quem esteve envolvido?\n• Como aconteceu?\n• Consequências observadas",
                 height=150,
                 key="create_description_state_refactored")
-    
-        # 👤 (Opcional) escolher aprovador ao aprovar execução
-        approver_options = get_users_by_role('aprovador')
-        approver_label_to_id = {}
-        approver_labels = []
-        for u in approver_options:
-            label = f"{u.get('name', UI_TEXTS.text_na)} ({u.get('username', UI_TEXTS.text_na)})"
-            approver_label_to_id[label] = u.get('id')
-            approver_labels.append(label)
-
-        # Default: usar o approver já definido na classificação (approver_id) ou no campo notification.approver
-        default_approver_id = None
-        classification = current_data.get('classification', {}) if isinstance(current_data, dict) else {}
-        selected_notification = current_data if isinstance(current_data, dict) else {}
-        classif_for_default = classification if isinstance(classification, dict) else {}
-        if isinstance(classif_for_default, dict) and classif_for_default.get('approver_id'):
-            default_approver_id = classif_for_default.get('approver_id')
-        elif selected_notification.get('approver'):
-            default_approver_id = selected_notification.get('approver')
-
-        default_index = 0
-        if default_approver_id and approver_labels:
-            for i, lab in enumerate(approver_labels):
-                if approver_label_to_id.get(lab) == default_approver_id:
-                    default_index = i
-                    break
-
-        selected_approver_label = None
-        selected_approver_id = None
-        if approver_labels:
-            selected_approver_label = st.selectbox(
-                "👤 Aprovador (usado se você aprovar a execução)",
-                options=approver_labels,
-                index=default_index,
-                key="create_notification_approver_select",
-                help="Se a execução for aprovada, a notificação será encaminhada para este aprovador."
-            )
-            selected_approver_id = approver_label_to_id.get(selected_approver_label)
-        else:
-            st.warning("⚠️ Nenhum usuário com perfil 'aprovador' foi encontrado.")
-
         st.markdown("<span class='required-field'>* Campos obrigatórios</span>", unsafe_allow_html=True)
         st.markdown("---")
     elif st.session_state.form_step == 2:
@@ -3356,452 +3315,288 @@ def show_notificacoes_encerradas():
 
 @st_fragment
 def show_execution():
-    """Renderiza a página para executores visualizarem notificações atribuídas e registrarem ações."""
+    """Página do executor: 2 guias (Pendentes / Executadas) com cards colapsados."""
     if not check_permission('executor'):
         st.error("❌ Acesso negado! Você não tem permissão para executar notificações.")
         return
+
     st.markdown("<h1 class='main-header'>⚡ Execução de Notificações</h1>", unsafe_allow_html=True)
-    st.info(
-        "Nesta página, você pode visualizar as notificações atribuídas a você, registrar as ações executadas e marcar sua parte como concluída.")
-    all_notifications = load_notifications()
-    user_id_logged_in = st.session_state.user_id
-    user_username_logged_in = st.session_state.user_username
+    st.info("Use as guias abaixo para ver o que ainda está pendente e o que você já executou.")
 
-    all_users = load_users()
-    display_name_to_id_map = {
-        f"{user.get('name', UI_TEXTS.text_na)} ({user.get('username', UI_TEXTS.text_na)})": user['id']
-        for user in all_users
-    }
-    user_active_notifications = []
-    active_execution_statuses = ['classificada_aguardando_execucao', 'classificada', 'em_execucao']
-    for notification in all_notifications:
-        is_assigned_to_current_user = False
-        assigned_executors_raw = notification.get('executors', [])
-        for executor_entry in assigned_executors_raw:
-            if isinstance(executor_entry, int) and executor_entry == user_id_logged_in:
-                is_assigned_to_current_user = True
-                break
-            if isinstance(executor_entry, dict) and executor_entry.get('id') == user_id_logged_in:
-                is_assigned_to_current_user = True
-                break
-        if is_assigned_to_current_user and notification.get('status') in active_execution_statuses:
-            user_active_notifications.append(notification)
-    closed_statuses = ['aprovada', 'rejeitada', 'reprovada', 'concluida']
-    closed_my_exec_notifications = [
-        n for n in all_notifications
-        if n.get('status') in closed_statuses and any((e==user_id_logged_in) if isinstance(e,int) else (isinstance(e,dict) and e.get('id')==user_id_logged_in) for e in (n.get('executors', []) or []))
-    ]
+    all_notifications = load_notifications() or []
+    user_id = st.session_state.get('user_id')
+    user_username = st.session_state.get('user_username')
 
-    if not user_active_notifications and not closed_my_exec_notifications:
-        st.info("✅ Não há notificações ativas atribuídas a você no momento. Verifique com seu gestor ou classificador.")
-        return
-    st.success(f"Você tem {len(user_active_notifications)} notificação(ões) atribuída(s) aguardando ou em execução.")
-    tab_active_notifications, tab_closed_my_exec_notifs = st.tabs(
-        ["🔄 Notificações Atribuídas (Ativas)", f"✅ Minhas Ações Encerradas ({len(closed_my_exec_notifications)})"])
-    with tab_active_notifications:
-        st.markdown("### Notificações Aguardando ou Em Execução")
-        priority_order = {p: i for i, p in enumerate(FORM_DATA.prioridades)}
-        user_active_notifications.sort(key=lambda x: (
-            priority_order.get(x.get('classification', {}).get('prioridade', UI_TEXTS.text_na), len(FORM_DATA.prioridades)),
-            datetime.fromisoformat(x.get('created_at', '1900-01-01T00:00:00')).timestamp()
-        ))
-        for notification in user_active_notifications:
-            status_class = f"status-{notification.get('status', UI_TEXTS.text_na).replace('_', '-')}"
-            classif_info = notification.get('classification') or {}
-            if isinstance(classif_info, str):
+    def _assigned_to_me(n: dict) -> bool:
+        for e in (n.get('executors', []) or []):
+            if isinstance(e, int) and e == user_id:
+                return True
+            if isinstance(e, dict) and e.get('id') == user_id:
+                return True
+        return False
+
+    def _has_my_final_action(n: dict) -> bool:
+        for a in (n.get('actions', []) or []):
+            if a.get('executor_id') == user_id and a.get('final_action_by_executor'):
+                return True
+        return False
+
+    def _parse_classif(n: dict) -> dict:
+        c = n.get('classification') or {}
+        if isinstance(c, str):
+            try:
+                c = json.loads(c)
+            except Exception:
+                c = {}
+        return c if isinstance(c, dict) else {}
+
+    def _fmt_dt(s: str, with_time: bool = True) -> str:
+        if not s:
+            return UI_TEXTS.text_na
+        try:
+            dt = datetime.fromisoformat(s)
+            return dt.strftime('%d/%m/%Y %H:%M') if with_time else dt.strftime('%d/%m/%Y')
+        except Exception:
+            return s
+
+    def _header(n: dict) -> str:
+        nid = n.get('id', UI_TEXTS.text_na)
+        title = n.get('title', UI_TEXTS.text_na)
+        created = _fmt_dt(n.get('created_at'), with_time=True)
+        classif = _parse_classif(n)
+        prazo_raw = classif.get('deadline')
+        prazo = _fmt_dt(prazo_raw, with_time=False) if prazo_raw else UI_TEXTS.text_na
+        status = n.get('status', UI_TEXTS.text_na).replace('_', ' ')
+        return f"#{nid} | {title} | Criada: {created} | Prazo: {prazo} | Status: {status}"
+
+    active_statuses = {'classificada_aguardando_execucao', 'classificada', 'em_execucao'}
+    pending = []
+    executed = []
+
+    for n in all_notifications:
+        if not _assigned_to_me(n):
+            continue
+
+        # "Executadas" = você já concluiu sua parte (final_action_by_executor),
+        # independente do status global (pode estar em revisão/aprovação).
+        if _has_my_final_action(n):
+            executed.append(n)
+            continue
+
+        # "Pendentes" = atribuídas a você e ainda em execução/aguardando execução.
+        if n.get('status') in active_statuses:
+            pending.append(n)
+
+    tab_pend, tab_exec = st.tabs([f"⏳ Pendentes de Execução ({len(pending)})", f"✅ Executadas ({len(executed)})"])
+
+    # -------------------------
+    # GUIA: PENDENTES
+    # -------------------------
+    with tab_pend:
+        if not pending:
+            st.success("✅ Nenhuma notificação pendente de execução para você no momento.")
+        else:
+            st.info(f"📋 Você tem **{len(pending)}** notificação(ões) pendente(s). Clique para abrir e executar.")
+            # Ordenação simples: prazo mais próximo primeiro
+            def _sort_key(n):
+                c = _parse_classif(n)
+                d = c.get('deadline')
                 try:
-                    classif_info = json.loads(classif_info)
-                except json.JSONDecodeError:
-                    classif_info = {}
+                    return datetime.fromisoformat(d) if d else datetime.max
+                except Exception:
+                    return datetime.max
+            pending.sort(key=_sort_key)
 
-            prioridade_display = classif_info.get('prioridade', UI_TEXTS.text_na)
-            prioridade_display = prioridade_display if prioridade_display != UI_TEXTS.selectbox_default_prioridade_resolucao else f"{UI_TEXTS.text_na} (Não Classificado)"
-            deadline_date_str = classif_info.get('deadline')
-            concluded_timestamp_str = (notification.get('conclusion') or {}).get('timestamp')
+            for n in pending:
+                notif_id = n.get('id')
+                with st.expander(_header(n), expanded=False):
+                    # Detalhes completos
+                    try:
+                        display_notification_full_details(n, user_id, user_username)
+                    except Exception as e:
+                        st.warning(f"Não foi possível renderizar detalhes completos: {e}")
 
-            deadline_status = get_deadline_status(deadline_date_str, concluded_timestamp_str)
-            card_class = ""
-            if deadline_status['class'] == "deadline-ontrack" or deadline_status['class'] == "deadline-duesoon":
-                card_class = "card-prazo-dentro"
-            elif deadline_status['class'] == "deadline-overdue":
-                card_class = "card-prazo-fora"
-            st.markdown(f"""
-                    <div class="notification-card {card_class}">
-                        <h4>#{notification.get('id', UI_TEXTS.text_na)} - {notification.get('title', UI_TEXTS.text_na)}</h4>
-                        <p><strong>Status Atual:</strong> <span class="{status_class}">{notification.get('status', UI_TEXTS.text_na).replace('_', ' ').title()}</span></p>
-                        <p><strong>Local do Evento:</strong> {notification.get('location', UI_TEXTS.text_na)} | <strong>Prioridade:</strong> {prioridade_display} <strong class='{deadline_status['class']}'>Prazo: {deadline_status['text']}</strong></p>
-                    </div>
-                    """, unsafe_allow_html=True)
-            with st.expander(
-                    f"✨ Ver Detalhes Completos e Classificação - Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
-                display_notification_full_details(notification, user_id_logged_in, user_username_logged_in)
-            if notification.get('actions'):
-                st.markdown("#### ⚡ Histórico de Ações Realizadas")
-                with st.expander(
-                        f"Ver histórico de ações para Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
-                    sorted_actions = sorted(notification['actions'], key=lambda x: x.get('timestamp', '')) # CORREÇÃO: Removido o cólon aqui
-                    for action in sorted_actions:
-                        action_type = "🏁 CONCLUSÃO (Executor)" if action.get(
-                            'final_action_by_executor') else "📝 AÇÃO Registrada"
-                        action_timestamp = action.get('timestamp', UI_TEXTS.text_na)
-                        if action_timestamp != UI_TEXTS.text_na:
-                            try:
-                                action_timestamp = datetime.fromisoformat(action_timestamp).strftime(
-                                    '%d/%m/%Y %H:%M:%S')
-                            except ValueError:
-                                pass
-                        if user_id_logged_in and action.get('executor_id') == user_id_logged_in:
-                            st.markdown(f"""
-                            <div class='my-action-entry-card'>
-                                <strong>{action_type}</strong> - por <strong>VOCÊ ({action.get('executor_name', UI_TEXTS.text_na)})</strong> em {action_timestamp}
-                                <br>
-                                <em>{action.get('description', UI_TEXTS.text_na)}</em>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        else:
-                            st.markdown(f"""
-                            <div class='action-entry-card'>
-                                <strong>{action_type}</strong> - por <strong>{action.get('executor_name', UI_TEXTS.text_na)}</strong> em {action_timestamp}
-                                <br>
-                                <em>{action.get('description', UI_TEXTS.text_na)}</em>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        if action.get('final_action_by_executor'):
-                            evidence_desc = action.get('evidence_description', '').strip()
-                            evidence_atts = action.get('evidence_attachments', [])
-                            if evidence_desc or evidence_atts:
-                                st.markdown(f"""<div class='evidence-section'>""", unsafe_allow_html=True)
-                                st.markdown("<h6>Evidências da Conclusão:</h6>", unsafe_allow_html=True)
-                                if evidence_desc:
-                                    st.info(evidence_desc)
-                                if evidence_atts:
-                                    for attach_info in evidence_atts:
-                                        unique_name = attach_info.get('unique_name')
-                                        original_name = attach_info.get('original_name')
-                                        if unique_name and original_name:
-                                            file_content = get_attachment_data(unique_name)
-                                            if file_content:
-                                                st.download_button(
-                                                    label=f"Baixar Evidência: {original_name}",
-                                                    data=file_content,
-                                                    file_name=original_name,
-                                                    mime="application/octet-stream",
-                                                    key=f"download_action_evidence_exec_{notification['id']}_{unique_name}"
-                                                )
-                                            else:
-                                                st.write(
-                                                    f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
-                                st.markdown(f"""</div>""", unsafe_allow_html=True)
-                        st.markdown("---")
-            executor_has_already_concluded_their_part = False
-            if user_id_logged_in:
-                notif_actions = get_notification_actions(notification.get('id'))
-                for action_entry in notif_actions:
-                    if action_entry.get('executor_id') == user_id_logged_in and action_entry.get(
-                            'final_action_by_executor') == True:
-                        executor_has_already_concluded_their_part = True
-                        break
-            action_choice_key = f"exec_action_choice_{notification.get('id', UI_TEXTS.text_na)}_refactored"
-
-            if action_choice_key not in st.session_state:
-                st.session_state[action_choice_key] = UI_TEXTS.selectbox_default_acao_realizar
-            if executor_has_already_concluded_their_part:
-                st.info(
-                    f"✅ Sua parte na execução da Notificação #{notification.get('id')} já foi concluída. Você não pode adicionar mais ações para esta notificação.")
-            else:
-                st.markdown("### 📝 Registrar Ação Executada ou Concluir Sua Parte")
-                action_type_choice_options = [UI_TEXTS.selectbox_default_acao_realizar, "Registrar Ação",
-                                              "Concluir Minha Parte"]
-                st.selectbox(
-                    "Qual ação deseja realizar?*", options=action_type_choice_options,
-                    key=action_choice_key,
-                    index=action_type_choice_options.index(st.session_state[action_choice_key]),
-                    help="Selecione 'Registrar Ação' para adicionar um passo ao histórico ou 'Concluir Minha Parte' para finalizar sua execução."
-                )
-                with st.form(f"action_form_{notification.get('id', UI_TEXTS.text_na)}_refactored",
-                             clear_on_submit=False):
-                    action_description_state = st.text_area(
-                        "Descrição detalhada da ação realizada*",
-                        value=st.session_state.get(
-                            f"exec_action_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored", ""),
-                        placeholder="Descreva:\\n• O QUÊ foi feito?\\n• POR QUÊ foi feito (qual o objetivo)?\\n• ONDE foi realizado?\\n• QUANDO foi realizado (data/hora)?\\n• QUEM executou (se aplicável)?\\n• COMO foi executado (passos, métodos)?\\n• QUANTO CUSTOU (recursos, tempo)?\\n• QUÃO FREQUENTE (se for uma ação contínua)?",
-                        height=180,
-                        key=f"exec_action_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored"
-                    ).strip()
-                    evidence_description_state = ""
-                    uploaded_evidence_files = []
-                    if st.session_state[action_choice_key] == "Concluir Minha Parte":
-                        st.markdown("""
-                           <div class="conditional-field">
-                               <h4>✅ Evidências da Tratativa</h4>
-                               <p>Descreva e anexe as evidências da tratativa realizada para esta notificação.</p>
-                           </div>
-                           """, unsafe_allow_html=True)
-                        evidence_description_state = st.text_area(
-                            "Descrição da Evidência (Opcional)",
-                            value=st.session_state.get(
-                                f"exec_evidence_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored", ""),
-                            placeholder="Descreva o resultado da tratativa, evidências de conclusão, etc.",
-                            height=100,
-                            key=f"exec_evidence_desc_{notification.get('id', UI_TEXTS.text_na)}_refactored"
-                        ).strip()
-                        uploaded_evidence_files = st.file_uploader(
-                            "Anexar files de Evidência (Opcional)", type=None, accept_multiple_files=True,
-                            key=f"exec_evidence_attachments_{notification.get('id', UI_TEXTS.text_na)}_refactored"
-                        )
-                    # 📎 NOVO: anexos gerais da execução (opcional)
-                    st.markdown("#### 📎 Anexos da Execução (Opcional)")
-                    uploaded_exec_files = st.file_uploader(
-                        "Anexar documentos relacionados a esta ação (opcional)",
-                        type=None,
-                        accept_multiple_files=True,
-                        key=f"exec_action_attachments_{notification.get('id', UI_TEXTS.text_na)}_refactored"
-                    )
-
-                    st.markdown("<span class='required-field'>* Campo obrigatório (Descrição da Ação)</span>", unsafe_allow_html=True)
-                    submit_button = st.form_submit_button("✔️ Confirmar Ação",
-                                                          use_container_width=True)
                     st.markdown("---")
-                    if submit_button:
-                        validation_errors = []
-                        if st.session_state[action_choice_key] == UI_TEXTS.selectbox_default_acao_realizar:
-                            validation_errors.append("É obrigatório selecionar o tipo de ação (Registrar ou Concluir).")
-                        if not action_description_state:
-                            validation_errors.append("A descrição detalhada da ação é obrigatória.")
-                        if validation_errors:
-                            st.error("⚠️ **Por favor, corrija os seguintes erros:**")
-                            for error in validation_errors: st.warning(error)
+
+                    # ✅ Encaminhar / adicionar outro executor (se necessário)
+                    with st.expander("👥 Encaminhar / Adicionar outro executor", expanded=False):
+                        exec_users = get_users_by_role('executor') or []
+                        opts = []
+                        label_to_id = {}
+                        for u in exec_users:
+                            lab = f"{u.get('name', UI_TEXTS.text_na)} ({u.get('username', UI_TEXTS.text_na)})"
+                            label_to_id[lab] = u.get('id')
+                            opts.append(lab)
+
+                        if not opts:
+                            st.info("Nenhum usuário com perfil 'executor' encontrado.")
                         else:
-                            current_notification_in_list = next(
-                                (n for n in load_notifications() if n.get('id') == notification.get('id')), None)
-                            if not current_notification_in_list:
-                                st.error(
-                                    "Erro interno: Notificação não encontrada na lista principal para atualização.")
-                            else:
-                                recheck_executor_already_concluded = False
-                                notif_actions_db = get_notification_actions(notification.get('id'))
-                                for existing_action_recheck in notif_actions_db:
-                                    if existing_action_recheck.get(
-                                            'executor_id') == user_id_logged_in and existing_action_recheck.get(
-                                        'final_action_by_executor') == True:
-                                        recheck_executor_already_concluded = True
-                                        break
-                                if recheck_executor_already_concluded:
-                                    st.error(
-                                        "❌ Sua parte nesta notificação já foi marcada como concluída anteriormente. Operação abortada.")
-                                    st.session_state[action_choice_key] = UI_TEXTS.selectbox_default_acao_realizar
-                                    _clear_execution_form_state(notification['id'])
-                                    st.rerun()
+                            selected = st.multiselect(
+                                "Selecione executores para adicionar",
+                                options=opts,
+                                key=f"add_exec_ms_{notif_id}"
+                            )
+                            obs = st.text_input("Observação (opcional)", key=f"add_exec_obs_{notif_id}")
+                            if st.button("➕ Adicionar executores", key=f"btn_add_exec_{notif_id}", use_container_width=True):
+                                ids_to_add = [label_to_id[x] for x in selected if label_to_id.get(x)]
+                                if not ids_to_add:
+                                    st.warning("Selecione pelo menos um executor.")
                                 else:
-                                    saved_evidence_attachments = []
-                                    if st.session_state[
-                                        action_choice_key] == "Concluir Minha Parte" and uploaded_evidence_files:
-                                        for file in uploaded_evidence_files:
-                                            saved_file_info = save_uploaded_file_to_disk(file, notification.get('id'))
-                                            if saved_file_info:
-                                                saved_evidence_attachments.append(saved_file_info)
-                                    
-                                    saved_exec_attachments = []
-                                    if uploaded_exec_files:
-                                        for file in uploaded_exec_files:
-                                            saved_file_info = save_uploaded_file_to_disk(file, notification.get('id'))
-                                            if saved_file_info:
-                                                saved_exec_attachments.append(saved_file_info)
-                                    action_data_to_add = {
-                                        'executor_id': user_id_logged_in,
-                                        'executor_name': user_username_logged_in,
-                                        'description': action_description_state,
-                                        'timestamp': datetime.now().isoformat(),
-                                        'final_action_by_executor': st.session_state[
-                                                                        action_choice_key] == "Concluir Minha Parte",
-                                        'evidence_description': evidence_description_state if st.session_state[
-                                            action_choice_key] == "Concluir Minha Parte" else None,
-                                        'evidence_attachments': saved_evidence_attachments if st.session_state[
-                                            action_choice_key] == "Concluir Minha Parte" else None
-                                    ,
-                                        'attachments': saved_exec_attachments if saved_exec_attachments else None
-                                    }
-                                    add_notification_action(notification['id'], action_data_to_add)
-                                    if st.session_state[action_choice_key] == "Registrar Ação":
-                                        if current_notification_in_list.get('status') in ['classificada_aguardando_execucao', 'classificada']:
-                                            update_notification(notification['id'], {'status': 'em_execucao'})
-                                        add_history_entry(notification['id'],
-                                                          "Ação registrada (Execução)",
-                                                          user_username_logged_in,
-                                                          f"Registrou ação: {action_description_state[:100]}..." if len(
-                                                              action_description_state) > 100 else f"Registrou ação: {action_description_state}")
-                                        st.toast("✅ Ação registrada com sucesso!", icon="🎉")
-                                    elif st.session_state[action_choice_key] == "Concluir Minha Parte":
-                                        all_actions_for_notif = get_notification_actions(notification['id'])
-                                        raw_execs = current_notification_in_list.get('executors', []) or []
-                                        all_assigned_executors_ids = set()
-                                        for e in raw_execs:
-                                            if isinstance(e, int):
-                                                all_assigned_executors_ids.add(e)
-                                            elif isinstance(e, dict) and isinstance(e.get('id'), int):
-                                                all_assigned_executors_ids.add(e['id'])
-                                        executors_who_concluded_ids = set(
-                                            a.get('executor_id') for a in all_actions_for_notif if
-                                            a.get('final_action_by_executor'))
-                                        all_executors_concluded = all_assigned_executors_ids.issubset(
-                                            executors_who_concluded_ids) and len(all_assigned_executors_ids) > 0
-                                        updates_to_status = {}
-                                        if all_executors_concluded:
-                                            updates_to_status['status'] = 'revisao_classificador_execucao'
-                                            st.toast(
-                                                "✅ Todos os executores concluíram suas partes. Notificação encaminhada para revisão!",
-                                                icon="🏁")
-                                        else:
-                                            st.toast("✅ Sua execução foi concluída nesta notificação!", icon="✅")
-                                        history_details = f"Executor {user_username_logged_in} concluiu sua parte das ações."
+                                    cur = n.get('executors', []) or []
+                                    cur_ids = set()
+                                    for e in cur:
+                                        if isinstance(e, int): cur_ids.add(e)
+                                        elif isinstance(e, dict) and e.get('id') is not None: cur_ids.add(e.get('id'))
+                                    new_ids = sorted(cur_ids.union(set(ids_to_add)))
+
+                                    updated = update_notification(notif_id, {"executors": new_ids})
+                                    if updated:
                                         add_history_entry(
-                                            notification['id'],
-                                            "Execução concluída (por executor)",
-                                            user_username_logged_in,
-                                            history_details
+                                            notif_id,
+                                            f"👥 Executor(es) adicionados: {', '.join(map(str, ids_to_add))}" + (f" | Obs: {obs}" if obs else ""),
+                                            st.session_state.get('user_username', UI_TEXTS.text_na)
                                         )
-                                        if updates_to_status:
-                                            update_notification(notification['id'], updates_to_status)
-                                        st.success(
-                                            f"✅ Sua execução foi concluída nesta notificação! Status atual: '{current_notification_in_list['status'].replace('_', ' ').title()}'.")
-                                        if not all_executors_concluded:
-                                            users_list_exec = load_users()
-                                            remaining_executors_ids = list(
-                                                all_assigned_executors_ids - executors_who_concluded_ids)
-                                            remaining_executors_names = [u.get('name', UI_TEXTS.text_na) for u in
-                                                                         users_list_exec if
-                                                                         u.get('id') in remaining_executors_ids]
-                                            st.info(
-                                                f"Aguardando conclusão dos seguintes executores: {', '.join(remaining_executors_names) or 'Nenhum'}.")
-                                        elif all_executors_concluded:
-                                            st.info(
-                                                f"Todos os executores concluíram suas partes. A notificação foi enviada para revisão final pelo classificador.\\n\\nEvidência da tratativa:\\n{evidence_description_state}\\n\\nAnexos: {len(saved_evidence_attachments) if saved_evidence_attachments else 0}")
-                                    _clear_execution_form_state(notification['id'])
-                                    st.rerun()
-                with st.expander("👥 Adicionar Executor Adicional"):
-                    with st.form(f"add_executor_form_{notification.get('id', UI_TEXTS.text_na)}_refactored",
-                                 clear_on_submit=True):
-                        executors = get_users_by_role('executor')
-                        current_executors_ids = notification.get('executors', [])
-                        available_executors = [e for e in executors if e.get('id') not in current_executors_ids]
-                        if available_executors:
-                            executor_options = {
-                                f"{e.get('name', UI_TEXTS.text_na)} ({e.get('username', UI_TEXTS.text_na)})": e['id']
-                                for e in available_executors
-                            }
-                            add_executor_display_options = [UI_TEXTS.multiselect_instruction_placeholder] + list(
-                                executor_options.keys())
-                            default_add_executor_selection = UI_TEXTS.multiselect_instruction_placeholder
-                            new_executor_name_to_add_raw = st.selectbox(
-                                "Selecionar executor para adicionar:*",
-                                options=add_executor_display_options,
-                                index=add_executor_display_options.index(default_add_executor_selection),
-                                key=f"add_executor_select_exec_{notification.get('id', UI_TEXTS.text_na)}_form_refactored",
-                                help="Selecione o usuário executor que será adicionado a esta notificação."
-                            )
-                            new_executor_name_to_add = (
-                                new_executor_name_to_add_raw
-                                if new_executor_name_to_add_raw != UI_TEXTS.multiselect_instruction_placeholder
-                                else None
-                            )
-                            st.markdown("<span class='required-field'>* Campo obrigatório</span>",
-                                        unsafe_allow_html=True)
-                            submit_button = st.form_submit_button("➕ Adicionar Executor",
-                                                                  use_container_width=True)
-                            if submit_button:
-                                if new_executor_name_to_add:
-                                    new_executor_id = executor_options[new_executor_name_to_add]
-                                    current_notification_in_list = next(
-                                        (n for n in load_notifications() if n.get('id') == notification.get('id')), None)
-                                    if current_notification_in_list:
-                                        updated_executors = current_notification_in_list.get('executors', []) + [
-                                            new_executor_id]
-                                        update_notification(notification.get('id'), {'executors': updated_executors})
-                                        add_history_entry(
-                                            notification.get('id'), "Executor adicionado (durante execução)",
-                                            user_username_logged_in,
-                                            f"Adicionado o executor: {new_executor_name_to_add}"
-                                        )
-                                        st.success(
-                                            f"✅ {new_executor_name_to_add} adicionado como executor para esta notificação.")
+                                        st.success("✅ Executor(es) adicionados com sucesso!")
                                         st.rerun()
                                     else:
-                                        st.error("Erro: Notificação não encontrada para adicionar executor.")
-                                else:
-                                    st.error("⚠️ Por favor, selecione um executor para adicionar.")
-                        else:
-                            st.info("Não há executores adicionais disponíveis para atribuição no momento.")
-    with tab_closed_my_exec_notifs:
-        st.markdown("### Minhas Ações Encerradas")
-        if not closed_my_exec_notifications:
-            st.info("✅ Não há notificações encerradas em que você estava envolvido como executor no momento.")
+                                        st.error("❌ Não foi possível atualizar a notificação.")
+
+                    st.markdown("---")
+
+                    # Fluxo de execução (ação / conclusão)
+                    st.markdown("## 🛠️ Registrar Execução")
+
+                    with st.form(key=f"exec_form_{notif_id}"):
+                        action_desc = st.text_area(
+                            "📝 Descrição da ação executada *",
+                            key=f"exec_action_desc_{notif_id}",
+                            height=140,
+                            placeholder="Descreva o que foi feito, responsáveis, evidências, etc."
+                        )
+
+                        st.markdown("### 📎 Anexar documentos da execução (opcional)")
+                        up_files = st.file_uploader(
+                            "Arquivos (PDF, imagens, etc.)",
+                            accept_multiple_files=True,
+                            key=f"exec_attach_{notif_id}"
+                        )
+
+                        conclui = st.checkbox("🏁 Concluir minha parte nesta notificação", key=f"exec_finish_{notif_id}")
+
+                        st.markdown("<span class='required-field'>* Campo obrigatório</span>", unsafe_allow_html=True)
+                        submitted = st.form_submit_button("💾 Salvar", use_container_width=True, type="primary")
+
+                        if submitted:
+                            if not (action_desc or "").strip():
+                                st.error("❌ Descreva a ação executada.")
+                                st.stop()
+
+                            saved_attachments = []
+                            for f in (up_files or []):
+                                saved_info = save_uploaded_file_to_disk(f)
+                                if saved_info:
+                                    saved_attachments.append(saved_info)
+
+                            # registra ação
+                            action_entry = {
+                                "executor_id": user_id,
+                                "executor_name": st.session_state.get('user', {}).get('name', user_username),
+                                "executor_username": user_username,
+                                "description": action_desc.strip(),
+                                "timestamp": datetime.now().isoformat(),
+                                "final_action_by_executor": bool(conclui),
+                                "attachments": saved_attachments
+                            }
+
+                            actions = n.get('actions', []) or []
+                            actions.append(action_entry)
+
+                            updates = {"actions": actions}
+                            # Se concluiu, empurra para revisão de execução
+                            if conclui:
+                                updates["status"] = "revisao_classificador_execucao"
+
+                            updated = update_notification(notif_id, updates)
+                            if updated:
+                                add_history_entry(
+                                    notif_id,
+                                    "🏁 Executor concluiu sua parte" if conclui else "📝 Ação registrada pelo executor",
+                                    st.session_state.get('user_username', UI_TEXTS.text_na)
+                                )
+                                st.success("✅ Salvo com sucesso!")
+                                st.rerun()
+                            else:
+                                st.error("❌ Erro ao salvar. Verifique logs do servidor.")
+
+    # -------------------------
+    # GUIA: EXECUTADAS
+    # -------------------------
+    with tab_exec:
+        if not executed:
+            st.success("✅ Você ainda não concluiu execuções.")
         else:
-            st.info(
-                f"Total de notificações encerradas em que você estava envolvido: {len(closed_my_exec_notifications)}.")
-            search_query_exec_closed = st.text_input(
-                "🔎 Buscar em Minhas Ações Encerradas (Título, Descrição, ID):",
-                key="closed_exec_notif_search_input",
-                placeholder="Ex: 'reparo', '987', 'instalação'"
-            ).lower()
-            filtered_closed_my_exec_notifications = []
-            if search_query_exec_closed:
-                for notif in closed_my_exec_notifications:
-                    if search_query_exec_closed.isdigit() and int(search_query_exec_closed) == notif.get('id'):
-                        filtered_closed_my_exec_notifications.append(notif)
-                    elif (search_query_exec_closed in notif.get('title', '').lower() or
-                          search_query_exec_closed in notif.get('description', '').lower()):
-                        filtered_closed_my_exec_notifications.append(notif)
-            else:
-                filtered_closed_my_exec_notifications = closed_my_exec_notifications
-            if not filtered_closed_my_exec_notifications:
-                st.warning(
-                    "⚠️ Nenhuma notificação encontrada com os critérios de busca especificados em suas ações encerradas.")
-            else:
-                filtered_closed_my_exec_notifications.sort(key=lambda x: x.get('created_at', ''), reverse=True)
-                st.markdown(f"**Notificações Encontradas ({len(filtered_closed_my_exec_notifications)})**:")
-                for notification in filtered_closed_my_exec_notifications:
-                    status_class = f"status-{notification.get('status', UI_TEXTS.text_na).replace('_', '-')}"
-                    created_at_str = datetime.fromisoformat(notification['created_at']).strftime('%d/%m/%Y %H:%M:%S') if isinstance(notification['created_at'], str) else notification['created_at'].strftime('%d/%m/%Y %H:%M:%S')
+            st.info(f"📋 Você tem **{len(executed)}** notificação(ões) onde sua parte já foi concluída.")
+            # Mais recentes primeiro (pela última ação sua)
+            def _last_my_ts(n):
+                ts = None
+                for a in (n.get('actions', []) or []):
+                    if a.get('executor_id') == user_id:
+                        t = a.get('timestamp')
+                        if t and (ts is None or t > ts):
+                            ts = t
+                return ts or ""
+            executed.sort(key=_last_my_ts, reverse=True)
 
-                    concluded_by = UI_TEXTS.text_na
-                    if notification.get('conclusion') and notification['conclusion'].get('concluded_by'):
-                        concluded_by = notification['conclusion']['concluded_by']
-                    elif notification.get('approval') and (notification.get('approval') or {}).get('approved_by'):
-                        concluded_by = (notification.get('approval') or {}).get('approved_by')
-                    elif notification.get('rejection_classification') and (
-                            notification.get('rejection_classification') or {}).get('classified_by'):
-                        concluded_by = (notification.get('rejection_classification') or {}).get('classified_by')
-                    elif notification.get('rejection_approval') and (notification.get('rejection_approval') or {}).get(
-                            'rejected_by'):
-                        concluded_by = (notification.get('rejection_approval') or {}).get('rejected_by')
-                    
-                    classif_info = notification.get('classification', {})
-                    if isinstance(classif_info, str):
-                        try:
-                            classif_info = json.loads(classif_info)
-                        except json.JSONDecodeError:
-                            classif_info = {}
+            for n in executed:
+                notif_id = n.get('id')
+                with st.expander(_header(n), expanded=False):
+                    # Detalhes completos da notificação, sem histórico (vamos mostrar só "minhas ações")
+                    try:
+                        n_copy = dict(n)
+                        n_copy['actions'] = []
+                        display_notification_full_details(n_copy, user_id, user_username)
+                    except Exception as e:
+                        st.warning(f"Não foi possível renderizar detalhes completos: {e}")
 
-                    deadline_info = classif_info.get('deadline')
-                    concluded_timestamp_str = (notification.get('conclusion') or {}).get('timestamp')
-                    deadline_status = get_deadline_status(deadline_info, concluded_timestamp_str)
-                    card_class = ""
-                    if deadline_status['class'] == "deadline-ontrack" or deadline_status['class'] == "deadline-duesoon":
-                        card_class = "card-prazo-dentro"
-                    elif deadline_status['class'] == "deadline-overdue":
-                        card_class = "card-prazo-fora"
-                    st.markdown(f"""
-                            <div class="notification-card {card_class}">
-                                <h4>#{notification.get('id', UI_TEXTS.text_na)} - {notification.get('title', UI_TEXTS.text_na)}</h4>
-                                <p><strong>Status Final:</strong> <span class="{status_class}">{notification.get('status', UI_TEXTS.text_na).replace('_', ' ').title()}</span></p>
-                                <p><strong>Encerrada por:</strong> {concluded_by} | <strong>Data de Criação:</strong> {created_at_str}</p>
-                                <p><strong>Prazo:</strong> {deadline_status['text']} (class={deadline_status['class']})</p>
-                            </div>
-                            """, unsafe_allow_html=True)
-                    with st.expander(
-                            f"👁️ Visualizar Detalhes - Notificação #{notification.get('id', UI_TEXTS.text_na)}"):
-                        display_notification_full_details(notification, user_id_logged_in, user_username_logged_in)
-@st_fragment
+                    st.markdown("---")
+                    st.markdown("## ✅ Minhas ações nesta notificação")
+
+                    my_actions = [a for a in (n.get('actions', []) or []) if a.get('executor_id') == user_id]
+                    if not my_actions:
+                        st.info("Nenhuma ação sua registrada (inconsistência).")
+                    else:
+                        my_actions = sorted(my_actions, key=lambda x: x.get('timestamp', ''))
+                        for idx, a in enumerate(my_actions):
+                            ts = a.get('timestamp', UI_TEXTS.text_na)
+                            try:
+                                ts_fmt = datetime.fromisoformat(ts).strftime('%d/%m/%Y %H:%M:%S')
+                            except Exception:
+                                ts_fmt = ts
+                            tipo = "🏁 CONCLUSÃO" if a.get('final_action_by_executor') else "📝 AÇÃO"
+                            st.markdown(f"**{tipo}** — {ts_fmt}")
+                            st.write(a.get('description', UI_TEXTS.text_na))
+
+                            # anexos da ação
+                            atts = a.get('attachments') or []
+                            if atts:
+                                st.markdown("**📎 Anexos desta ação:**")
+                                for att_idx, anexo in enumerate(atts):
+                                    unique_name = (anexo or {}).get('unique_name')
+                                    original_name = (anexo or {}).get('original_name')
+                                    if unique_name and original_name:
+                                        content = get_attachment_data(unique_name)
+                                        if content:
+                                            st.download_button(
+                                                f"⬇️ {original_name}",
+                                                content,
+                                                file_name=original_name,
+                                                mime="application/octet-stream",
+                                                key=f"dl_my_exec_{notif_id}_{idx}_{att_idx}_{unique_name}"
+                                            )
+                                        else:
+                                            st.write(f"{original_name} (arquivo não encontrado)")
+                            st.markdown("---")
+
 def show_approval():
     """Renderiza a página para aprovadores revisarem e aprovarem/rejeitarem notificações."""
     if not check_permission('aprovador'):
