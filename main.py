@@ -1140,7 +1140,8 @@ def create_notification(data: Dict, uploaded_files: Optional[List[Any]] = None):
             "Sistema (Formulário Público)",
             f"Notificação enviada para classificação. Título: {data.get('title', 'Sem título')[:100]}..." if len(data.get('title','')) > 100
               else f"Notificação enviada para classificação. Título: {data.get('title', 'Sem título')}",
-            conn=conn
+            conn=conn,
+            cursor=cur
         )
 
         cur = conn.cursor()
@@ -1311,150 +1312,54 @@ def update_notification(notification_id: int, updates: Dict):
             conn.close()
 
 def get_notification_attachments(notification_id: int, conn=None, cur=None) -> List[Dict]:
-    """Busca anexos para uma notificação específica. Pode usar conexão e cursor existentes."""
+    """Busca anexos para uma notificação específica.
+
+    Observação:
+    - Em alguns fluxos antigos, o mesmo arquivo pode acabar registrado mais de uma vez.
+      Para evitar duplicação visual, deduplicamos por 'original_name' mantendo o mais recente.
+    """
+    created_conn = False
+    created_cur = False
     local_conn = conn
     local_cur = cur
     try:
-        if not (local_conn and local_cur):
+        if local_conn is None:
             local_conn = get_db_connection()
+            created_conn = True
+        if local_cur is None:
             local_cur = local_conn.cursor()
-        local_cur.execute("SELECT unique_name, original_name FROM notification_attachments WHERE notification_id = %s",
-                          (notification_id,))
-        attachments_raw = local_cur.fetchall()
-        return [{"unique_name": att[0], "original_name": att[1]} for att in attachments_raw]
-    except psycopg2.Error as e:
-        st.error(f"Erro ao carregar anexos da notificação {notification_id}: {e}")
-        return []
-    finally:
-        if not (conn and cur) and local_cur: local_cur.close()
-        if not (conn and cur) and local_conn: local_conn.close()
+            created_cur = True
 
-
-def get_notification_history(notification_id: int, conn=None, cur=None) -> List[Dict]:
-    """Busca entradas de histórico para uma notificação. Pode usar conexão e cursor existentes."""
-    local_conn = conn
-    local_cur = cur
-    try:
-        if not (local_conn and local_cur):
-            local_conn = get_db_connection()
-            local_cur = local_conn.cursor()
         local_cur.execute(
-            "SELECT action_type, performed_by, action_timestamp, details FROM notification_history WHERE notification_id = %s ORDER BY action_timestamp",
-            (notification_id,))
-        history_raw = local_cur.fetchall()
-        return [
-            {
-                "action": h[0],
-                "user": h[1],
-                "timestamp": h[2].isoformat() if h[2] else None,
-                "details": h[3]
-            }
-            for h in history_raw
-        ]
-    except psycopg2.Error as e:
-        st.error(f"Erro ao carregar histórico da notificação {notification_id}: {e}")
+            """
+            SELECT id, unique_name, original_name
+            FROM notification_attachments
+            WHERE notification_id = %s
+            ORDER BY id ASC
+            """,
+            (notification_id,),
+        )
+        rows = local_cur.fetchall() or []
+
+        # Dedup por original_name (mantém o último id)
+        by_name = {}
+        for rid, uniq, orig in rows:
+            if orig is None:
+                orig = uniq
+            by_name[str(orig)] = {"id": rid, "unique_name": uniq, "original_name": orig}
+
+        ordered = sorted(by_name.values(), key=lambda x: x["id"])
+        return [{"unique_name": r["unique_name"], "original_name": r["original_name"]} for r in ordered]
+
+    except psycopg2.Error:
         return []
     finally:
-        if not (conn and cur) and local_cur: local_cur.close()
-        if not (conn and cur) and local_conn: local_conn.close()
-
-def get_notification_actions(notification_id: int, conn=None, cur=None) -> List[Dict]:
-    """Busca ações de executores para uma notificação. Pode usar conexão e cursor existentes."""
-    local_conn = conn
-    local_cur = cur
-    try:
-        if not (local_conn and local_cur):
-            local_conn = get_db_connection()
-            local_cur = local_conn.cursor()
-        local_cur.execute(
-            "SELECT executor_id, executor_name, description, action_timestamp, final_action_by_executor, evidence_description, evidence_attachments FROM notification_actions WHERE notification_id = %s ORDER BY action_timestamp",
-            (notification_id,))
-        actions_raw = local_cur.fetchall()
-        return [
-            {
-                "executor_id": a[0],
-                "executor_name": a[1],
-                "description": a[2],
-                "timestamp": a[3].isoformat() if a[3] else None,
-                "final_action_by_executor": a[4],
-                "evidence_description": a[5],
-                "evidence_attachments": a[6]
-            }
-            for a in actions_raw
-        ]
-    except psycopg2.Error as e:
-        st.error(f"Erro ao carregar ações da notificação {notification_id}: {e}")
-        return []
-    finally:
-        if not (conn and cur) and local_cur: local_cur.close()
-        if not (conn and cur) and local_conn: local_conn.close()
-
-def add_history_entry(notification_id: int, action: str, user: str, details: str = "", conn=None, cursor=None):
-    """
-    Adiciona uma entrada ao histórico de uma notificação.
-    """
-    local_conn = conn
-    local_cur = cursor
-    try:
-        if not (local_conn and local_cur):
-            local_conn = get_db_connection()
-            local_cur = local_conn.cursor()
-
-        local_cur.execute("""
-            INSERT INTO notification_history (notification_id, action_type, performed_by, action_timestamp, details)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (notification_id, action, user, datetime.now().isoformat(), details))
-        if not (conn and cursor):
-            local_conn.commit()
-        return True
-    except psycopg2.Error as e:
-        st.error(f"Erro ao adicionar entrada de histórico para notificação {notification_id}: {e}")
-        if local_conn and not (conn and cursor):
-            local_conn.rollback()
-        return False
-    finally:
-        if local_cur and not (conn and cursor):
-            local_cur.close()
-        if local_conn and not (conn and cursor):
-            local_conn.close()
-
-
-def add_notification_action(notification_id: int, action_data: Dict, conn=None, cur=None):
-    """
-    Adiciona uma ação de executor a uma notificação.
-    """
-    local_conn = conn
-    local_cur = cur
-    try:
-        if not (local_conn and local_cur):
-            local_conn = get_db_connection()
-            local_cur = local_conn.cursor()
-        local_cur.execute("""
-            INSERT INTO notification_actions (
-                notification_id, executor_id, executor_name, description, action_timestamp,
-                final_action_by_executor, evidence_description, evidence_attachments
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            notification_id,
-            action_data.get('executor_id'),
-            action_data.get('executor_name'),
-            action_data.get('description'),
-            action_data.get('timestamp'),
-            action_data.get('final_action_by_executor'),
-            action_data.get('evidence_description'),
-            json.dumps((action_data.get('attachments') or []) + (action_data.get('evidence_attachments') or [])) if (action_data.get('attachments') or action_data.get('evidence_attachments')) else None
-        ))
-        if not (conn and cur):
-            local_conn.commit()
-        return True
-    except psycopg2.Error as e:
-        st.error(f"Erro ao adicionar ação para notificação {notification_id}: {e}")
-        if local_conn and not (conn and cur):
-            local_conn.rollback()
-        return False
-    finally:
-        if local_cur and not (conn and cur): local_cur.close()
-        if local_conn and not (conn and cur): local_conn.close()
+        try:
+            if created_cur and local_cur:
+                local_cur.close()
+        finally:
+            if created_conn and local_conn:
+                local_conn.close()
 
 def save_uploaded_file_to_disk(uploaded_file: Any, notification_id: int) -> Optional[Dict]:
     """Salva um file enviado para o diretório de anexos no disco e retorna suas informações."""
@@ -1979,6 +1884,197 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
                     st.markdown("</div>", unsafe_allow_html=True)
 
             st.markdown("---")
+
+def build_notification_report(notification_id: int) -> str:
+    """Gera um relatório TXT completo (notificação + classificação + execução + revisões + aprovações + histórico).
+
+    O objetivo é o usuário conseguir baixar e arquivar o ciclo completo.
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT
+                id, title, description, location, occurrence_date, occurrence_time,
+                reporting_department, reporting_department_complement, notified_department,
+                notified_department_complement, event_shift,
+                immediate_actions_taken, immediate_action_description,
+                patient_involved, patient_id, patient_outcome_obito,
+                additional_notes, status, created_at, updated_at,
+                classification, rejection_classification, review_execution, approval,
+                rejection_approval, rejection_execution_review, conclusion,
+                executors, approver
+            FROM notifications
+            WHERE id = %s
+            """,
+            (notification_id,),
+        )
+        row = cur.fetchone()
+        cur.close()
+        if not row:
+            return f"Relatório\n\nNotificação {notification_id} não encontrada."
+
+        # mapeamento rápido
+        keys = [
+            "id","title","description","location","occurrence_date","occurrence_time",
+            "reporting_department","reporting_department_complement","notified_department",
+            "notified_department_complement","event_shift",
+            "immediate_actions_taken","immediate_action_description",
+            "patient_involved","patient_id","patient_outcome_obito",
+            "additional_notes","status","created_at","updated_at",
+            "classification","rejection_classification","review_execution","approval",
+            "rejection_approval","rejection_execution_review","conclusion",
+            "executors","approver"
+        ]
+        n = dict(zip(keys, row))
+
+        def _json_to_obj(v):
+            if v is None:
+                return None
+            if isinstance(v, (dict, list)):
+                return v
+            if isinstance(v, str):
+                v = v.strip()
+                if not v:
+                    return None
+                try:
+                    return json.loads(v)
+                except Exception:
+                    return v
+            return v
+
+        for k in ["classification","rejection_classification","review_execution","approval","rejection_approval","rejection_execution_review","conclusion"]:
+            n[k] = _json_to_obj(n.get(k))
+
+        # histórico e ações
+        hist_map = _get_history_map_by_ids(conn, [notification_id])
+        act_map = _get_actions_map_by_ids(conn, [notification_id])
+        atts = get_notification_attachments(notification_id, conn=conn)  # já dedup
+        history = hist_map.get(notification_id, []) or []
+        actions = act_map.get(notification_id, []) or []
+
+        # formatação
+        def fmt_dt(v):
+            try:
+                return v.isoformat(sep=" ") if hasattr(v, "isoformat") else str(v)
+            except Exception:
+                return str(v)
+
+        lines = []
+        lines.append("="*78)
+        lines.append(f"RELATÓRIO COMPLETO — NOTIFICAÇÃO #{n['id']}")
+        lines.append("="*78)
+        lines.append("")
+        lines.append("[1] NOTIFICAÇÃO")
+        lines.append(f"Título: {n.get('title','')}")
+        lines.append(f"Status atual: {n.get('status','')}")
+        lines.append(f"Criada em: {fmt_dt(n.get('created_at'))}")
+        lines.append(f"Atualizada em: {fmt_dt(n.get('updated_at'))}")
+        lines.append(f"Local: {n.get('location','')}")
+        lines.append(f"Data/Hora ocorrência: {n.get('occurrence_date','')} {n.get('occurrence_time','')}")
+        lines.append(f"Depto notificante: {n.get('reporting_department','')} {n.get('reporting_department_complement','')}")
+        lines.append(f"Depto notificado: {n.get('notified_department','')} {n.get('notified_department_complement','')}")
+        lines.append(f"Turno: {n.get('event_shift','')}")
+        lines.append("")
+        lines.append("Descrição:")
+        lines.append(n.get('description','') or "")
+        lines.append("")
+        lines.append("Ações imediatas tomadas: " + ("Sim" if n.get('immediate_actions_taken') else "Não"))
+        if n.get('immediate_action_description'):
+            lines.append("Descrição ação imediata: " + str(n.get('immediate_action_description')))
+        lines.append("Paciente envolvido: " + ("Sim" if n.get('patient_involved') else "Não"))
+        if n.get('patient_id'):
+            lines.append("Paciente ID: " + str(n.get('patient_id')))
+        if n.get('patient_outcome_obito') is not None:
+            lines.append("Óbito: " + ("Sim" if n.get('patient_outcome_obito') else "Não"))
+        if n.get('additional_notes'):
+            lines.append("")
+            lines.append("Observações adicionais:")
+            lines.append(str(n.get('additional_notes')))
+        lines.append("")
+        lines.append("Anexos da notificação:")
+        if atts:
+            for a in atts:
+                lines.append(f"- {a.get('original_name')} ({a.get('unique_name')})")
+        else:
+            lines.append("- (sem anexos)")
+        lines.append("")
+        lines.append("[2] CLASSIFICAÇÃO")
+        if n.get('classification'):
+            lines.append(json.dumps(n.get('classification'), ensure_ascii=False, indent=2))
+        else:
+            lines.append("(não classificada)")
+        lines.append("")
+        lines.append("[3] EXECUÇÃO — AÇÕES DOS EXECUTORES")
+        if actions:
+            for i, a in enumerate(actions, 1):
+                lines.append("-"*78)
+                lines.append(f"Ação {i}")
+                lines.append(f"Executor: {a.get('executor_name','')} (id={a.get('executor_id')})")
+                lines.append(f"Quando: {a.get('action_timestamp')}")
+                lines.append(f"Descrição: {a.get('description','')}")
+                lines.append(f"Marcou conclusão do executor: {bool(a.get('final_action_by_executor'))}")
+                if a.get('evidence_description'):
+                    lines.append(f"Evidência: {a.get('evidence_description')}")
+                # anexos da ação (armazenados em evidence_attachments)
+                eatt = a.get('evidence_attachments')
+                if isinstance(eatt, str):
+                    try:
+                        eatt = json.loads(eatt)
+                    except Exception:
+                        eatt = None
+                if eatt:
+                    lines.append("Anexos da ação:")
+                    for ea in eatt:
+                        if isinstance(ea, dict):
+                            lines.append(f"  * {ea.get('original_name')} ({ea.get('unique_name')})")
+                        else:
+                            lines.append(f"  * {ea}")
+                else:
+                    lines.append("Anexos da ação: (nenhum)")
+            lines.append("-"*78)
+        else:
+            lines.append("(nenhuma ação registrada)")
+        lines.append("")
+        lines.append("[4] REVISÃO DA EXECUÇÃO")
+        if n.get('review_execution'):
+            lines.append(json.dumps(n.get('review_execution'), ensure_ascii=False, indent=2))
+        else:
+            lines.append("(sem revisão registrada)")
+        lines.append("")
+        lines.append("[5] APROVAÇÃO(ÕES)")
+        if n.get('approval'):
+            lines.append("Aprovação final:")
+            lines.append(json.dumps(n.get('approval'), ensure_ascii=False, indent=2))
+        else:
+            lines.append("(sem aprovação final registrada)")
+        lines.append("")
+        lines.append("[6] CONCLUSÃO")
+        if n.get('conclusion'):
+            lines.append(json.dumps(n.get('conclusion'), ensure_ascii=False, indent=2))
+        else:
+            lines.append("(sem conclusão registrada)")
+        lines.append("")
+        lines.append("[7] HISTÓRICO (AUDITORIA)")
+        if history:
+            for h in history:
+                lines.append(f"- {h.get('timestamp')} | {h.get('user')} | {h.get('action')} | {h.get('details','')}")
+        else:
+            lines.append("(sem histórico)")
+        lines.append("")
+        return "\n".join(lines)
+
+    except Exception as e:
+        return f"Relatório\n\nErro ao gerar relatório: {e}"
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
 
 @st_fragment
 def show_create_notification():
@@ -3410,6 +3506,33 @@ def show_notificacoes_encerradas():
         with st.expander(f"📋 **Ver Detalhes Completos da Notificação {selected_notification['id']}**", expanded=True):
             display_notification_full_details(selected_notification, st.session_state.user_id, st.session_state.user_username)
 
+            st.markdown('---')
+            st.markdown('### 📦 Relatório completo (download)')
+            report_txt = build_notification_report(int(selected_notification['id']))
+            st.download_button(
+                label='⬇️ Baixar relatório completo (.txt)',
+                data=report_txt.encode('utf-8'),
+                file_name=f"notificacao_{int(selected_notification['id'])}_relatorio.txt",
+                mime='text/plain',
+                key=f"dl_relatorio_encerrada_{int(selected_notification['id'])}"
+            )
+            with st.expander("👀 Prévia do relatório", expanded=False):
+                st.text_area("Relatório", report_txt, height=350)
+
+
+            st.markdown('---')
+            st.markdown('### 📦 Relatório completo (download)')
+            report_txt = build_notification_report(int(selected_notification['id']))
+            st.download_button(
+                label='⬇️ Baixar relatório completo (.txt)',
+                data=report_txt.encode('utf-8'),
+                file_name=f"notificacao_{int(selected_notification['id'])}_relatorio.txt",
+                mime='text/plain',
+                key=f"dl_relatorio_enc_{int(selected_notification['id'])}"
+            )
+            with st.expander('Pré-visualização do relatório', expanded=False):
+                st.text_area('Relatório', report_txt, height=400, key=f"preview_rel_{int(selected_notification['id'])}")
+
 @st_fragment
 def show_execution():
     """Página do executor: 2 guias (Pendentes / Executadas) com cards colapsados."""
@@ -3602,14 +3725,25 @@ def show_execution():
                                 saved_attachments.append(saved_info)
 
                                 # também registra na tabela de anexos da notificação (para o classificador ver nos detalhes)
+                                # Evita duplicação (mesmo nome original) caso o Streamlit reexecute o bloco.
                                 try:
                                     conn_att = get_db_connection()
                                     cur_att = conn_att.cursor()
+                                    orig_name = saved_info.get('original_name')
                                     cur_att.execute(
-                                        "INSERT INTO notification_attachments (notification_id, unique_name, original_name) VALUES (%s, %s, %s)",
-                                        (int(notif_id), saved_info.get('unique_name'), saved_info.get('original_name'))
+                                        "SELECT 1 FROM notification_attachments WHERE notification_id=%s AND original_name=%s LIMIT 1",
+                                        (int(notif_id), orig_name)
                                     )
-                                    conn_att.commit()
+                                    exists = cur_att.fetchone()
+                                    if not exists:
+                                        cur_att.execute(
+                                            "INSERT INTO notification_attachments (notification_id, unique_name, original_name) VALUES (%s, %s, %s)",
+                                            (int(notif_id), saved_info.get('unique_name'), orig_name)
+                                        )
+                                        conn_att.commit()
+                                    else:
+                                        # já existe um anexo com o mesmo nome original para esta notificação
+                                        conn_att.rollback()
                                 except Exception as e:
                                     st.error(f"❌ Falha ao registrar anexo no banco: {e}")
                                     try:
