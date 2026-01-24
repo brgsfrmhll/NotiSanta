@@ -2518,7 +2518,15 @@ def build_notification_report_pdf(notification_id: int) -> bytes:
 
         if logo_path:
             try:
-                img = RLImage(logo_path, width=70, height=70)
+                                # Mantém proporção do logo (encaixa em um retângulo)
+                from reportlab.lib.utils import ImageReader
+                ir = ImageReader(logo_path)
+                iw, ih = ir.getSize()
+                max_w, max_h = 70, 70
+                scale = min(max_w / float(iw), max_h / float(ih))
+                w = float(iw) * scale
+                h = float(ih) * scale
+                img = RLImage(logo_path, width=w, height=h)
                 header_tbl = Table(
                     [[img, _p(f"<b>{hospital_name}</b><br/>Relatório de Notificação de Evento", "Title")]],
                     colWidths=[80, 440]
@@ -2599,7 +2607,9 @@ def build_notification_report_pdf(notification_id: int) -> bytes:
             story.append(Spacer(1, 8))
 
         # ---- Anexos (separados)
-        notif_atts, exec_atts = split_attachments_by_origin(notification_id)
+        groups_atts = split_attachments_by_origin(notification_id)
+        notif_atts = (groups_atts or {}).get('notification', []) or []
+        exec_atts  = (groups_atts or {}).get('execution', []) or []
 
         story.append(_p("Anexos", "Heading2"))
         story.append(Spacer(1, 6))
