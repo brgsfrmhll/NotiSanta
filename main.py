@@ -414,19 +414,33 @@ def add_notification_action(notification_id: int, action_data: Dict) -> bool:
                 pass
 
 
-def add_history_entry(notification_id: int, action_type: str, performed_by: str, details: str,
-                      conn=None, cursor=None) -> None:
+def add_history_entry(notification_id: int,
+                      action_type: str,
+                      performed_by: str,
+                      details: str = "",
+                      conn=None,
+                      cursor=None) -> None:
     """Insere uma entrada na tabela notification_history.
 
+    - `details` é opcional (evita TypeError em chamadas antigas).
     - Usa a mesma transação quando conn/cursor são fornecidos (evita FK violation antes do COMMIT).
-    - Aceita arquivos vazios (não interfere aqui).
     """
     if notification_id is None:
         return
 
-    own_conn = False
-    cur = None
+    # details pode ser None/dict/list
+    if details is None:
+        details = ""
     try:
+        if isinstance(details, (dict, list)):
+            import json
+            details = json.dumps(details, ensure_ascii=False)
+    except Exception:
+        details = str(details)
+
+    own_conn = False
+    try:
+        cur = None
         if cursor is not None:
             cur = cursor
         else:
@@ -440,16 +454,19 @@ def add_history_entry(notification_id: int, action_type: str, performed_by: str,
             INSERT INTO notification_history (notification_id, action_type, performed_by, details)
             VALUES (%s, %s, %s, %s)
             """,
-            (int(notification_id), str(action_type), str(performed_by), str(details))
+            (int(notification_id), str(action_type or ""), str(performed_by or ""), str(details))
         )
 
         if own_conn:
             conn.commit()
+
     except Exception as e:
         # Não derruba o fluxo principal (UI), mas registra no console/log.
         try:
             import logging
-            logging.getLogger(__name__).error(f"Erro ao adicionar entrada de histórico para notificação {notification_id}: {e}")
+            logging.getLogger(__name__).error(
+                f"Erro ao adicionar entrada de histórico para notificação {notification_id}: {e}"
+            )
         except Exception:
             pass
         if own_conn and conn:
@@ -463,6 +480,7 @@ def add_history_entry(notification_id: int, action_type: str, performed_by: str,
                 conn.close()
             except Exception:
                 pass
+
 
 def _get_history_map_by_ids(conn, ids: List[int]) -> Dict[int, List[Dict[str, Any]]]:
     if not ids:
