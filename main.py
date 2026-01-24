@@ -315,6 +315,57 @@ def _get_attachments_map_by_ids(conn, ids: List[int]) -> Dict[int, List[Dict[str
     return mp
 
 
+
+def add_history_entry(notification_id: int, action_type: str, performed_by: str, details: str,
+                      conn=None, cursor=None) -> None:
+    """Insere uma entrada na tabela notification_history.
+
+    - Usa a mesma transação quando conn/cursor são fornecidos (evita FK violation antes do COMMIT).
+    - Aceita arquivos vazios (não interfere aqui).
+    """
+    if notification_id is None:
+        return
+
+    own_conn = False
+    cur = None
+    try:
+        if cursor is not None:
+            cur = cursor
+        else:
+            if conn is None:
+                conn = get_db_connection()
+                own_conn = True
+            cur = conn.cursor()
+
+        cur.execute(
+            """
+            INSERT INTO notification_history (notification_id, action_type, performed_by, details)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (int(notification_id), str(action_type), str(performed_by), str(details))
+        )
+
+        if own_conn:
+            conn.commit()
+    except Exception as e:
+        # Não derruba o fluxo principal (UI), mas registra no console/log.
+        try:
+            import logging
+            logging.getLogger(__name__).error(f"Erro ao adicionar entrada de histórico para notificação {notification_id}: {e}")
+        except Exception:
+            pass
+        if own_conn and conn:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+    finally:
+        if own_conn and conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
 def _get_history_map_by_ids(conn, ids: List[int]) -> Dict[int, List[Dict[str, Any]]]:
     if not ids:
         return {}
