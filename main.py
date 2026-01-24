@@ -2047,6 +2047,8 @@ format="DD/MM/YYYY")
 
         # Default: usar o approver já definido na classificação (approver_id) ou no campo notification.approver
         default_approver_id = None
+        classification = current_data.get('classification', {}) if isinstance(current_data, dict) else {}
+        selected_notification = current_data if isinstance(current_data, dict) else {}
         classif_for_default = classification if isinstance(classification, dict) else {}
         if isinstance(classif_for_default, dict) and classif_for_default.get('approver_id'):
             default_approver_id = classif_for_default.get('approver_id')
