@@ -2332,15 +2332,66 @@ def build_notification_report(notification_id: int) -> str:
 
 
 def build_notification_report_pdf(notification_id: int) -> bytes:
-    """Gera um PDF bem formatado com todo o histórico (notificação + classificação + execução + revisões + aprovações + auditoria).
+    """Gera um PDF bem formatado com o ciclo completo da notificação (criação, classificação, execução, revisões/aprovações e auditoria).
 
-    Retorna bytes do PDF para uso em st.download_button.
+    - Robusto a diferenças de schema (ex.: colunas do notification_history).
+    - Retorna bytes do PDF para uso em st.download_button.
     """
-    conn = None
+    buf = io.BytesIO()
+    styles = getSampleStyleSheet()
+
+    def _p(text, style="Normal"):
+        return Paragraph(text, styles[style])
+
+    def _kv_table(rows):
+        tbl = Table(rows, colWidths=[160, 360])
+        tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (0,-1), colors.whitesmoke),
+            ("BOX", (0,0), (-1,-1), 0.5, colors.grey),
+            ("INNERGRID", (0,0), (-1,-1), 0.25, colors.lightgrey),
+            ("VALIGN", (0,0), (-1,-1), "TOP"),
+            ("LEFTPADDING", (0,0), (-1,-1), 6),
+            ("RIGHTPADDING", (0,0), (-1,-1), 6),
+            ("TOPPADDING", (0,0), (-1,-1), 4),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 4),
+        ]))
+        return tbl
+
+    def _fmt_dt(v):
+        if v is None:
+            return UI_TEXTS.text_na if 'UI_TEXTS' in globals() else "N/A"
+        try:
+            if isinstance(v, datetime):
+                return v.strftime("%d/%m/%Y %H:%M")
+            return str(v)
+        except Exception:
+            return str(v)
+
+    def _fmt_bool(v):
+        if v is None:
+            return UI_TEXTS.text_na if 'UI_TEXTS' in globals() else "N/A"
+        return "Sim" if bool(v) else "Não"
+
+    def _safe_json(v):
+        if not v:
+            return {}
+        if isinstance(v, dict):
+            return v
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return {}
+        return {}
+
     try:
+        doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=36, rightMargin=36, topMargin=42, bottomMargin=36)
+        story = []
+
         conn = get_db_connection()
         cur = conn.cursor()
 
+        # --- Notificação (row como dict via cursor factory? se não for, usamos zip com keys como no seu padrão)
         cur.execute(
             """
             SELECT
@@ -2361,12 +2412,9 @@ def build_notification_report_pdf(notification_id: int) -> bytes:
         row = cur.fetchone()
 
         if not row:
-            buf = io.BytesIO()
-            doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=36, rightMargin=36, topMargin=42, bottomMargin=36)
-            styles = getSampleStyleSheet()
-            story = [Paragraph(f"Relatório — Notificação #{notification_id}", styles['Title']),
-                     Spacer(1, 12),
-                     Paragraph("Notificação não encontrada.", styles['Normal'])]
+            story.append(_p(f"Relatório — Notificação #{notification_id}", "Title"))
+            story.append(Spacer(1, 12))
+            story.append(_p("Notificação não encontrada.", "Normal"))
             doc.build(story)
             return buf.getvalue()
 
@@ -2383,229 +2431,224 @@ def build_notification_report_pdf(notification_id: int) -> bytes:
         ]
         n = dict(zip(keys, row))
 
-        # Histórico (auditoria)
+        # ---- Cabeçalho
+        story.append(_p("RELATÓRIO DE NOTIFICAÇÃO DE EVENTO", "Title"))
+        story.append(_p(f"Notificação nº <b>#{notification_id}</b>  —  Gerado em <b>{datetime.now().strftime('%d/%m/%Y %H:%M')}</b>", "Normal"))
+        story.append(Spacer(1, 14))
+
+        # ---- 1) Identificação
+        story.append(_p("1) Identificação da Notificação", "Heading2"))
+        story.append(Spacer(1, 6))
+
+        ident_rows = [
+            ["Título", n.get("title") or "—"],
+            ["Status atual", n.get("status") or "—"],
+            ["Criada em", _fmt_dt(n.get("created_at"))],
+            ["Atualizada em", _fmt_dt(n.get("updated_at"))],
+            ["Local", n.get("location") or "—"],
+            ["Data/Hora da ocorrência", f"{n.get('occurrence_date') or ''} {n.get('occurrence_time') or ''}".strip() or "—"],
+            ["Setor notificante", f"{n.get('reporting_department') or ''} {n.get('reporting_department_complement') or ''}".strip() or "—"],
+            ["Setor notificado", f"{n.get('notified_department') or ''} {n.get('notified_department_complement') or ''}".strip() or "—"],
+            ["Turno", n.get("event_shift") or "—"],
+            ["Ações imediatas tomadas", _fmt_bool(n.get("immediate_actions_taken"))],
+            ["Paciente envolvido", _fmt_bool(n.get("patient_involved"))],
+        ]
+        story.append(_kv_table(ident_rows))
+        story.append(Spacer(1, 12))
+
+        # ---- 2) Descrição
+        story.append(_p("2) Descrição do Evento", "Heading2"))
+        story.append(Spacer(1, 6))
+        story.append(_p(n.get("description") or "—", "BodyText"))
+        story.append(Spacer(1, 10))
+
+        if n.get("immediate_actions_taken"):
+            story.append(_p("<b>Ações imediatas descritas:</b>", "Normal"))
+            story.append(_p(n.get("immediate_action_description") or "—", "BodyText"))
+            story.append(Spacer(1, 8))
+
+        if n.get("additional_notes"):
+            story.append(_p("<b>Observações adicionais:</b>", "Normal"))
+            story.append(_p(n.get("additional_notes") or "—", "BodyText"))
+            story.append(Spacer(1, 12))
+
+        # ---- Anexos da notificação (sem diferenciar agora)
+        try:
+            notif_atts = get_notification_attachments(int(notification_id))
+        except Exception:
+            notif_atts = []
+        if notif_atts:
+            story.append(_p("Anexos da Notificação", "Heading3"))
+            rows = [[f"• {a.get('original_name') or a.get('unique_name')}"] for a in notif_atts]
+            t = Table(rows, colWidths=[520])
+            t.setStyle(TableStyle([("BOX",(0,0),(-1,-1),0.5,colors.lightgrey),("INNERGRID",(0,0),(-1,-1),0.25,colors.lightgrey)]))
+            story.append(t)
+            story.append(Spacer(1, 12))
+
+        # ---- 3) Classificação
+        story.append(_p("3) Classificação do Evento", "Heading2"))
+        story.append(Spacer(1, 6))
+        classif = _safe_json(n.get("classification"))
+        if not classif:
+            story.append(_p("Sem classificação registrada.", "Normal"))
+            story.append(Spacer(1, 10))
+        else:
+            # principais primeiro (usando nomenclatura “humana”)
+            nice = [
+                ("Classificação NNC", classif.get("nnc")),
+                ("Classificação OMS", ", ".join(classif.get("oms") or []) if isinstance(classif.get("oms"), list) else classif.get("oms")),
+                ("Prioridade", classif.get("prioridade")),
+                ("Nível de dano", classif.get("nivel_dano")),
+                ("Never Event", classif.get("never_event")),
+                ("Evento sentinela", "Sim" if classif.get("is_sentinel_event") else "Não" if classif.get("is_sentinel_event") is not None else None),
+                ("Tipo principal", classif.get("event_type_main")),
+                ("Especificações", ", ".join(classif.get("event_type_sub") or []) if isinstance(classif.get("event_type_sub"), list) else classif.get("event_type_sub")),
+                ("Setor notificante", classif.get("reporting_sector")),
+                ("Setor responsável", classif.get("responsible_sector")),
+                ("Prazo calculado", classif.get("deadline_calculated")),
+                ("Observações", classif.get("observations")),
+                ("Classificado por", classif.get("classified_by")),
+                ("Classificado em", classif.get("classified_at")),
+            ]
+            rows = [[k, (v if v not in [None, ""] else "—")] for k, v in nice if k]
+            story.append(_kv_table(rows))
+            story.append(Spacer(1, 12))
+
+        # ---- 4) Execução
+        story.append(_p("4) Execução — Ações dos Executores", "Heading2"))
+        story.append(Spacer(1, 6))
         cur.execute(
             """
-            SELECT action_timestamp, action, user_name, details
-            FROM notification_history
+            SELECT executor_id, description, action_timestamp, final_action_by_executor, evidence_attachments
+            FROM notification_actions
             WHERE notification_id = %s
             ORDER BY action_timestamp ASC
             """,
             (notification_id,),
         )
-        history_rows = cur.fetchall()
+        action_rows = cur.fetchall() or []
+        if not action_rows:
+            story.append(_p("Nenhuma ação registrada pelos executores.", "Normal"))
+            story.append(Spacer(1, 10))
+        else:
+            for idx, a in enumerate(action_rows, start=1):
+                story.append(_p(f"<b>Ação {idx}</b>", "Heading3"))
+                story.append(_kv_table([
+                    ["Executor (id)", a[0]],
+                    ["Descrição", a[1] or "—"],
+                    ["Quando", _fmt_dt(a[2])],
+                    ["Conclusão do executor", "Sim" if a[3] else "Não"],
+                ]))
+                story.append(Spacer(1, 6))
+                # anexos da ação (evidence_attachments)
+                atts = a[4]
+                if isinstance(atts, str):
+                    try:
+                        atts = json.loads(atts)
+                    except Exception:
+                        atts = []
+                if atts:
+                    story.append(_p("Anexos da ação:", "Normal"))
+                    rows = [[f"• {x.get('original_name') or x.get('unique_name')}"] for x in atts if isinstance(x, dict)]
+                    t = Table(rows, colWidths=[520])
+                    t.setStyle(TableStyle([("BOX",(0,0),(-1,-1),0.5,colors.lightgrey),("INNERGRID",(0,0),(-1,-1),0.25,colors.lightgrey)]))
+                    story.append(t)
+                    story.append(Spacer(1, 10))
+                story.append(Spacer(1, 6))
 
-        cur.close()
-
-        def _json_to_obj(v):
-            if v is None:
-                return None
-            if isinstance(v, (dict, list)):
-                return v
-            if isinstance(v, str):
-                vv = v.strip()
-                if not vv:
-                    return None
-                try:
-                    return json.loads(vv)
-                except Exception:
-                    return v
-            return v
-
-        classification = _json_to_obj(n.get("classification")) or {}
-        review_execution = _json_to_obj(n.get("review_execution")) or {}
-        approval = _json_to_obj(n.get("approval")) or {}
-        conclusion = _json_to_obj(n.get("conclusion")) or {}
-
-        # Anexos da notificação
-        notif_atts = []
-        try:
-            notif_atts = get_notification_attachments(notification_id) or []
-        except Exception:
-            notif_atts = []
-
-        # Ações dos executores + evidências
-        actions = get_notification_actions(notification_id) or []
-
-        # Montagem do PDF
-        buf = io.BytesIO()
-        doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=36, rightMargin=36, topMargin=42, bottomMargin=36)
-        styles = getSampleStyleSheet()
-        styles.add(ParagraphStyle(name="H2", parent=styles["Heading2"], spaceBefore=12, spaceAfter=6))
-        styles.add(ParagraphStyle(name="Small", parent=styles["Normal"], fontSize=9, leading=11))
-        styles.add(ParagraphStyle(name="Mono", parent=styles["Normal"], fontName="Courier", fontSize=9, leading=11))
-
-        def _kv_table(rows):
-            t = Table(rows, colWidths=[140, 360])
-            t.setStyle(TableStyle([
-                ("VALIGN", (0,0), (-1,-1), "TOP"),
-                ("LINEBELOW", (0,0), (-1,-1), 0.25, colors.lightgrey),
-                ("FONTNAME", (0,0), (-1,-1), "Helvetica"),
-                ("FONTSIZE", (0,0), (-1,-1), 9),
-                ("LEFTPADDING", (0,0), (-1,-1), 6),
-                ("RIGHTPADDING", (0,0), (-1,-1), 6),
-                ("TOPPADDING", (0,0), (-1,-1), 3),
-                ("BOTTOMPADDING", (0,0), (-1,-1), 3),
-            ]))
-            return t
-
-        def _fmt_dt(v):
-            if not v:
-                return UI_TEXTS.text_na
-            try:
-                if isinstance(v, str):
-                    return v.replace("T", " ").replace("+00:00", "Z")
-                return str(v)
-            except Exception:
-                return str(v)
-
-        story = []
-        story.append(Paragraph(f"RELATÓRIO COMPLETO — NOTIFICAÇÃO #{n['id']}", styles["Title"]))
-        story.append(Paragraph("NotiSanta • Ciclo completo (Notificação → Classificação → Execução → Revisões/Aprovações)", styles["Small"]))
+        # ---- 5) Revisão da execução
+        story.append(_p("5) Revisão da Execução", "Heading2"))
+        story.append(Spacer(1, 6))
+        rev = _safe_json(n.get("review_execution"))
+        if not rev:
+            story.append(_p("Sem revisão de execução registrada.", "Normal"))
+        else:
+            rows = [
+                ["Decisão", rev.get("decision") or "—"],
+                ["Observações", rev.get("observations") or "—"],
+                ["Revisado por", rev.get("reviewed_by_username") or rev.get("reviewed_by_id") or "—"],
+                ["Revisado em", rev.get("reviewed_at") or "—"],
+            ]
+            story.append(_kv_table(rows))
         story.append(Spacer(1, 12))
 
-        # [1] Notificação
-        story.append(Paragraph("1) Notificação", styles["H2"]))
-        notif_rows = [
-            ["Título", n.get("title") or UI_TEXTS.text_na],
-            ["Status atual", (n.get("status") or UI_TEXTS.text_na)],
-            ["Criada em", _fmt_dt(n.get("created_at"))],
-            ["Atualizada em", _fmt_dt(n.get("updated_at"))],
-            ["Local", n.get("location") or UI_TEXTS.text_na],
-            ["Data/Hora ocorrência", f"{n.get('occurrence_date') or UI_TEXTS.text_na} {n.get('occurrence_time') or ''}".strip()],
-            ["Depto notificante", f"{n.get('reporting_department') or UI_TEXTS.text_na} {n.get('reporting_department_complement') or ''}".strip()],
-            ["Depto notificado", f"{n.get('notified_department') or UI_TEXTS.text_na} {n.get('notified_department_complement') or ''}".strip()],
-            ["Turno", n.get("event_shift") or UI_TEXTS.text_na],
-            ["Ações imediatas tomadas", "Sim" if n.get("immediate_actions_taken") else "Não"],
-            ["Paciente envolvido", "Sim" if n.get("patient_involved") else "Não"],
-        ]
-        story.append(_kv_table(notif_rows))
-        story.append(Spacer(1, 10))
-
-        if (n.get("description") or "").strip():
-            story.append(Paragraph("Descrição", styles["Heading3"]))
-            story.append(Paragraph((n.get("description") or "").replace("\n", "<br/>") , styles["Normal"]))
-            story.append(Spacer(1, 8))
-
-        if (n.get("additional_notes") or "").strip():
-            story.append(Paragraph("Observações adicionais", styles["Heading3"]))
-            story.append(Paragraph((n.get("additional_notes") or "").replace("\n", "<br/>") , styles["Normal"]))
-            story.append(Spacer(1, 8))
-
-        if notif_atts:
-            story.append(Paragraph("Anexos da notificação", styles["Heading3"]))
-            for att in notif_atts:
-                if isinstance(att, dict):
-                    story.append(Paragraph(f"• {att.get('original_name') or att.get('unique_name')}", styles["Small"]))
-            story.append(Spacer(1, 8))
-
-        # [2] Classificação
-        story.append(Paragraph("2) Classificação", styles["H2"]))
-        if classification:
-            cls_pretty = json.dumps(classification, ensure_ascii=False, indent=2)
-            story.append(Paragraph("Resumo (JSON)", styles["Heading3"]))
-            story.append(Paragraph(f"<pre>{cls_pretty}</pre>", styles["Mono"]))
+        # ---- 6) Aprovação final
+        story.append(_p("6) Aprovação(ões)", "Heading2"))
+        story.append(Spacer(1, 6))
+        appr = _safe_json(n.get("approval"))
+        if not appr:
+            story.append(_p("Sem aprovação final registrada.", "Normal"))
         else:
-            story.append(Paragraph("Sem classificação registrada.", styles["Normal"]))
-        story.append(Spacer(1, 10))
+            rows = [
+                ["Decisão", appr.get("decision") or "—"],
+                ["Observações", appr.get("observations") or "—"],
+                ["Aprovado por", appr.get("approved_by_username") or appr.get("approved_by_id") or "—"],
+                ["Aprovado em", appr.get("approved_at") or "—"],
+            ]
+            story.append(_kv_table(rows))
+        story.append(Spacer(1, 12))
 
-        # [3] Execução
-        story.append(Paragraph("3) Execução — ações dos executores", styles["H2"]))
-        if actions:
-            for i, a in enumerate(actions, start=1):
-                ex = a.get("executor_name") or UI_TEXTS.text_na
-                when = _fmt_dt(a.get("action_timestamp"))
-                desc = (a.get("description") or "").strip()
-                story.append(Paragraph(f"Ação {i} — {ex}", styles["Heading3"]))
-                story.append(_kv_table([
-                    ["Quando", when],
-                    ["Concluiu sua parte", "Sim" if a.get("final_action_by_executor") else "Não"],
-                ]))
-                if desc:
+        # ---- 7) Histórico (auditoria) — robusto a schema
+        story.append(_p("7) Histórico (Auditoria)", "Heading2"))
+        story.append(Spacer(1, 6))
+
+        # Descobre colunas disponíveis
+        cur.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'notification_history'
+            """
+        )
+        cols = {r[0] for r in (cur.fetchall() or [])}
+
+        ts_col = "timestamp" if "timestamp" in cols else ("action_timestamp" if "action_timestamp" in cols else None)
+        user_col = "username" if "username" in cols else ("user_name" if "user_name" in cols else None)
+        action_col = "action" if "action" in cols else ("action_text" if "action_text" in cols else ("description" if "description" in cols else None))
+        details_col = "details" if "details" in cols else None
+
+        if not ts_col or not user_col or not action_col:
+            story.append(_p("Histórico indisponível (schema inesperado em notification_history).", "Normal"))
+        else:
+            select_cols = [ts_col, user_col, action_col]
+            if details_col:
+                select_cols.append(details_col)
+
+            cur.execute(
+                f"SELECT {', '.join(select_cols)} FROM notification_history WHERE notification_id = %s ORDER BY {ts_col} ASC",
+                (notification_id,),
+            )
+            hist = cur.fetchall() or []
+            if not hist:
+                story.append(_p("Sem eventos de histórico registrados.", "Normal"))
+            else:
+                # cada linha: ts, user, action, details?
+                for h in hist:
+                    ts_v = h[0]
+                    user_v = h[1]
+                    act_v = h[2]
+                    det_v = h[3] if (details_col and len(h) > 3) else ""
+                    line = f"<b>{_fmt_dt(ts_v)}</b> — {user_v or '—'}<br/>{act_v or '—'}"
+                    if det_v:
+                        line += f"<br/><i>{det_v}</i>"
+                    story.append(_p(line, "BodyText"))
                     story.append(Spacer(1, 6))
-                    story.append(Paragraph(desc.replace("\n", "<br/>") , styles["Normal"]))
-                ev_desc = (a.get("evidence_description") or "").strip()
-                ev_atts = a.get("evidence_attachments") or []
-                if ev_desc or (isinstance(ev_atts, list) and ev_atts):
-                    story.append(Spacer(1, 6))
-                    story.append(Paragraph("Evidências", styles["Heading4"]))
-                    if ev_desc:
-                        story.append(Paragraph(ev_desc.replace("\n", "<br/>") , styles["Small"]))
-                    if isinstance(ev_atts, list) and ev_atts:
-                        for att in ev_atts:
-                            if isinstance(att, dict):
-                                story.append(Paragraph(f"• {att.get('original_name') or att.get('unique_name')}", styles["Small"]))
-                story.append(Spacer(1, 8))
-        else:
-            story.append(Paragraph("Nenhuma ação registrada.", styles["Normal"]))
-        story.append(Spacer(1, 10))
 
-        # [4] Revisão da execução
-        story.append(Paragraph("4) Revisão da execução", styles["H2"]))
-        if review_execution:
-            rv = json.dumps(review_execution, ensure_ascii=False, indent=2)
-            story.append(Paragraph(f"<pre>{rv}</pre>", styles["Mono"]))
-        else:
-            story.append(Paragraph("Sem revisão registrada.", styles["Normal"]))
-        story.append(Spacer(1, 10))
+        cur.close()
+        conn.close()
 
-        # [5] Aprovação final / superior (se houver)
-        story.append(Paragraph("5) Aprovação(ões)", styles["H2"]))
-        if approval:
-            ap = json.dumps(approval, ensure_ascii=False, indent=2)
-            story.append(Paragraph(f"<pre>{ap}</pre>", styles["Mono"]))
-        else:
-            story.append(Paragraph("Sem aprovação final registrada.", styles["Normal"]))
-        story.append(Spacer(1, 10))
-
-        # [6] Conclusão
-        story.append(Paragraph("6) Conclusão", styles["H2"]))
-        if conclusion:
-            cc = json.dumps(conclusion, ensure_ascii=False, indent=2)
-            story.append(Paragraph(f"<pre>{cc}</pre>", styles["Mono"]))
-        else:
-            story.append(Paragraph("Sem conclusão registrada.", styles["Normal"]))
-        story.append(Spacer(1, 10))
-
-        # [7] Histórico
-        story.append(Paragraph("7) Histórico (auditoria)", styles["H2"]))
-        if history_rows:
-            for ts, action, user_name, details in history_rows:
-                details_str = (details or "").strip()
-                line = f"{_fmt_dt(ts)} • {user_name or UI_TEXTS.text_na} • {action or ''}"
-                story.append(Paragraph(line, styles["Small"]))
-                if details_str:
-                    story.append(Paragraph(details_str.replace("\n", "<br/>") , styles["Small"]))
-                story.append(Spacer(1, 4))
-        else:
-            story.append(Paragraph("Sem histórico.", styles["Normal"]))
         doc.build(story)
         return buf.getvalue()
 
     except Exception as e:
-        # fallback simples
-        try:
-            buf = io.BytesIO()
-            doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=36, rightMargin=36, topMargin=42, bottomMargin=36)
-            styles = getSampleStyleSheet()
-            doc.build([Paragraph(f"Relatório — Notificação #{notification_id}", styles['Title']),
-                       Spacer(1, 12),
-                       Paragraph(f"Erro ao gerar PDF: {e}", styles['Normal'])])
-            return buf.getvalue()
-        except Exception:
-            return b""
-    finally:
-        if conn:
-            try:
-                conn.close()
-            except Exception:
-                pass
+        # Nunca falha silenciosamente: devolve um PDF com erro
+        err_doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=36, rightMargin=36, topMargin=42, bottomMargin=36)
+        story = [_p(f"Relatório — Notificação #{notification_id}", "Title"), Spacer(1, 12),
+                 _p(f"Erro ao gerar PDF: {str(e)}", "Normal")]
+        err_doc.build(story)
+        return buf.getvalue()
 
 
-
-
-
-@st_fragment
 def show_create_notification():
     """
     Renderiza a página para criar novas notificações como um formulário multi-etapa.
