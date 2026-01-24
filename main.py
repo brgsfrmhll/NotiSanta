@@ -2605,11 +2605,18 @@ def build_notification_report_pdf(notification_id: int) -> bytes:
         story.append(Spacer(1, 6))
 
         def _att_lines(atts):
+            """Converte lista de anexos em linhas.
+            Aceita itens como dict (preferencial), ou strings (fallback).
+            """
             if not atts:
                 return ["—"]
             out = []
             for a in atts:
-                original = a.get("original_name") or a.get("filename") or a.get("unique_name") or "arquivo"
+                if isinstance(a, dict):
+                    original = a.get("original_name") or a.get("filename") or a.get("unique_name") or "arquivo"
+                else:
+                    # às vezes vem só o nome/unique_name como string
+                    original = str(a) if a is not None else "arquivo"
                 out.append(f"• {original}")
             return out
 
