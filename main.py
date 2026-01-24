@@ -2822,62 +2822,131 @@ def show_revisao_execucao():
 
         status = n.get('status', 'N/A')
         return f"#{notif_id} | {title} | Criada: {created_disp} | Prazo: {prazo_disp} | Status: {status}"
-    def _render_actions_with_attachments(notif_id):
-        # ✅ Fonte única de verdade: sempre ler ações da tabela notification_actions
-        # (evita a tela dizer "nenhuma ação" quando existe registro no banco)
-        actions = get_notification_actions(int(notif_id))
+    def _render_actions_with_attachments(notif_id, notif_obj=None):
+        """Renderiza ações dos executores + anexos.
+        Compatível com dois formatos:
+          - Novo: actions persistidas em tabela notification_actions
+          - Legado/Streamlit: actions dentro do JSON da notificação (campo 'actions')
+        """
+        notif_id_int = int(notif_id)
+
+        # 1) Tenta ler do banco (tabela notification_actions)
+        actions = get_notification_actions(notif_id_int)
+
+        # 2) Se não houver nada no banco, faz fallback para o JSON da própria notificação
+        if not actions:
+            if notif_obj is None:
+                try:
+                    all_n = load_notifications() or []
+                    notif_obj = next((n for n in all_n if int(n.get('id', -1)) == notif_id_int), None)
+                except Exception:
+                    notif_obj = None
+            actions = (notif_obj or {}).get('actions', []) or []
 
         if not actions:
             st.info("ℹ️ Nenhuma ação registrada ainda.")
             return
 
-        for idx, action in enumerate(actions, 1):
-            action_label = f"📌 Ação {idx} - {action.get('executor_name', 'Executor desconhecido')}"
-            ts_disp = ""
-            if action.get('timestamp'):
+        # Normaliza para um formato único para renderização
+        def _norm_action(a: dict) -> dict:
+            if not isinstance(a, dict):
+                return {}
+            out = {
+                'executor_name': a.get('executor_name') or a.get('executor') or a.get('executorUsername') or a.get('executor_id') or 'Executor',
+                'description': a.get('description') or a.get('desc') or '',
+                'timestamp': a.get('timestamp') or a.get('action_timestamp') or a.get('created_at'),
+                'final_action_by_executor': bool(a.get('final_action_by_executor') or a.get('final')),
+                'attachments': a.get('attachments') or [],
+                'evidence_description': a.get('evidence_description') or '',
+                'evidence_attachments': a.get('evidence_attachments') or [],
+            }
+            # evidence_attachments pode vir como string JSON do banco
+            if isinstance(out['evidence_attachments'], str):
                 try:
-                    ts_disp = datetime.fromisoformat(action['timestamp']).strftime('%d/%m/%Y %H:%M')
+                    out['evidence_attachments'] = json.loads(out['evidence_attachments']) or []
                 except Exception:
-                    ts_disp = str(action.get('timestamp'))
+                    out['evidence_attachments'] = []
+            # attachments pode vir como string JSON (defensivo)
+            if isinstance(out['attachments'], str):
+                try:
+                    out['attachments'] = json.loads(out['attachments']) or []
+                except Exception:
+                    out['attachments'] = []
+            return out
+
+        norm_actions = [_norm_action(a) for a in actions if isinstance(a, dict)]
+
+        for idx, action in enumerate(norm_actions, 1):
+            executor_name = action.get('executor_name') or 'Executor'
+            action_label = f"📌 Ação {idx} - {executor_name}"
+
+            ts_disp = ""
+            ts_val = action.get('timestamp')
+            if ts_val:
+                try:
+                    ts_disp = datetime.fromisoformat(str(ts_val)).strftime('%d/%m/%Y %H:%M')
+                except Exception:
+                    ts_disp = str(ts_val)
             if ts_disp:
                 action_label += f" em {ts_disp}"
 
             with st.expander(action_label, expanded=False):
                 st.markdown("**Descrição da Ação:**")
-                st.markdown(action.get('description', 'Sem descrição'))
+                st.markdown(action.get('description') or 'Sem descrição')
 
                 if action.get('final_action_by_executor'):
                     st.caption("🏁 Marcada como conclusão do executor")
 
+                # Anexos da ação (execução)
+                anexos = action.get('attachments') or []
+                if anexos:
+                    st.markdown("**📎 Anexos da Ação:**")
+                    for at in anexos:
+                        # Pode vir como dict com attachment_id
+                        if isinstance(at, dict):
+                            att_id = at.get('attachment_id') or at.get('id')
+                            filename = at.get('filename') or at.get('name') or f"anexo_{att_id}"
+                        else:
+                            att_id = at
+                            filename = f"anexo_{att_id}"
+                        if not att_id:
+                            continue
+                        att_data = get_attachment_data(att_id)
+                        if att_data:
+                            st.download_button(
+                                label=f"⬇️ {filename}",
+                                data=att_data['data'],
+                                file_name=att_data.get('filename', filename),
+                                mime=att_data.get('mime', 'application/octet-stream'),
+                                key=f"dl_action_att_{notif_id_int}_{idx}_{att_id}"
+                            )
+
+                # Evidências (texto + anexos)
                 if action.get('evidence_description'):
                     st.markdown("**Evidências:**")
                     st.markdown(action.get('evidence_description'))
 
                 anexos_ev = action.get('evidence_attachments') or []
-                if isinstance(anexos_ev, str):
-                    try:
-                        anexos_ev = json.loads(anexos_ev) or []
-                    except Exception:
-                        anexos_ev = []
-
-                if isinstance(anexos_ev, list) and anexos_ev:
+                if anexos_ev:
                     st.markdown("**📎 Anexos de Evidência:**")
-                    for att_idx, anexo in enumerate(anexos_ev):
-                        unique_name = (anexo or {}).get('unique_name')
-                        original_name = (anexo or {}).get('original_name')
-                        if unique_name and original_name:
-                            file_content = get_attachment_data(unique_name)
-                            if file_content:
-                                st.download_button(
-                                    f"⬇️ {original_name}",
-                                    file_content,
-                                    file_name=original_name,
-                                    mime="application/octet-stream",
-                                    key=f"download_evid_rev_{notif_id}_{unique_name}_{att_idx}"
-                                )
-                            else:
-                                st.write(f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
-
+                    for at in anexos_ev:
+                        if isinstance(at, dict):
+                            att_id = at.get('attachment_id') or at.get('id')
+                            filename = at.get('filename') or at.get('name') or f"evidencia_{att_id}"
+                        else:
+                            att_id = at
+                            filename = f"evidencia_{att_id}"
+                        if not att_id:
+                            continue
+                        att_data = get_attachment_data(att_id)
+                        if att_data:
+                            st.download_button(
+                                label=f"⬇️ {filename}",
+                                data=att_data['data'],
+                                file_name=att_data.get('filename', filename),
+                                mime=att_data.get('mime', 'application/octet-stream'),
+                                key=f"dl_ev_att_{notif_id_int}_{idx}_{att_id}"
+                            )
     def _approver_options_for_select(n):
         classification = n.get('classification') or {}
         if isinstance(classification, str):
