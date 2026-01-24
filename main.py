@@ -320,6 +320,9 @@ def _get_attachments_map_by_ids(conn, ids: List[int]) -> Dict[int, List[Dict[str
             "uploaded_at": up_at.isoformat() if hasattr(up_at, "isoformat") else up_at
         })
 
+    return mp
+
+
 def get_notification_actions(notification_id: int) -> List[Dict]:
     """Retorna lista de ações registradas pelos executores para uma notificação."""
     conn = None
