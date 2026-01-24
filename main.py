@@ -3957,33 +3957,6 @@ def show_notificacoes_encerradas():
             with st.expander("👀 Prévia rápida do relatório (TXT)", expanded=False):
                 st.text_area("Relatório", report_txt, height=320, key=f"preview_rel_txt_{notif_id_int}")
 
-    
-    st.markdown("---")
-    
-    st.markdown("### 🔍 Visualizar Detalhes")
-    
-    notification_display_options = [UI_TEXTS.selectbox_default_notification_select] + [
-        f"ID {n['id']} - {n.get('title', 'Sem título')} ({n['status']})"
-        for n in filtered_notifications
-    ]
-
-    selected_detail_option_key = f"detalhes_encerrada_select"
-    if selected_detail_option_key not in st.session_state or st.session_state[selected_detail_option_key] >= len(notification_display_options) or st.session_state[selected_detail_option_key] < 0:
-        st.session_state[selected_detail_option_key] = 0
-    
-    selected_index_details = st.selectbox(
-        "Selecione uma notificação para ver detalhes completos:",
-        range(len(notification_display_options)),
-        format_func=lambda i: notification_display_options[i],
-        key=selected_detail_option_key
-    )
-    
-    if notification_display_options[selected_index_details] != UI_TEXTS.selectbox_default_notification_select:
-        selected_notification = filtered_notifications[selected_index_details - 1]
-        
-        with st.expander(f"📋 **Ver Detalhes Completos da Notificação {selected_notification['id']}**", expanded=True):
-            display_notification_full_details(selected_notification, st.session_state.user_id, st.session_state.user_username)
-
 @st_fragment
 def show_execution():
     """Página do executor: 2 guias (Pendentes / Executadas) com cards colapsados."""
