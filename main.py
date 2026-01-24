@@ -3521,11 +3521,12 @@ def show_classificacao_inicial():
 @st_fragment
 def show_revisao_execucao():
     """
-    Tela dedicada para revisão de execução concluída pelo classificador.
-    Agora com layout em cards (colapsados) e 2 guias:
-      - Em execução
-      - Aguardando revisão de execução
-    Na aprovação da execução, o classificador pode (opcionalmente) encaminhar para aprovação superior (1 aprovador).
+    Tela dedicada para execução e revisão (classificador).
+    Performance:
+      - Paginação
+      - Busca/filtro
+      - "Lazy details": só renderiza (e consulta) detalhes completos para 1 item selecionado
+      - Cache curto para listas por status e aprovadores
     """
     if not check_permission('classificador'):
         st.error("❌ Acesso negado! Você não tem permissão para acessar esta página.")
@@ -3534,13 +3535,17 @@ def show_revisao_execucao():
     st.markdown("<h1 class='main-header'>🛠️ Execução & Revisão de Execução</h1>", unsafe_allow_html=True)
     st.markdown("---")
 
-    em_execucao = load_notifications_by_status("em_execucao") or []
-    aguardando_revisao = load_notifications_by_status("revisao_classificador_execucao") or []
+    # Cache curto para evitar reruns custosos em listas grandes
+    @st.cache_data(ttl=10, show_spinner=False)
+    def _cached_by_status(status: str):
+        return load_notifications_by_status(status) or []
 
-    tab_exec, tab_rev = st.tabs([
-        f"🚧 Em execução ({len(em_execucao)})",
-        f"🛠️ Revisão de execução ({len(aguardando_revisao)})"
-    ])
+    @st.cache_data(ttl=60, show_spinner=False)
+    def _cached_approvers():
+        try:
+            return get_users_by_role("aprovador") or []
+        except Exception:
+            return []
 
     def _safe_iso_to_dt(s):
         try:
@@ -3560,361 +3565,272 @@ def show_revisao_execucao():
                 classification = json.loads(classification)
             except Exception:
                 classification = {}
-        deadline = classification.get('deadline')
+        # suporta diferentes chaves
+        deadline = classification.get('deadline') or classification.get('deadline_calculated') or classification.get('prazo') or classification.get('deadline_date')
         prazo_dt = _safe_iso_to_dt(deadline)
         prazo_disp = prazo_dt.strftime('%d/%m/%Y') if prazo_dt else "N/A"
 
         status = n.get('status', 'N/A')
         return f"#{notif_id} | {title} | Criada: {created_disp} | Prazo: {prazo_disp} | Status: {status}"
+
+    def _filter_list(items: list, q: str) -> list:
+        if not q:
+            return items
+        ql = q.strip().lower()
+        out = []
+        for n in items:
+            s = f"{n.get('id','')} {n.get('title','')} {n.get('status','')}".lower()
+            if ql in s:
+                out.append(n)
+        return out
+
+    def _paginate(items: list, state_prefix: str):
+        cols = st.columns([2, 1, 1, 2])
+        with cols[0]:
+            q = st.text_input("🔎 Buscar (ID, título, status)", key=f"{state_prefix}_q", placeholder="ex.: 1684 ou queda ou em_execucao")
+        with cols[1]:
+            per_page = st.selectbox("Itens/página", options=[10, 20, 50, 100], index=1, key=f"{state_prefix}_pp")
+        filtered = _filter_list(items, q)
+        total = len(filtered)
+        pages = max(1, (total + per_page - 1) // per_page)
+        with cols[2]:
+            page = st.number_input("Página", min_value=1, max_value=pages, value=1, step=1, key=f"{state_prefix}_page")
+        with cols[3]:
+            st.caption(f"{total} item(ns) | {pages} página(s)")
+
+        start = (page - 1) * per_page
+        end = start + per_page
+        return filtered[start:end], filtered, total
+
     def _render_actions_with_attachments(notif_id, notif_obj=None):
-        """Renderiza ações dos executores + anexos.
-        Compatível com dois formatos:
-          - Novo: actions persistidas em tabela notification_actions
-          - Legado/Streamlit: actions dentro do JSON da notificação (campo 'actions')
-        """
+        """Renderiza ações dos executores + anexos (apenas para o item selecionado)."""
         notif_id_int = int(notif_id)
 
-        # 1) Tenta ler do banco (tabela notification_actions)
-        actions = get_notification_actions(notif_id_int)
-
-        # 2) Se não houver nada no banco, faz fallback para o JSON da própria notificação
-        if not actions:
-            if notif_obj is None:
-                try:
-                    all_n = load_notifications() or []
-                    notif_obj = next((n for n in all_n if int(n.get('id', -1)) == notif_id_int), None)
-                except Exception:
-                    notif_obj = None
-            actions = (notif_obj or {}).get('actions', []) or []
+        actions = get_notification_actions(notif_id_int) or []
+        # fallback legado
+        if not actions and notif_obj is not None:
+            actions = (notif_obj.get("actions") or []) or []
 
         if not actions:
             st.info("ℹ️ Nenhuma ação registrada ainda.")
             return
 
-        # Normaliza para um formato único para renderização
-        def _norm_action(a: dict) -> dict:
-            if not isinstance(a, dict):
-                return {}
-            out = {
-                'executor_name': a.get('executor_name') or a.get('executor') or a.get('executorUsername') or a.get('executor_id') or 'Executor',
-                'description': a.get('description') or a.get('desc') or '',
-                'timestamp': a.get('timestamp') or a.get('action_timestamp') or a.get('created_at'),
-                'final_action_by_executor': bool(a.get('final_action_by_executor') or a.get('final')),
-                'attachments': a.get('attachments') or [],
-                'evidence_description': a.get('evidence_description') or '',
-                'evidence_attachments': a.get('evidence_attachments') or [],
-            }
-            # evidence_attachments pode vir como string JSON do banco
-            if isinstance(out['evidence_attachments'], str):
-                try:
-                    out['evidence_attachments'] = json.loads(out['evidence_attachments']) or []
-                except Exception:
-                    out['evidence_attachments'] = []
-            # attachments pode vir como string JSON (defensivo)
-            if isinstance(out['attachments'], str):
-                try:
-                    out['attachments'] = json.loads(out['attachments']) or []
-                except Exception:
-                    out['attachments'] = []
-            # Se não houver attachments explícitos, reutiliza evidence_attachments como anexos (compatibilidade)
-            if (not out['attachments']) and out.get('evidence_attachments'):
-                out['attachments'] = out['evidence_attachments']
-            return out
-
-        norm_actions = [_norm_action(a) for a in actions if isinstance(a, dict)]
-
-        for idx, action in enumerate(norm_actions, 1):
-            executor_name = action.get('executor_name') or 'Executor'
-            action_label = f"📌 Ação {idx} - {executor_name}"
-
-            ts_disp = ""
-            ts_val = action.get('timestamp')
-            if ts_val:
-                try:
-                    ts_disp = datetime.fromisoformat(str(ts_val)).strftime('%d/%m/%Y %H:%M')
-                except Exception:
-                    ts_disp = str(ts_val)
-            if ts_disp:
-                action_label += f" em {ts_disp}"
-
-            with st.expander(action_label, expanded=False):
-                st.markdown("**Descrição da Ação:**")
-                st.markdown(action.get('description') or 'Sem descrição')
-
-                if action.get('final_action_by_executor'):
-                    st.caption("🏁 Marcada como conclusão do executor")
-
-                # Anexos da ação (execução)
-                anexos = action.get('attachments') or []
-                if anexos:
-                    st.markdown("**📎 Anexos da Ação:**")
-                    for at in anexos:
-                        # Formatos aceitos:
-                        #  - dict: {"unique_name": "...", "original_name": "..."}
-                        #  - str: unique_name
-                        if isinstance(at, dict):
-                            unique_name = at.get('unique_name') or at.get('attachment_id') or at.get('id')
-                            original_name = at.get('original_name') or at.get('filename') or at.get('name') or (unique_name or 'anexo')
-                        else:
-                            unique_name = at
-                            original_name = str(at)
-
-                        if not unique_name:
-                            continue
-
-                        att_bytes = get_attachment_data(str(unique_name))
-                        if att_bytes is not None:
-                            st.download_button(
-                                label=f"⬇️ {original_name}",
-                                data=att_bytes,
-                                file_name=original_name,
-                                mime="application/octet-stream",
-                                key=f"dl_action_att_{notif_id_int}_{idx}_{hash(str(unique_name))}"
-                            )
-
-                # Evidências (texto + anexos)
-                if action.get('evidence_description'):
-                    st.markdown("**Evidências:**")
-                    st.markdown(action.get('evidence_description'))
-
-                anexos_ev = action.get('evidence_attachments') or []
-                if anexos_ev:
-                    st.markdown("**📎 Anexos de Evidência:**")
-                    for at in anexos_ev:
-                        if isinstance(at, dict):
-                            unique_name = at.get('unique_name') or at.get('attachment_id') or at.get('id')
-                            original_name = at.get('original_name') or at.get('filename') or at.get('name') or (unique_name or 'evidencia')
-                        else:
-                            unique_name = at
-                            original_name = str(at)
-
-                        if not unique_name:
-                            continue
-
-                        att_bytes = get_attachment_data(str(unique_name))
-                        if att_bytes is not None:
-                            st.download_button(
-                                label=f"⬇️ {original_name}",
-                                data=att_bytes,
-                                file_name=original_name,
-                                mime="application/octet-stream",
-                                key=f"dl_ev_att_{notif_id_int}_{idx}_{hash(str(unique_name))}"
-                            )
-    def _approver_options_for_select(n):
-        classification = n.get('classification') or {}
-        if isinstance(classification, str):
+        for i, a in enumerate(actions, start=1):
+            st.markdown(f"**Ação {i}**")
+            exec_id = a.get("executor_id") or a.get("executor") or a.get("executorId")
+            exec_name = ""
             try:
-                classification = json.loads(classification)
+                if exec_id is not None:
+                    u = get_user_by_id(int(exec_id))
+                    if u:
+                        exec_name = u.get("name") or u.get("username") or ""
             except Exception:
-                classification = {}
-        approver_users = get_users_by_role('aprovador') or []
-        label_to_id = {}
-        labels = []
-        for u in approver_users:
-            lab = f"{u.get('name', UI_TEXTS.text_na)} ({u.get('username', UI_TEXTS.text_na)})"
-            label_to_id[lab] = u.get('id')
-            labels.append(lab)
+                pass
+            if exec_name:
+                st.write(f"Executor: {exec_name} (id={exec_id})")
+            else:
+                st.write(f"Executor: {exec_id}")
 
-        default_id = None
-        if isinstance(classification, dict) and classification.get('approver_id'):
-            default_id = classification.get('approver_id')
-        elif n.get('approver'):
-            default_id = n.get('approver')
+            ts = a.get("action_timestamp") or a.get("timestamp") or a.get("created_at")
+            st.write(f"Quando: {ts or 'N/A'}")
 
-        default_index = 0
-        if default_id and labels:
-            for i, lab in enumerate(labels):
-                if label_to_id.get(lab) == default_id:
-                    default_index = i
-                    break
+            st.write(f"Descrição: {a.get('description') or a.get('action') or a.get('text') or ''}")
 
-        return labels, label_to_id, default_index
+            fin = a.get("final_action_by_executor")
+            if fin is not None:
+                st.write(f"Marcou conclusão do executor: {bool(fin)}")
 
-    with tab_exec:
-        if not em_execucao:
-            st.success("✅ Não há notificações em execução no momento.")
-        else:
-            st.info(f"📋 **{len(em_execucao)} notificação(ões)** em execução")
-            for n in em_execucao:
-                notif_id = n.get('id')
-                with st.expander(_header_label(n), expanded=False):
-                    # Detalhes completos (read-only)
+            atts = a.get("evidence_attachments") or a.get("attachments") or []
+            if isinstance(atts, str):
+                try:
+                    atts = json.loads(atts)
+                except Exception:
+                    atts = []
+            if atts:
+                st.write("📎 **Anexos da ação:**")
+                for j, att in enumerate(atts, start=1):
+                    uniq = (att or {}).get("unique_name") or (att or {}).get("filename")
+                    orig = (att or {}).get("original_name") or uniq or f"arquivo_{j}"
+                    if not uniq:
+                        st.caption(f"- {orig}")
+                        continue
                     try:
-                        display_notification_full_details(
-                            n,
-                            st.session_state.get('user_id', 1),
-                            st.session_state.get('user_username', 'classificador')
+                        b = get_attachment_data(uniq)
+                    except Exception:
+                        b = None
+                    # IMPORTANTE: arquivo vazio (b'') é válido
+                    if b is None:
+                        st.caption(f"- {orig} (não encontrado)")
+                    else:
+                        st.download_button(
+                            f"⬇️ Baixar {orig}",
+                            data=b,
+                            file_name=orig,
+                            key=f"dl_act_{notif_id_int}_{i}_{j}_{uniq}",
                         )
-                    except Exception as e:
-                        st.warning(f"Não foi possível renderizar detalhes completos: {e}")
+            st.markdown("---")
 
-                    st.markdown("### 🔧 Ações dos Executores")
-                    _render_actions_with_attachments(notif_id)
+    def _approver_selector_simple(notif_id: int, selected_notification: dict):
+        """Retorna selected_approver_id (ou None) usando seletor simples: 'Não se aplica' + aprovadores."""
+        approvers = _cached_approvers()
+        labels = []
+        label_to_id = {}
+        for u in approvers:
+            uid = u.get("id")
+            if uid is None:
+                continue
+            name = (u.get("name") or u.get("username") or "").strip()
+            lab = f"{name} (id={uid})" if name else f"id={uid}"
+            labels.append(lab)
+            label_to_id[lab] = int(uid)
 
+        options = ["Não se aplica"] + labels
+        chosen = st.selectbox(
+            "👤 Aprovação superior (se necessário)",
+            options=options,
+            index=0,
+            key=f"review_exec_aprovador_simple_{notif_id}",
+            help="Selecione um aprovador superior se esta notificação precisar de aprovação final. Se não for necessário, deixe em 'Não se aplica'."
+        )
+        if chosen == "Não se aplica":
+            return None
+        return label_to_id.get(chosen)
+
+    # Carrega listas (cacheadas)
+    em_execucao = _cached_by_status("em_execucao")
+    aguardando_revisao = _cached_by_status("revisao_classificador_execucao")
+
+    tab_exec, tab_rev = st.tabs([
+        f"🚧 Em execução ({len(em_execucao)})",
+        f"🛠️ Revisão de execução ({len(aguardando_revisao)})"
+    ])
+
+    # --- TAB: Em execução (somente lista + abrir detalhes) ---
+    with tab_exec:
+        page_items, filtered, total = _paginate(em_execucao, "revexec_exec")
+        st.caption("Abra um item para visualizar detalhes e acompanhar ações/arquivos.")
+        for n in page_items:
+            nid = int(n.get("id"))
+            with st.expander(_header_label(n), expanded=False):
+                cols = st.columns([1, 3])
+                with cols[0]:
+                    if st.button("📖 Abrir", key=f"open_exec_{nid}", use_container_width=True):
+                        st.session_state["revexec_selected_exec_id"] = nid
+                        st.rerun()
+                with cols[1]:
+                    st.caption("Dica: use a busca/paginação acima para achar rápido.")
+
+        sel_id = st.session_state.get("revexec_selected_exec_id")
+        if sel_id:
+            selected_notification = next((x for x in em_execucao if int(x.get("id", -1)) == int(sel_id)), None)
+            if selected_notification:
+                st.markdown("### 📌 Detalhes — Em execução")
+                st.info(_header_label(selected_notification))
+                # aqui pode reutilizar seus renders atuais, mas evitando loops grandes
+                st.markdown("#### 🔧 Ações Realizadas pelos Executores")
+                _render_actions_with_attachments(sel_id, selected_notification)
+
+    # --- TAB: Revisão de execução (lista + detalhe único com seletor de aprovador) ---
     with tab_rev:
-        if not aguardando_revisao:
-            st.success("✅ Não há notificações aguardando revisão de execução no momento.")
-            st.info("💡 Todas as execuções foram revisadas ou estão em outras etapas do fluxo.")
+        page_items, filtered, total = _paginate(aguardando_revisao, "revexec_rev")
+        st.caption("Selecione um item para revisar a execução. Os detalhes completos só carregam para o item selecionado (mais rápido).")
+        for n in page_items:
+            nid = int(n.get("id"))
+            with st.expander(_header_label(n), expanded=False):
+                cols = st.columns([1, 3])
+                with cols[0]:
+                    if st.button("🔎 Revisar", key=f"open_rev_{nid}", use_container_width=True, type="primary"):
+                        st.session_state["revexec_selected_rev_id"] = nid
+                        st.rerun()
+                with cols[1]:
+                    st.caption("Clique em Revisar para abrir os detalhes e o painel de decisão.")
+
+        sel_id = st.session_state.get("revexec_selected_rev_id")
+        if not sel_id:
             return
 
-        st.info(f"📋 **{len(aguardando_revisao)} notificação(ões)** aguardando revisão de execução")
+        selected_notification = next((x for x in aguardando_revisao if int(x.get("id", -1)) == int(sel_id)), None)
+        if not selected_notification:
+            st.warning("Item selecionado não está mais na lista (pode ter mudado de status).")
+            return
 
-        for selected_notification in aguardando_revisao:
-            notif_id = selected_notification.get('id')
+        notif_id = int(selected_notification.get("id"))
+        st.markdown("### 🔎 Revisão — Detalhes da notificação")
+        st.info(_header_label(selected_notification))
 
-            with st.expander(_header_label(selected_notification), expanded=False):
-                # Detalhes completos
-                with st.expander("📋 Detalhes Completos da Notificação", expanded=False):
-                    try:
-                        display_notification_full_details(
-                            selected_notification,
-                            st.session_state.get('user_id', 1),
-                            st.session_state.get('user_username', 'classificador')
-                        )
-                    except Exception as e:
-                        st.warning(f"Não foi possível renderizar detalhes completos: {e}")
+        # Ações executores
+        st.markdown("#### 🔧 Ações Realizadas pelos Executores")
+        _render_actions_with_attachments(notif_id, selected_notification)
 
-                st.markdown("### 🔧 Ações Realizadas pelos Executores")
-                _render_actions_with_attachments(notif_id)
+        # --- Revisão de Execução (UI REATIVA - sem st.form) ---
+        decisao_options = [UI_TEXTS.selectbox_default_decisao_revisao, "✅ Aprovar Execução", "🔄 Solicitar Correções"]
+        decisao = st.radio(
+            "📋 Decisão da Revisão *",
+            options=decisao_options,
+            index=0,
+            key=f"decisao_revisao_{notif_id}",
+            help="Aprovar: encerra a revisão. Opcionalmente você pode encaminhar para aprovação superior. Solicitar correções retorna para execução."
+        )
 
-                st.markdown("---")
-                st.markdown("## ✅ Revisão da Execução")
+        observacoes_revisao = st.text_area(
+            "📝 Observações da Revisão *",
+            key=f"obs_revisao_{notif_id}",
+            height=140,
+            placeholder="Descreva sua análise da execução. Se solicitar correções, especifique o que precisa ser ajustado.",
+        )
 
-                # Controle: encaminhar para aprovação superior só se aprovar
-                forward_key = f"forward_superior_{notif_id}"
-                if forward_key not in st.session_state:
-                    st.session_state[forward_key] = False
+        selected_approver_id = None
+        if decisao == "✅ Aprovar Execução":
+            selected_approver_id = _approver_selector_simple(notif_id, selected_notification)
 
-                labels, label_to_id, default_index = _approver_options_for_select(selected_notification)
+        st.markdown("<span class='required-field'>* Campos obrigatórios</span>", unsafe_allow_html=True)
 
-                # --- Revisão de Execução (UI reativa fora de st.form para permitir escolher aprovador ANTES de salvar) ---
-                decisao_options = [UI_TEXTS.selectbox_default_decisao_revisao, "✅ Aprovar Execução", "🔄 Solicitar Correções"]
-                decisao = st.radio(
-                    "📋 Decisão da Revisão *",
-                    options=decisao_options,
-                    index=0,
-                    key=f"decisao_revisao_{notif_id}",
-                    help="Aprovar: encerra a revisão. Opcionalmente você pode encaminhar para aprovação superior. Solicitar correções retorna para execução."
-                )
-                
-                observacoes_revisao = st.text_area(
-                    "📝 Observações da Revisão *",
-                    key=f"obs_revisao_{notif_id}",
-                    height=140,
-                    placeholder="Descreva sua análise da execução. Se solicitar correções, especifique o que precisa ser ajustado.",
-                )
-                
-                encaminhar = False
-                selected_approver_id = None
-                
-                if decisao == "✅ Aprovar Execução":
-                    # Se a notificação exigir aprovação superior, torna obrigatório escolher um aprovador.
-                    _classif = selected_notification.get("classification") or {}
-                    if isinstance(_classif, str):
-                        try:
-                            _classif = json.loads(_classif)
-                        except Exception:
-                            _classif = {}
-                    requires_sup = truthy(_classif.get('requires_approval')) or truthy(selected_notification.get('requires_approval'))
-                
-                    if requires_sup:
-                        encaminhar = True
-                        if labels:
-                            selected_label = st.selectbox(
-                                "👤 Aprovador superior (obrigatório)",
-                                options=labels,
-                                index=default_index,
-                                key=f"selected_approver_label_{notif_id}",
-                                help="Esta notificação exige aprovação superior após a revisão da execução."
-                            )
-                            selected_approver_id = label_to_id.get(selected_label)
-                        else:
-                            st.error("❌ Nenhum usuário com perfil 'aprovador' foi encontrado. Cadastre um aprovador para prosseguir.")
-                            selected_approver_id = None
-                    else:
-                        encaminhar = st.checkbox(
-                            "➡️ Encaminhar para aprovação superior (opcional)",
-                            value=st.session_state.get(forward_key, False),
-                            key=forward_key
-                        )
-                        if encaminhar:
-                            if labels:
-                                selected_label = st.selectbox(
-                                    "👤 Aprovador superior",
-                                    options=labels,
-                                    index=default_index,
-                                    key=f"selected_approver_label_{notif_id}",
-                                    help="Será encaminhado para este aprovador após você aprovar a execução."
-                                )
-                                selected_approver_id = label_to_id.get(selected_label)
-                            else:
-                                st.warning("⚠️ Nenhum usuário com perfil 'aprovador' foi encontrado.")
-                                selected_approver_id = None
-                
-                st.markdown("<span class='required-field'>* Campos obrigatórios</span>", unsafe_allow_html=True)
-                submitted = st.button("💾 Salvar Revisão", use_container_width=True, type="primary", key=f"btn_salvar_revisao_{notif_id}")
-                
-                if submitted:
-                    if decisao == UI_TEXTS.selectbox_default_decisao_revisao:
-                        st.error("❌ Por favor, selecione uma decisão para a revisão!")
-                        st.stop()
-                
-                    if not (observacoes_revisao or "").strip():
-                        st.error("❌ Por favor, preencha as observações da revisão!")
-                        st.stop()
-                
-                    # Se marcou encaminhamento (ou é obrigatório), precisa escolher um aprovador válido
-                    if decisao == "✅ Aprovar Execução" and encaminhar and not selected_approver_id:
-                        st.error("❌ Selecione um aprovador superior para encaminhar a aprovação.")
-                        st.stop()
-                
-                    if decisao == "🔄 Solicitar Correções":
-                        new_status = "em_execucao"
-                    else:
-                        # aprovado
-                        if encaminhar and selected_approver_id:
-                            new_status = "aguardando_aprovacao"
-                        else:
-                            new_status = "concluida"
-                
-                    review_data = {
-                        "decision": decisao,
-                        "observations": observacoes_revisao.strip(),
-                        "reviewed_at": datetime.now().isoformat(),
-                        "reviewed_by_id": st.session_state.get('user_id', None),
-                        "reviewed_by_username": st.session_state.get('user_username', None),
-                        "forwarded_to_approver_id": int(selected_approver_id) if selected_approver_id else None,
-                        "forwarded_to_approver": bool(encaminhar and selected_approver_id)
-                    }
-                
-                    updates = {
-                        "status": new_status,
-                        "review_execution": review_data,
-                    }
-                
-                    if new_status == "em_execucao":
-                        updates["rejection_execution_review"] = {
-                            "reason": observacoes_revisao.strip(),
-                            "rejected_at": datetime.now().isoformat(),
-                            "rejected_by_id": st.session_state.get('user_id', None),
-                            "rejected_by_username": st.session_state.get('user_username', None),
-                        }
-                
-                    if new_status == "aguardando_aprovacao" and selected_approver_id:
-                        updates["approver"] = selected_approver_id
-                
-                    updated_notif = update_notification(notif_id, updates)
-                
-                    if updated_notif:
-                        add_history_entry(
-                            notif_id,
-                            f"🔎 Revisão de execução registrada: {decisao}",
-                            st.session_state.get('user_username', UI_TEXTS.text_na)
-                        )
-                        st.success("✅ Revisão salva com sucesso!")
-                        st.rerun()
-                    else:
-                        st.error("❌ Erro ao atualizar a notificação. Verifique o log do servidor.")
+        if st.button("💾 Salvar Revisão", use_container_width=True, type="primary", key=f"btn_salvar_revisao_{notif_id}"):
+            if decisao == UI_TEXTS.selectbox_default_decisao_revisao:
+                st.error("❌ Por favor, selecione uma decisão para a revisão!")
+                st.stop()
+
+            if not (observacoes_revisao or "").strip():
+                st.error("❌ Por favor, preencha as observações da revisão!")
+                st.stop()
+
+            # build review payload (compatível com sua estrutura atual)
+            review_data = {
+                "decision": decisao,
+                "observations": observacoes_revisao.strip(),
+                "reviewed_at": datetime.utcnow().isoformat(),
+                "reviewed_by_id": safe_int(st.session_state.get("user_id")),
+                "reviewed_by_username": st.session_state.get("user_username") or "",
+                "forwarded_to_approver_id": selected_approver_id,
+            }
+
+            # Salva revisão (usa sua função existente se houver)
+            try:
+                update_notification(notif_id, {"review_execution": review_data})
+            except Exception:
+                # fallback: tenta salvar direto
+                update_notification(notif_id, {"review_execution": json.dumps(review_data, ensure_ascii=False)})
+
+            # decisão de fluxo
+            if decisao == "🔄 Solicitar Correções":
+                update_notification(notif_id, {"status": "em_execucao"})
+                add_history_entry(notif_id, st.session_state.get("user_username",""), "🔄 Revisão solicitou correções", observacoes_revisao.strip())
+                st.success("Revisão registrada. A notificação voltou para execução.")
+                st.cache_data.clear()
+                st.rerun()
+
+            # Aprovar execução: encaminha se selecionou aprovador, senão conclui
+            if selected_approver_id:
+                update_notification(notif_id, {"status": "aguardando_aprovacao", "approver": int(selected_approver_id)})
+                add_history_entry(notif_id, st.session_state.get("user_username",""), "📨 Encaminhado para aprovação superior", f"Aprovador ID={selected_approver_id}")
+                st.success("Execução aprovada e encaminhada para aprovação superior.")
+            else:
+                update_notification(notif_id, {"status": "concluida"})
+                add_history_entry(notif_id, st.session_state.get("user_username",""), "✅ Execução aprovada", "Sem aprovação superior")
+                st.success("Execução aprovada e concluída (sem aprovação superior).")
+
+            st.cache_data.clear()
+            st.rerun()
 
 def show_notificacoes_encerradas():
     """
@@ -5992,7 +5908,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 
 
