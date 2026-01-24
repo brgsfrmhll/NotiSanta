@@ -1528,6 +1528,100 @@ def get_notification_attachments(notification_id: int, conn=None, cur=None) -> L
             if created_conn and local_conn:
                 local_conn.close()
 
+
+def split_attachments_by_origin(notification_id: int) -> Dict[str, List[Dict]]:
+    """
+    Separa anexos em dois grupos:
+      - 'notification': anexos cadastrados na tabela notification_attachments e NÃO referenciados por ações.
+      - 'execution'   : anexos referenciados em notification_actions.evidence_attachments (mesmo que não estejam na tabela).
+
+    Motivo: a tabela notification_attachments não possui coluna 'source'. Então distinguimos cruzando com as ações.
+    """
+    # Anexos da tabela (globais)
+    all_atts = get_notification_attachments(int(notification_id)) if notification_id is not None else []
+
+    # Anexos citados nas ações (execução)
+    exec_by_unique = {}
+    try:
+        actions = get_notification_actions(int(notification_id))
+        for a in actions or []:
+            ev = a.get("evidence_attachments") or a.get("attachments") or []
+            # Pode vir como string JSON
+            if isinstance(ev, str):
+                try:
+                    import json
+                    ev = json.loads(ev)
+                except Exception:
+                    ev = []
+            if isinstance(ev, list):
+                for item in ev:
+                    if isinstance(item, dict):
+                        u = item.get("unique_name") or item.get("filename")
+                        o = item.get("original_name") or u
+                        if u:
+                            exec_by_unique[str(u)] = {"unique_name": str(u), "original_name": o or str(u)}
+                    elif isinstance(item, str):
+                        exec_by_unique[str(item)] = {"unique_name": str(item), "original_name": str(item)}
+    except Exception:
+        pass
+
+    exec_unique = set(exec_by_unique.keys())
+
+    # Grupo notificação = tudo que está na tabela e não está referenciado por ação
+    notif_group = []
+    for a in all_atts or []:
+        if isinstance(a, dict):
+            u = str(a.get("unique_name") or "")
+            if u and u not in exec_unique:
+                notif_group.append({"unique_name": u, "original_name": a.get("original_name") or u})
+        elif isinstance(a, str):
+            if a not in exec_unique:
+                notif_group.append({"unique_name": a, "original_name": a})
+
+    # Grupo execução = itens referenciados por ação (ordena por original_name para ficar estável)
+    exec_group = list(exec_by_unique.values())
+    exec_group.sort(key=lambda x: (str(x.get("original_name") or ""), str(x.get("unique_name") or "")))
+
+    # Dedup simples no grupo notificação (por unique_name)
+    seen = set()
+    notif_unique = []
+    for a in notif_group:
+        u = a.get("unique_name")
+        if u and u not in seen:
+            seen.add(u)
+            notif_unique.append(a)
+
+    return {"notification": notif_unique, "execution": exec_group}
+
+
+def render_attachments_download(title: str, attachments: List[Dict], key_prefix: str) -> None:
+    """Renderiza anexos com download; funciona com arquivo vazio (b'')."""
+    if not attachments:
+        return
+    st.markdown(f"#### {title}")
+    for attach_info in attachments:
+        if not isinstance(attach_info, dict):
+            continue
+        unique_name = str(attach_info.get("unique_name") or "")
+        original_name = str(attach_info.get("original_name") or unique_name)
+        if not unique_name:
+            continue
+        try:
+            data = get_attachment_data(unique_name)
+        except Exception as e:
+            st.write(f"Anexo: {original_name} (erro ao ler: {e})")
+            continue
+        if data is None:
+            st.write(f"Anexo: {original_name} (arquivo não encontrado)")
+            continue
+        st.download_button(
+            label=f"⬇️ {original_name}",
+            data=data,
+            file_name=original_name,
+            mime="application/octet-stream",
+            key=f"{key_prefix}_{unique_name}",
+        )
+
 def save_uploaded_file_to_disk(uploaded_file: Any, notification_id: int) -> Optional[Dict]:
     """Salva um file enviado para o diretório de anexos no disco e retorna suas informações."""
     if uploaded_file is None:
@@ -1956,23 +2050,16 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
     except Exception:
         atts = []
     if atts:
-        st.markdown("#### 📎 Anexos")
-        for attach_info in atts:
-            unique_name_to_use = attach_info.get('unique_name') if isinstance(attach_info, dict) else None
-            original_name_to_use = attach_info.get('original_name') if isinstance(attach_info, dict) else None
-            if unique_name_to_use:
-                file_content = get_attachment_data(str(unique_name_to_use))
-                if file_content is not None:
-                    st.download_button(
-                        label=f"⬇️ {original_name_to_use or unique_name_to_use}",
-                        data=file_content,
-                        file_name=(original_name_to_use or unique_name_to_use),
-                        mime="application/octet-stream",
-                        key=f"download_notif_att_{notification.get('id')}_{unique_name_to_use}"
-                    )
-                else:
-                    st.write(f"Anexo: {original_name_to_use or unique_name_to_use} (arquivo não encontrado ou corrompido)")
-
+        groups = split_attachments_by_origin(int(notif_id_for_attachments)) if notif_id_for_attachments is not None else {"notification": [], "execution": []}
+        notif_atts = groups.get("notification", []) or []
+        exec_atts = groups.get("execution", []) or []
+        if notif_atts or exec_atts:
+            st.markdown("#### 📎 Anexos")
+            # Mostra separado para ficar claro a origem
+            if notif_atts:
+                render_attachments_download("📄 Anexos da Notificação", notif_atts, key_prefix=f"dl_notif_{notif_id_for_attachments}")
+            if exec_atts:
+                render_attachments_download("🛠️ Anexos da Execução", exec_atts, key_prefix=f"dl_exec_{notif_id_for_attachments}")
     if notification.get('actions'):
         st.markdown("#### ⚡ Histórico de Ações")
         for action in sorted(notification['actions'], key=lambda x: x.get('timestamp', '')):
@@ -4545,32 +4632,16 @@ def show_approval():
                     if review_exec_info.get('observations'):
                         st.write(
                             f"**Observações do Classificador:** {review_exec_info.get('observations', UI_TEXTS.text_na)}")
-                atts = get_notification_attachments(int(notification.get('id'))) if notification.get('id') is not None else []
-                if atts:
+                groups = split_attachments_by_origin(int(notification.get('id'))) if notification.get('id') is not None else {"notification": [], "execution": []}
+                notif_atts = groups.get("notification", []) or []
+                exec_atts = groups.get("execution", []) or []
+                if notif_atts or exec_atts:
                     st.markdown("---")
                     st.markdown("#### 📎 Anexos")
-                    for attach_info in atts:
-                        unique_name_to_use = None
-                        original_name_to_use = None
-                        if isinstance(attach_info,
-                                      dict) and 'unique_name' in attach_info and 'original_name' in attach_info:
-                            unique_name_to_use = attach_info['unique_name']
-                            original_name_to_use = attach_info['original_name']
-                        elif isinstance(attach_info, str):
-                            unique_name_to_use = attach_info
-                            original_name_to_use = attach_info
-                        if unique_name_to_use:
-                            file_content = get_attachment_data(unique_name_to_use)
-                            if file_content is not None:
-                                st.download_button(
-                                    label=f"Baixar {original_name_to_use}",
-                                    data=file_content,
-                                    file_name=original_name_to_use,
-                                    mime="application/octet-stream",
-                                    key=f"download_approval_{notification['id']}_{unique_name_to_use}"
-                                )
-                            else:
-                                st.write(f"Anexo: {original_name_to_use} (arquivo não encontrado ou corrompido)")
+                    if notif_atts:
+                        render_attachments_download("📄 Anexos da Notificação", notif_atts, key_prefix=f"dl_notif_{notification.get('id')}_appr")
+                    if exec_atts:
+                        render_attachments_download("🛠️ Anexos da Execução", exec_atts, key_prefix=f"dl_exec_{notification.get('id')}_appr")
                 st.markdown("---")
                 if 'approval_form_state' not in st.session_state:
                     st.session_state.approval_form_state = {}
