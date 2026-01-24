@@ -1873,6 +1873,34 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
         st.markdown("**ℹ️ Observações Adicionais do Notificante**")
         st.info(notification.get('additional_notes', UI_TEXTS.text_na))
 
+
+    # 📎 Anexos da notificação (tabela notification_attachments)
+    try:
+        notif_id_for_attachments = notification.get('id')
+        if notif_id_for_attachments is not None:
+            atts = get_notification_attachments(int(notif_id_for_attachments))
+        else:
+            atts = []
+    except Exception:
+        atts = []
+    if atts:
+        st.markdown("#### 📎 Anexos")
+        for attach_info in atts:
+            unique_name_to_use = attach_info.get('unique_name') if isinstance(attach_info, dict) else None
+            original_name_to_use = attach_info.get('original_name') if isinstance(attach_info, dict) else None
+            if unique_name_to_use:
+                file_content = get_attachment_data(str(unique_name_to_use))
+                if file_content:
+                    st.download_button(
+                        label=f"⬇️ {original_name_to_use or unique_name_to_use}",
+                        data=file_content,
+                        file_name=(original_name_to_use or unique_name_to_use),
+                        mime="application/octet-stream",
+                        key=f"download_notif_att_{notification.get('id')}_{unique_name_to_use}"
+                    )
+                else:
+                    st.write(f"Anexo: {original_name_to_use or unique_name_to_use} (arquivo não encontrado ou corrompido)")
+
     if notification.get('actions'):
         st.markdown("#### ⚡ Histórico de Ações")
         for action in sorted(notification['actions'], key=lambda x: x.get('timestamp', '')):
@@ -3568,8 +3596,10 @@ def show_execution():
                             saved_attachments = []
                             for f in (up_files or []):
                                 saved_info = save_uploaded_file_to_disk(f, notif_id)
-                                if saved_info:
-                                    saved_attachments.append(saved_info)
+                                if not saved_info:
+                                    continue
+
+                                saved_attachments.append(saved_info)
 
                                 # também registra na tabela de anexos da notificação (para o classificador ver nos detalhes)
                                 try:
@@ -3580,12 +3610,21 @@ def show_execution():
                                         (int(notif_id), saved_info.get('unique_name'), saved_info.get('original_name'))
                                     )
                                     conn_att.commit()
-                                    cur_att.close()
-                                    conn_att.close()
-                                except Exception:
+                                except Exception as e:
+                                    st.error(f"❌ Falha ao registrar anexo no banco: {e}")
                                     try:
                                         if 'conn_att' in locals():
                                             conn_att.rollback()
+                                    except Exception:
+                                        pass
+                                finally:
+                                    try:
+                                        if 'cur_att' in locals() and cur_att:
+                                            cur_att.close()
+                                    except Exception:
+                                        pass
+                                    try:
+                                        if 'conn_att' in locals() and conn_att:
                                             conn_att.close()
                                     except Exception:
                                         pass
@@ -3930,10 +3969,11 @@ def show_approval():
                     if review_exec_info.get('observations'):
                         st.write(
                             f"**Observações do Classificador:** {review_exec_info.get('observations', UI_TEXTS.text_na)}")
-                if notification.get('attachments'):
+                atts = get_notification_attachments(int(notification.get('id'))) if notification.get('id') is not None else []
+                if atts:
                     st.markdown("---")
                     st.markdown("#### 📎 Anexos")
-                    for attach_info in notification['attachments']:
+                    for attach_info in atts:
                         unique_name_to_use = None
                         original_name_to_use = None
                         if isinstance(attach_info,
