@@ -3732,105 +3732,127 @@ def show_revisao_execucao():
 
     # --- TAB: Revisão de execução (lista + detalhe único com seletor de aprovador) ---
     with tab_rev:
-        page_items, filtered, total = _paginate(aguardando_revisao, "revexec_rev")
-        st.caption("Selecione um item para revisar a execução. Os detalhes completos só carregam para o item selecionado (mais rápido).")
-        for n in page_items:
-            nid = int(n.get("id"))
-            with st.expander(_header_label(n), expanded=False):
-                cols = st.columns([1, 3])
-                with cols[0]:
-                    if st.button("🔎 Revisar", key=f"open_rev_{nid}", use_container_width=True, type="primary"):
-                        st.session_state["revexec_selected_rev_id"] = nid
+        # Layout em 2 colunas para evitar precisar rolar a página:
+        # - Esquerda: lista paginada (leve)
+        # - Direita: detalhes + decisão apenas do item selecionado
+        left, right = st.columns([2, 3], gap="large")
+
+        with left:
+            page_items, filtered, total = _paginate(aguardando_revisao, "revexec_rev")
+            st.caption("Clique em **🔎 Revisar** para abrir os detalhes no painel ao lado (sem rolagem).")
+
+            for n in page_items:
+                nid = int(n.get("id"))
+                with st.expander(_header_label(n), expanded=False):
+                    cols = st.columns([1, 3])
+                    with cols[0]:
+                        if st.button("🔎 Revisar", key=f"open_rev_{nid}", use_container_width=True, type="primary"):
+                            st.session_state["revexec_selected_rev_id"] = nid
+                            st.rerun()
+                    with cols[1]:
+                        st.caption("Abre os detalhes no painel à direita.")
+
+        with right:
+            sel_id = st.session_state.get("revexec_selected_rev_id")
+            if not sel_id:
+                st.info("Selecione uma notificação na lista ao lado para revisar a execução.")
+                return
+
+            selected_notification = next((x for x in aguardando_revisao if int(x.get("id", -1)) == int(sel_id)), None)
+            if not selected_notification:
+                st.warning("Item selecionado não está mais na lista (pode ter mudado de status).")
+                return
+
+            notif_id = int(selected_notification.get("id"))
+            st.markdown("### 🔎 Revisão — Detalhes da notificação")
+            st.info(_header_label(selected_notification))
+
+            # Ações executores
+            st.markdown("#### 🔧 Ações Realizadas pelos Executores")
+            _render_actions_with_attachments(notif_id, notif_obj=selected_notification)
+
+            st.markdown("---")
+
+            # Revisão / decisão
+            st.markdown("### ✅ Decisão da Revisão de Execução")
+
+            # Busca aprovadores (cacheado)
+            approvers = _cached_approvers()
+
+            # Seletor simples: primeira opção "Não se aplica" + aprovadores
+            def _approver_label(u: dict) -> str:
+                nome = (u.get("name") or u.get("username") or "").strip()
+                return f"{nome} (id={u.get('id')})" if nome else f"id={u.get('id')}"
+
+            approver_options = [("na", "Não se aplica")] + [
+                (str(u.get("id")), _approver_label(u)) for u in approvers if u.get("id") is not None
+            ]
+
+            decisao_revisao = st.selectbox(
+                "Decisão:",
+                options=["✅ Aprovar Execução", "🔄 Solicitar Correções"],
+                index=0,
+                key=f"revexec_decisao_{notif_id}",
+            )
+
+            observacoes_revisao = st.text_area(
+                "Observações (opcional):",
+                key=f"revexec_obs_{notif_id}",
+                height=100,
+            )
+
+            selected_approver_value = "na"
+            if decisao_revisao == "✅ Aprovar Execução":
+                selected_approver_value = st.selectbox(
+                    "Aprovação superior (se necessário):",
+                    options=[v for v, _ in approver_options],
+                    format_func=lambda v: dict(approver_options).get(v, v),
+                    index=0,
+                    key=f"review_exec_approver_{notif_id}",
+                )
+
+            cols_btn = st.columns([1, 1, 3])
+            with cols_btn[0]:
+                if st.button("💾 Salvar Revisão", key=f"btn_save_review_{notif_id}", type="primary", use_container_width=True):
+                    username = st.session_state.get("user_username", "")
+
+                    review_payload = {
+                        "decision": decisao_revisao,
+                        "reviewed_at": datetime.utcnow().isoformat(),
+                        "observations": (observacoes_revisao or "").strip(),
+                        "reviewed_by_id": st.session_state.get("user_id"),
+                        "reviewed_by_username": username,
+                    }
+
+                    # Persistir a revisão (mantém compatibilidade com seu schema atual)
+                    update_notification(notif_id, {"review_execution": review_payload})
+
+                    if decisao_revisao == "🔄 Solicitar Correções":
+                        update_notification(notif_id, {"status": "em_execucao"})
+                        add_history_entry(notif_id, username, "🔄 Revisão solicitou correções", review_payload.get("observations", ""))
+                        st.success("Revisão registrada. A notificação voltou para execução.")
+                        st.cache_data.clear()
                         st.rerun()
-                with cols[1]:
-                    st.caption("Clique em Revisar para abrir os detalhes e o painel de decisão.")
 
-        sel_id = st.session_state.get("revexec_selected_rev_id")
-        if not sel_id:
-            return
+                    # Aprovar execução: encaminha se selecionou aprovador, senão conclui
+                    if selected_approver_value and selected_approver_value != "na":
+                        selected_approver_id = int(selected_approver_value)
+                        update_notification(notif_id, {"status": "aguardando_aprovacao", "approver": selected_approver_id})
+                        add_history_entry(notif_id, username, "📨 Encaminhado para aprovação superior", f"Aprovador ID={selected_approver_id}")
+                        st.success("Execução aprovada e encaminhada para aprovação superior.")
+                    else:
+                        update_notification(notif_id, {"status": "concluida"})
+                        add_history_entry(notif_id, username, "✅ Execução aprovada", "Sem aprovação superior")
+                        st.success("Execução aprovada e concluída (sem aprovação superior).")
 
-        selected_notification = next((x for x in aguardando_revisao if int(x.get("id", -1)) == int(sel_id)), None)
-        if not selected_notification:
-            st.warning("Item selecionado não está mais na lista (pode ter mudado de status).")
-            return
+                    st.cache_data.clear()
+                    st.rerun()
 
-        notif_id = int(selected_notification.get("id"))
-        st.markdown("### 🔎 Revisão — Detalhes da notificação")
-        st.info(_header_label(selected_notification))
+            with cols_btn[1]:
+                if st.button("↩️ Trocar seleção", key=f"btn_clear_sel_{notif_id}", use_container_width=True):
+                    st.session_state.pop("revexec_selected_rev_id", None)
+                    st.rerun()
 
-        # Ações executores
-        st.markdown("#### 🔧 Ações Realizadas pelos Executores")
-        _render_actions_with_attachments(notif_id, selected_notification)
-
-        # --- Revisão de Execução (UI REATIVA - sem st.form) ---
-        decisao_options = [UI_TEXTS.selectbox_default_decisao_revisao, "✅ Aprovar Execução", "🔄 Solicitar Correções"]
-        decisao = st.radio(
-            "📋 Decisão da Revisão *",
-            options=decisao_options,
-            index=0,
-            key=f"decisao_revisao_{notif_id}",
-            help="Aprovar: encerra a revisão. Opcionalmente você pode encaminhar para aprovação superior. Solicitar correções retorna para execução."
-        )
-
-        observacoes_revisao = st.text_area(
-            "📝 Observações da Revisão *",
-            key=f"obs_revisao_{notif_id}",
-            height=140,
-            placeholder="Descreva sua análise da execução. Se solicitar correções, especifique o que precisa ser ajustado.",
-        )
-
-        selected_approver_id = None
-        if decisao == "✅ Aprovar Execução":
-            selected_approver_id = _approver_selector_simple(notif_id, selected_notification)
-
-        st.markdown("<span class='required-field'>* Campos obrigatórios</span>", unsafe_allow_html=True)
-
-        if st.button("💾 Salvar Revisão", use_container_width=True, type="primary", key=f"btn_salvar_revisao_{notif_id}"):
-            if decisao == UI_TEXTS.selectbox_default_decisao_revisao:
-                st.error("❌ Por favor, selecione uma decisão para a revisão!")
-                st.stop()
-
-            if not (observacoes_revisao or "").strip():
-                st.error("❌ Por favor, preencha as observações da revisão!")
-                st.stop()
-
-            # build review payload (compatível com sua estrutura atual)
-            review_data = {
-                "decision": decisao,
-                "observations": observacoes_revisao.strip(),
-                "reviewed_at": datetime.utcnow().isoformat(),
-                "reviewed_by_id": safe_int(st.session_state.get("user_id")),
-                "reviewed_by_username": st.session_state.get("user_username") or "",
-                "forwarded_to_approver_id": selected_approver_id,
-            }
-
-            # Salva revisão (usa sua função existente se houver)
-            try:
-                update_notification(notif_id, {"review_execution": review_data})
-            except Exception:
-                # fallback: tenta salvar direto
-                update_notification(notif_id, {"review_execution": json.dumps(review_data, ensure_ascii=False)})
-
-            # decisão de fluxo
-            if decisao == "🔄 Solicitar Correções":
-                update_notification(notif_id, {"status": "em_execucao"})
-                add_history_entry(notif_id, st.session_state.get("user_username",""), "🔄 Revisão solicitou correções", observacoes_revisao.strip())
-                st.success("Revisão registrada. A notificação voltou para execução.")
-                st.cache_data.clear()
-                st.rerun()
-
-            # Aprovar execução: encaminha se selecionou aprovador, senão conclui
-            if selected_approver_id:
-                update_notification(notif_id, {"status": "aguardando_aprovacao", "approver": int(selected_approver_id)})
-                add_history_entry(notif_id, st.session_state.get("user_username",""), "📨 Encaminhado para aprovação superior", f"Aprovador ID={selected_approver_id}")
-                st.success("Execução aprovada e encaminhada para aprovação superior.")
-            else:
-                update_notification(notif_id, {"status": "concluida"})
-                add_history_entry(notif_id, st.session_state.get("user_username",""), "✅ Execução aprovada", "Sem aprovação superior")
-                st.success("Execução aprovada e concluída (sem aprovação superior).")
-
-            st.cache_data.clear()
-            st.rerun()
 
 def show_notificacoes_encerradas():
     """
