@@ -1890,7 +1890,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
             original_name_to_use = attach_info.get('original_name') if isinstance(attach_info, dict) else None
             if unique_name_to_use:
                 file_content = get_attachment_data(str(unique_name_to_use))
-                if file_content:
+                if file_content is not None:
                     st.download_button(
                         label=f"⬇️ {original_name_to_use or unique_name_to_use}",
                         data=file_content,
@@ -1938,7 +1938,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
                     original_name = attach_info.get('original_name')
                     if unique_name and original_name:
                         file_content = get_attachment_data(unique_name)
-                        if file_content:
+                        if file_content is not None:
                             st.download_button(
                                 label=f"⬇️ {original_name}",
                                 data=file_content,
@@ -1966,7 +1966,7 @@ def display_notification_full_details(notification: Dict, user_id_logged_in: Opt
                             original_name = attach_info.get('original_name')
                             if unique_name and original_name:
                                 file_content = get_attachment_data(unique_name)
-                                if file_content:
+                                if file_content is not None:
                                     st.download_button(
                                         label=f"Baixar Evidência: {original_name}",
                                         data=file_content,
@@ -2947,7 +2947,7 @@ def show_revisao_execucao():
                             continue
 
                         att_bytes = get_attachment_data(str(unique_name))
-                        if att_bytes:
+                        if att_bytes is not None:
                             st.download_button(
                                 label=f"⬇️ {original_name}",
                                 data=att_bytes,
@@ -2976,7 +2976,7 @@ def show_revisao_execucao():
                             continue
 
                         att_bytes = get_attachment_data(str(unique_name))
-                        if att_bytes:
+                        if att_bytes is not None:
                             st.download_button(
                                 label=f"⬇️ {original_name}",
                                 data=att_bytes,
@@ -3724,7 +3724,7 @@ def show_execution():
                                     original_name = (anexo or {}).get('original_name')
                                     if unique_name and original_name:
                                         content = get_attachment_data(unique_name)
-                                        if content:
+                                        if content is not None:
                                             st.download_button(
                                                 f"⬇️ {original_name}",
                                                 content,
@@ -3918,7 +3918,7 @@ def show_approval():
                                         original_name = attach_info.get('original_name')
                                         if unique_name and original_name:
                                             file_content = get_attachment_data(unique_name)
-                                            if file_content:
+                                            if file_content is not None:
                                                 st.download_button(
                                                     label=f"Baixar Evidência: {original_name}",
                                                     data=file_content,
@@ -3985,7 +3985,7 @@ def show_approval():
                             original_name_to_use = attach_info
                         if unique_name_to_use:
                             file_content = get_attachment_data(unique_name_to_use)
-                            if file_content:
+                            if file_content is not None:
                                 st.download_button(
                                     label=f"Baixar {original_name_to_use}",
                                     data=file_content,
