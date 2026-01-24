@@ -3765,7 +3765,7 @@ def show_revisao_execucao():
 
                     # Detalhes completos (leve)
                     st.markdown("#### 🧾 Notificação")
-                    _render_notification_details(selected_notification)
+                    display_notification_full_details(selected_notification, st.session_state.get('user', {}).get('id'), st.session_state.get('user', {}).get('username'))
 
                     st.markdown("#### 🔧 Ações Realizadas pelos Executores")
                     _render_actions_with_attachments(sel_id, selected_notification)
