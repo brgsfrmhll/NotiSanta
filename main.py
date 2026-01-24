@@ -651,6 +651,31 @@ def load_notifications_by_statuses(statuses: list):
     finally:
         conn.close()
 
+
+def safe_int(v, default=0):
+    try:
+        if v is None:
+            return default
+        if isinstance(v, bool):
+            return int(v)
+        if isinstance(v, (int,)):
+            return int(v)
+        # strings like '1'
+        return int(str(v).strip())
+    except Exception:
+        return default
+
+def truthy(v) -> bool:
+    if v is None:
+        return False
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, (int, float)):
+        return v != 0
+    s = str(v).strip().lower()
+    return s in ("1", "true", "t", "yes", "y", "sim", "s", "ok", "aprovado")
+
+
 class UI_TEXTS:
     selectbox_default_event_shift = "Selecionar Turno"
     selectbox_default_immediate_actions_taken = "Selecione"
@@ -3790,7 +3815,7 @@ def show_revisao_execucao():
                                 _classif = json.loads(_classif)
                             except Exception:
                                 _classif = {}
-                        requires_sup = bool(_classif.get("requires_approval") or selected_notification.get("requires_approval"))
+                        requires_sup = truthy(_classif.get('requires_approval')) or truthy(selected_notification.get('requires_approval'))
 
                         if requires_sup:
                             encaminhar = True
@@ -3858,7 +3883,9 @@ def show_revisao_execucao():
                             "observations": observacoes_revisao.strip(),
                             "reviewed_at": datetime.now().isoformat(),
                             "reviewed_by_id": st.session_state.get('user_id', None),
-                            "reviewed_by_username": st.session_state.get('user_username', None)
+                            "reviewed_by_username": st.session_state.get('user_username', None),
+                            "forwarded_to_approver_id": int(selected_approver_id) if selected_approver_id else None,
+                            "forwarded_to_approver": bool(encaminhar and selected_approver_id)
                         }
 
                         updates = {
@@ -4508,8 +4535,7 @@ def show_approval():
     all_notifications = load_notifications()
     user_id_logged_in = st.session_state.user_id
     user_username_logged_in = st.session_state.user_username
-    pending_approval = [n for n in all_notifications if
-                        n.get('status') == 'aguardando_aprovacao' and n.get('approver') == user_id_logged_in]
+    pending_approval = [n for n in all_notifications if n.get('status') == 'aguardando_aprovacao' and safe_int(n.get('approver')) == safe_int(user_id_logged_in)]
     closed_statuses = ['aprovada', 'rejeitada', 'reprovada', 'concluida']
     closed_my_approval_notifications = [
         n for n in all_notifications
