@@ -1442,7 +1442,7 @@ def add_notification_action(notification_id: int, action_data: Dict, conn=None, 
             action_data.get('timestamp'),
             action_data.get('final_action_by_executor'),
             action_data.get('evidence_description'),
-            json.dumps(action_data.get('evidence_attachments')) if action_data.get('evidence_attachments') else None
+            json.dumps((action_data.get('attachments') or []) + (action_data.get('evidence_attachments') or [])) if (action_data.get('attachments') or action_data.get('evidence_attachments')) else None
         ))
         if not (conn and cur):
             local_conn.commit()
@@ -2872,6 +2872,9 @@ def show_revisao_execucao():
                     out['attachments'] = json.loads(out['attachments']) or []
                 except Exception:
                     out['attachments'] = []
+            # Se não houver attachments explícitos, reutiliza evidence_attachments como anexos (compatibilidade)
+            if (not out['attachments']) and out.get('evidence_attachments'):
+                out['attachments'] = out['evidence_attachments']
             return out
 
         norm_actions = [_norm_action(a) for a in actions if isinstance(a, dict)]
@@ -3396,7 +3399,12 @@ def show_execution():
         return False
 
     def _has_my_final_action(n: dict) -> bool:
-        for a in (n.get('actions', []) or []):
+        # Fonte de verdade: tabela notification_actions
+        try:
+            actions = get_notification_actions(int(n.get('id', 0))) or []
+        except Exception:
+            actions = []
+        for a in actions:
             if a.get('executor_id') == user_id and a.get('final_action_by_executor'):
                 return True
         return False
@@ -3568,16 +3576,19 @@ def show_execution():
                                 "attachments": saved_attachments
                             }
 
-                            actions = n.get('actions', []) or []
-                            actions.append(action_entry)
+                            # Persistir ação na tabela (fonte de verdade)
+                            ok_action = add_notification_action(int(notif_id), action_entry)
 
-                            updates = {"actions": actions}
+                            updates = {}
                             # Se concluiu, empurra para revisão de execução
                             if conclui:
                                 updates["status"] = "revisao_classificador_execucao"
 
-                            updated = update_notification(notif_id, updates)
-                            if updated:
+                            updated = True
+                            if updates:
+                                updated = update_notification(notif_id, updates)
+
+                            if ok_action and updated:
                                 add_history_entry(
                                     notif_id,
                                     "🏁 Executor concluiu sua parte" if conclui else "📝 Ação registrada pelo executor",
@@ -3599,7 +3610,11 @@ def show_execution():
             # Mais recentes primeiro (pela última ação sua)
             def _last_my_ts(n):
                 ts = None
-                for a in (n.get('actions', []) or []):
+                try:
+                    actions = get_notification_actions(int(n.get('id', 0))) or []
+                except Exception:
+                    actions = []
+                for a in actions:
                     if a.get('executor_id') == user_id:
                         t = a.get('timestamp')
                         if t and (ts is None or t > ts):
@@ -3621,7 +3636,7 @@ def show_execution():
                     st.markdown("---")
                     st.markdown("## ✅ Minhas ações nesta notificação")
 
-                    my_actions = [a for a in (n.get('actions', []) or []) if a.get('executor_id') == user_id]
+                    my_actions = [a for a in (get_notification_actions(int(n.get('id',0))) or []) if a.get('executor_id') == user_id]
                     if not my_actions:
                         st.info("Nenhuma ação sua registrada (inconsistência).")
                     else:
