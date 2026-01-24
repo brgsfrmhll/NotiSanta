@@ -3409,6 +3409,29 @@ def show_execution():
                                     st.write(f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
                     st.markdown("</div>", unsafe_allow_html=True)
 
+            # 📎 Anexos desta ação (podem existir em qualquer ação)
+            action_atts = action.get('attachments') or []
+            if action_atts:
+                st.markdown("<div class='evidence-section'>", unsafe_allow_html=True)
+                st.markdown("<h6>Anexos desta ação:</h6>", unsafe_allow_html=True)
+                for attach_info in action_atts:
+                    unique_name = attach_info.get('unique_name')
+                    original_name = attach_info.get('original_name')
+                    if unique_name and original_name:
+                        file_content = get_attachment_data(unique_name)
+                        if file_content:
+                            st.download_button(
+                                label=f"Baixar Anexo: {original_name}",
+                                data=file_content,
+                                file_name=original_name,
+                                mime="application/octet-stream",
+                                key=f"download_action_attachment_exec_{notification['id']}_{unique_name}"
+                            )
+                        else:
+                            st.write(f"Anexo: {original_name} (arquivo não encontrado ou corrompido)")
+                st.markdown("</div>", unsafe_allow_html=True)
+
+
     def _render_collapsed_cards(notifs: List[Dict[str, Any]], mode: str):
         """
         mode:
@@ -3449,6 +3472,54 @@ def show_execution():
 
                 st.markdown("---")
 
+                # 👥 Encaminhar / adicionar executor extra (quando precisa de mais um executor)
+                with st.expander("👥 Encaminhar / Adicionar outro executor", expanded=False):
+                    try:
+                        exec_users = get_users_by_role('executor')
+                    except Exception:
+                        exec_users = []
+                    current_execs = set(notification.get('executors') or [])
+                    # Monta opções legíveis e remove quem já está atribuído
+                    available_opts = []
+                    available_map = {}
+                    for u in exec_users:
+                        uid = u.get('id')
+                        if uid is None or uid in current_execs:
+                            continue
+                        label = f"{u.get('name', 'Sem nome')} (id {uid})"
+                        available_opts.append(label)
+                        available_map[label] = uid
+
+                    if not available_opts:
+                        st.info("Não há outros executores disponíveis para adicionar (ou já estão todos atribuídos).")
+                    else:
+                        with st.form(f"forward_form_{notification.get('id')}_v2tabs", clear_on_submit=True):
+                            selected_labels = st.multiselect(
+                                "Selecione executor(es) para adicionar à execução",
+                                options=available_opts,
+                                help="Isso adiciona outro(s) executor(es) à lista desta notificação, para que também possam executar e registrar ações."
+                            )
+                            forward_note = st.text_input("Observação (opcional)", placeholder="Ex: precisa de apoio do time X / validação do responsável Y")
+                            do_add = st.form_submit_button("➕ Adicionar executor(es)")
+
+                        if do_add:
+                            if not selected_labels:
+                                st.warning("Selecione ao menos 1 executor para adicionar.")
+                            else:
+                                new_ids = sorted(list(current_execs | {available_map[l] for l in selected_labels if l in available_map}))
+                                ok = update_notification(notification.get('id'), {"executors": new_ids})
+                                if ok:
+                                    add_history_entry(
+                                        notification.get('id'),
+                                        action=f"👥 Executor adicionou: {', '.join(selected_labels)}",
+                                        user=user_username_logged_in,
+                                        details=(forward_note or "").strip()
+                                    )
+                                    st.success("Executor(es) adicionado(s) com sucesso.")
+                                    st.rerun()
+                                else:
+                                    st.error("Falha ao adicionar executor(es).")
+
                 # Impedir registrar mais ações se o executor já concluiu (defensivo)
                 if _executor_concluded(notification, user_id_logged_in):
                     st.info("✅ Sua parte nesta notificação já foi concluída. Apenas leitura.")
@@ -3475,6 +3546,13 @@ def show_execution():
                         placeholder="Descreva:\n• O QUÊ foi feito?\n• POR QUÊ foi feito?\n• ONDE foi realizado?\n• QUANDO?\n• QUEM executou?\n• COMO foi executado?\n• QUANTO custou/recursos?\n",
                         height=140,
                         key=f"exec_action_desc_widget_{notification.get('id', UI_TEXTS.text_na)}_v2tabs"
+                    )
+
+                    # 📎 Anexos da execução (podem ser adicionados em qualquer ação)
+                    exec_docs_files = st.file_uploader(
+                        "📎 Anexar documentos da execução (opcional)",
+                        accept_multiple_files=True,
+                        key=f"exec_docs_files_{notification.get('id', UI_TEXTS.text_na)}_v2tabs"
                     )
 
                     # Evidências são usadas apenas na conclusão
@@ -3540,6 +3618,30 @@ def show_execution():
                                     "original_name": saved['original_name']
                                 })
 
+                    # 📎 Persistir anexos gerais da execução (qualquer ação)
+                    exec_attachments = []
+                    if exec_docs_files:
+                        for f in exec_docs_files:
+                            saved = save_uploaded_file_to_disk(f, notification.get('id'))
+                            if saved:
+                                # registrar no DB de attachments (padrão)
+                                try:
+                                    conn = get_db_connection()
+                                    cur = conn.cursor()
+                                    cur.execute("""
+                                        INSERT INTO notification_attachments (notification_id, unique_name, original_name)
+                                        VALUES (%s, %s, %s)
+                                    """, (notification.get('id'), saved['unique_name'], saved['original_name']))
+                                    conn.commit()
+                                    cur.close()
+                                    conn.close()
+                                except Exception:
+                                    pass
+                                exec_attachments.append({
+                                    "unique_name": saved['unique_name'],
+                                    "original_name": saved['original_name']
+                                })
+
                     action_data = {
                         "executor_id": user_id_logged_in,
                         "executor_name": user_username_logged_in,
@@ -3547,7 +3649,8 @@ def show_execution():
                         "timestamp": datetime.now().isoformat(),
                         "final_action_by_executor": final_flag,
                         "evidence_description": (evidence_desc or "").strip() if final_flag else None,
-                        "evidence_attachments": evidence_attachments if final_flag else None
+                        "evidence_attachments": evidence_attachments if final_flag else None,
+                        "attachments": exec_attachments if exec_attachments else None
                     }
 
                     ok = add_notification_action(notification.get('id'), action_data)
