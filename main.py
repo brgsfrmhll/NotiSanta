@@ -3349,21 +3349,83 @@ def show_create_notification():
 
     current_data = st.session_state.create_form_data
     if st.session_state.form_step == 5:
+        notification = st.session_state.get('last_created_notification') or {}
+        protocol_display = format_tracking_code_for_display(notification.get('public_tracking_code', ''))
         st.balloons()
         st.markdown(r"""
-        <div style="text-align: center; margin-top: 100px;">
-            <h1 style="color: #2E86AB; font-size: 3em;">
-                ✅ Notificação Enviada com Sucesso! 😊
-            </h1>
-            <p style="font-size: 1.2em; color: #555;">
-                Obrigado pela sua participação! Voltando para um novo formulário...
+        <div style="max-width: 820px; margin: 32px auto 16px auto; background: #ffffff; border: 1px solid #d9e6f2; border-radius: 18px; box-shadow: 0 10px 30px rgba(46,134,171,0.08); padding: 28px; text-align: center;">
+            <div style="font-size: 3rem; line-height: 1; margin-bottom: 10px;">✅</div>
+            <h1 style="color: #2E86AB; font-size: 2.2em; margin-bottom: 10px;">Notificação enviada com sucesso</h1>
+            <p style="font-size: 1.05em; color: #555; margin-bottom: 0;">
+                Seu envio foi concluído. Guarde o protocolo abaixo para acompanhar o andamento da notificação.
             </p>
         </div>
         """, unsafe_allow_html=True)
-        time_module.sleep(2)
-        _reset_form_state()
-        st.session_state.form_step = 1
-        st.rerun()
+        if protocol_display.strip():
+            st.markdown(f"<div class='tracking-protocol-box'>{protocol_display}</div>", unsafe_allow_html=True)
+            st.caption("Copie e guarde este protocolo. Ele permite acompanhar a notificação sem expor o ID interno do sistema.")
+        col_a, col_b, col_c = st.columns([1, 1, 1])
+        with col_a:
+            if st.button("🏠 Voltar para a home", use_container_width=True, key='post_submit_home_btn'):
+                _reset_form_state()
+                st.session_state.form_step = 1
+                st.session_state.page = 'home'
+                st.rerun()
+        with col_b:
+            if st.button("📝 Nova notificação", use_container_width=True, key='post_submit_new_btn'):
+                _reset_form_state()
+                st.session_state.form_step = 1
+                st.session_state.page = 'create_notification'
+                st.rerun()
+        with col_c:
+            if st.button("🔎 Acompanhar protocolo", use_container_width=True, key='post_submit_track_btn'):
+                _reset_form_state()
+                st.session_state.form_step = 1
+                st.session_state.page = 'tracking'
+                if protocol_display.strip():
+                    st.session_state.tracking_protocol_input = notification.get('public_tracking_code', '')
+                    st.session_state.tracking_lookup_requested = True
+                st.rerun()
+        with st.expander("Resumo da notificação enviada", expanded=True):
+            if notification:
+                occurrence_datetime_summary = format_date_time_summary(
+                    notification.get('occurrence_date'),
+                    notification.get('occurrence_time')
+                )
+                st.write(f"**ID interno:** #{notification.get('id', 'N/A')}")
+                st.write(f"**Protocolo:** {protocol_display if protocol_display.strip() else 'N/A'}")
+                st.write(f"**Título:** {notification.get('title', UI_TEXTS.text_na)}")
+                st.write(f"**Local:** {notification.get('location', UI_TEXTS.text_na)}")
+                st.write(f"**Data/Hora do Evento:** {occurrence_datetime_summary}")
+                st.write(f"**Turno:** {notification.get('event_shift', UI_TEXTS.text_na)}")
+                reporting_department = notification.get('reporting_department', UI_TEXTS.text_na)
+                reporting_complement = notification.get('reporting_department_complement')
+                reporting_dept_display = f"{reporting_department}{f' ({reporting_complement})' if reporting_complement else ''}"
+                st.write(f"**Setor Notificante:** {reporting_dept_display}")
+                notified_department = notification.get('notified_department', UI_TEXTS.text_na)
+                notified_complement = notification.get('notified_department_complement')
+                notified_dept_display = f"{notified_department}{f' ({notified_complement})' if notified_complement else ''}"
+                st.write(f"**Setor Notificado:** {notified_dept_display}")
+                description = notification.get('description', UI_TEXTS.text_na)
+                st.write(f"**Descrição:** {description[:300] + '...' if isinstance(description, str) and len(description) > 300 else description}")
+                st.write(f"**Ações Imediatas Tomadas:** {notification.get('immediate_actions_taken', UI_TEXTS.text_na)}")
+                if notification.get('immediate_actions_taken') == 'Sim':
+                    immediate_desc = notification.get('immediate_action_description', UI_TEXTS.text_na)
+                    st.write(f"**Descrição Ações Imediatas:** {immediate_desc[:300] + '...' if isinstance(immediate_desc, str) and len(immediate_desc) > 300 else immediate_desc}")
+                st.write(f"**Paciente Envolvido:** {notification.get('patient_involved', UI_TEXTS.text_na)}")
+                if notification.get('patient_involved') == 'Sim':
+                    st.write(f"**N° Atendimento:** {notification.get('patient_id', UI_TEXTS.text_na)}")
+                    outcome = notification.get('patient_outcome_obito')
+                    outcome_text = 'Sim' if outcome is True else 'Não' if outcome is False else str(outcome or 'Não informado')
+                    st.write(f"**Evoluiu para óbito:** {outcome_text}")
+                additional_notes = notification.get('additional_notes')
+                if additional_notes:
+                    st.write(f"**Observações Adicionais:** {additional_notes[:300] + '...' if isinstance(additional_notes, str) and len(additional_notes) > 300 else additional_notes}")
+                attachments = notification.get('attachments') or []
+                st.write(f"**Anexos:** {len(attachments)} arquivo(s)" if attachments else "**Anexos:** Nenhum arquivo anexado.")
+            else:
+                st.info("Resumo indisponível no momento.")
+        return
     st.markdown(f"### Etapa {st.session_state.form_step}")
     if st.session_state.form_step == 1:
         with st.container():
@@ -3647,68 +3709,7 @@ unsafe_allow_html=True)
                         uploaded_files_list = notification_data_to_save.pop('attachments', [])
                         try:
                             notification = create_notification(notification_data_to_save, uploaded_files_list)
-                            st.success(f"✅ **Notificação #{notification['id']} criada com sucesso!**")
                             st.session_state.last_created_notification = notification
-                            st.info(
-                                "📋 Sua notificação foi enviada para classificação e será processada pela equipe responsável.")
-                            protocol_display = format_tracking_code_for_display(notification.get('public_tracking_code', ''))
-                            if protocol_display.strip():
-                                st.markdown(f"<div class='tracking-protocol-box'>{protocol_display}</div>", unsafe_allow_html=True)
-                                st.caption("Guarde este protocolo. Ele permite acompanhar a notificação sem expor o ID interno do sistema.")
-                            with st.expander("   Resumo da Notificação Enviada", expanded=False):
-                                occurrence_datetime_summary = format_date_time_summary(
-                                    notification_data_to_save.get('occurrence_date'),
-                                    notification_data_to_save.get('occurrence_time')
-                                )
-                                st.write(f"**ID:** #{notification['id']}")
-                                st.write(f"**Título:** {notification_data_to_save.get('title', UI_TEXTS.text_na)}")
-                                st.write(f"**Local:** {notification_data_to_save.get('location', UI_TEXTS.text_na)}")
-                                st.write(f"**Data/Hora do Evento:** {occurrence_datetime_summary}")
-                                st.write(
-                                    f"**Turno:** {notification_data_to_save.get('event_shift', UI_TEXTS.text_na)}")
-                                reporting_department = notification_data_to_save.get('reporting_department',
-                                                                                    UI_TEXTS.text_na)
-                                reporting_complement = notification_data_to_save.get('reporting_department_complement')
-                                reporting_dept_display = f"{reporting_department}{f' ({reporting_complement})' if reporting_complement else ''}"
-                                st.write(f"**Setor Notificante:** {reporting_dept_display}")
-                                notified_department = notification_data_to_save.get('notified_department',
-                                                                                    UI_TEXTS.text_na)
-                                notified_complement = notification_data_to_save.get('notified_department_complement')
-                                notified_dept_display = f"{notified_department}{f' ({notified_complement})' if notified_complement else ''}"
-                                st.write(f"**Setor Notificado:** {notified_dept_display}")
-                                st.write(
-                                    f"**Descrição:** {notification_data_to_save.get('description', UI_TEXTS.text_na)[:200]}..." if len(
-                                        notification_data_to_save.get('description',
-                                                                      '')) > 200 else notification_data_to_save.get(
-                                        'description', UI_TEXTS.text_na))
-                                st.write(
-                                    f"**Ações Imediatas Tomadas:** {notification_data_to_save.get('immediate_actions_taken', UI_TEXTS.text_na)}")
-                                if notification_data_to_save.get('immediate_actions_taken') == 'Sim':
-                                    st.write(
-                                        f"**Descrição Ações Imediatas:** {notification_data_to_save.get('immediate_action_description', UI_TEXTS.text_na)[:200]}..." if len(
-                                            notification_data_to_save.get('immediate_action_description',
-                                                                          '')) > 200 else notification_data_to_save.get(
-                                            'immediate_action_description', UI_TEXTS.text_na))
-                                st.write(
-                                    f"**Paciente Envolvido:** {notification_data_to_save.get('patient_involved', UI_TEXTS.text_na)}")
-                                if notification_data_to_save.get('patient_involved') == 'Sim':
-                                    st.write(
-                                        f"**N° Atendimento:** {notification_data_to_save.get('patient_id', UI_TEXTS.text_na)}")
-                                    outcome_text = 'Sim' if notification_data_to_save.get(
-                                        'patient_outcome_obito') is True else 'Não' if notification_data_to_save.get(
-                                        'patient_outcome_obito') is False else 'Não informado'
-                                    st.write(f"**Evoluiu para óbito:** {outcome_text}")
-                                if notification_data_to_save.get('additional_notes'):
-                                    st.write(
-                                        f"**Observações Adicionais:** {notification_data_to_save.get('additional_notes', UI_TEXTS.text_na)[:200]}..." if len(
-                                            notification_data_to_save.get('additional_notes',
-                                                                          '')) > 200 else notification_data_to_save.get(
-                                        'additional_notes', UI_TEXTS.text_na))
-                                if uploaded_files_list:
-                                    st.write(
-                                        f"**Anexos:** {len(uploaded_files_list)} file(s) selecionado(s): {', '.join([f.name for f in uploaded_files_list])}")
-                                else:
-                                    st.write("**Anexos:** Nenhum file anexado.")
                             st.session_state.form_step = 5
                             st.rerun()
                         except Exception as e:
