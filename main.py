@@ -388,6 +388,23 @@ st.markdown(r"""
         color: #6b7c8f;
         font-size: 0.9rem;
     }
+    div.stButton > button[data-testid="stButton"][data-key="home_go_create_btn"],
+    div.stButton > button[data-testid="stButton"][data-key="home_go_tracking_btn"] {
+        min-height: 76px !important;
+        font-size: 1.28rem !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.03em;
+        border-radius: 16px !important;
+    }
+    div.stButton > button[data-testid="stButton"][data-key="home_go_create_btn"] {
+        margin-top: 6px;
+        box-shadow: 0 10px 24px rgba(220, 38, 38, 0.18);
+    }
+    div.stButton > button[data-testid="stButton"][data-key="home_go_tracking_btn"] {
+        background: #ffffff !important;
+        color: #183b56 !important;
+        border: 1px solid #cbd5e1 !important;
+    }
     .timeline-item {
         border-left: 4px solid #d0d7de;
         padding: 10px 14px;
