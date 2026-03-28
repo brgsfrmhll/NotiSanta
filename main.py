@@ -340,9 +340,9 @@ st.markdown(r"""
     .choice-card {
         border: 1px solid #d9e2ec;
         border-radius: 20px;
-        padding: 22px;
+        padding: 20px;
         background: linear-gradient(180deg, #fbfdff 0%, #f6faff 100%);
-        min-height: 230px;
+        min-height: 168px;
         box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
         margin-bottom: 12px;
     }
@@ -2074,16 +2074,32 @@ def get_notification_by_tracking_code(tracking_code: str) -> Optional[Dict[str, 
 def get_public_status_label(status: str) -> str:
     return PUBLIC_STATUS_LABELS.get(status or '', (status or UI_TEXTS.text_na).replace('_', ' ').title())
 
-def _extract_stage_timestamps(notification: Dict[str, Any]) -> Dict[str, Optional[str]]:
+def _requires_superior_approval(notification: Dict[str, Any]) -> bool:
     classif = _safe_json_dict(notification.get('classification'))
     approval = _safe_json_dict(notification.get('approval'))
+    rejection_approval = _safe_json_dict(notification.get('rejection_approval'))
+    status = str(notification.get('status') or '')
+
+    return any([
+        truthy(classif.get('requires_approval')),
+        bool(notification.get('approver')),
+        bool(approval),
+        bool(rejection_approval),
+        status in ('aguardando_aprovacao', 'aprovada', 'reprovada'),
+    ])
+
+def _extract_stage_timestamps(notification: Dict[str, Any]) -> Dict[str, Optional[str]]:
+    classif = _safe_json_dict(notification.get('classification'))
+    review_execution = _safe_json_dict(notification.get('review_execution'))
+    approval = _safe_json_dict(notification.get('approval'))
+    rejection_approval = _safe_json_dict(notification.get('rejection_approval'))
     conclusion = _safe_json_dict(notification.get('conclusion'))
     stage_times = {
         'abertura': notification.get('created_at'),
         'classificacao': classif.get('classified_at'),
         'execucao': None,
-        'aprovacao': approval.get('approved_at'),
-        'encerramento': conclusion.get('timestamp') or approval.get('approved_at'),
+        'aprovacao': approval.get('approved_at') or rejection_approval.get('rejected_at'),
+        'encerramento': conclusion.get('timestamp') or approval.get('approved_at') or rejection_approval.get('rejected_at'),
     }
 
     actions = notification.get('actions') or []
@@ -2091,7 +2107,14 @@ def _extract_stage_timestamps(notification: Dict[str, Any]) -> Dict[str, Optiona
         ordered = sorted(actions, key=lambda x: x.get('timestamp') or '')
         stage_times['execucao'] = ordered[0].get('timestamp')
         if any(a.get('final_action_by_executor') for a in ordered):
-            stage_times['encerramento'] = stage_times['encerramento'] or next((a.get('timestamp') for a in ordered if a.get('final_action_by_executor')), None)
+            final_action_ts = next((a.get('timestamp') for a in ordered if a.get('final_action_by_executor')), None)
+            if not _requires_superior_approval(notification):
+                stage_times['encerramento'] = stage_times['encerramento'] or final_action_ts
+
+    if review_execution.get('reviewed_at'):
+        stage_times['execucao'] = stage_times['execucao'] or review_execution.get('reviewed_at')
+        if not _requires_superior_approval(notification):
+            stage_times['encerramento'] = stage_times['encerramento'] or review_execution.get('reviewed_at')
 
     if not stage_times['classificacao']:
         for item in notification.get('history') or []:
@@ -2100,32 +2123,43 @@ def _extract_stage_timestamps(notification: Dict[str, Any]) -> Dict[str, Optiona
                 stage_times['classificacao'] = item.get('timestamp')
                 break
 
-    if not stage_times['aprovacao']:
+    if _requires_superior_approval(notification) and not stage_times['aprovacao']:
         for item in notification.get('history') or []:
             action_text = str(item.get('action') or '').lower()
-            if 'aprova' in action_text:
+            if 'aprova' in action_text or 'reprova' in action_text:
                 stage_times['aprovacao'] = item.get('timestamp')
                 break
+
+    if not stage_times['encerramento'] and notification.get('status') in ('concluida', 'aprovada', 'reprovada', 'rejeitada', 'encerrada'):
+        stage_times['encerramento'] = review_execution.get('reviewed_at') or notification.get('updated_at')
 
     return stage_times
 
 def build_public_timeline(notification: Dict[str, Any]) -> List[Dict[str, Any]]:
     status = notification.get('status') or ''
-    current_step = 'classificacao'
+    requires_approval = _requires_superior_approval(notification)
+
     if status in ('pendente_classificacao', 'aguardando_classificador'):
         current_step = 'classificacao'
     elif status in ('classificada', 'classificada_aguardando_execucao', 'revisao_classificador_execucao', 'em_execucao'):
         current_step = 'execucao'
-    elif status in ('aguardando_aprovacao',):
+    elif requires_approval and status in ('aguardando_aprovacao',):
         current_step = 'aprovacao'
     elif status in ('concluida', 'aprovada', 'rejeitada', 'reprovada', 'encerrada'):
         current_step = 'encerramento'
+    else:
+        current_step = 'execucao'
 
-    completed_order = {'abertura': 0, 'classificacao': 1, 'execucao': 2, 'aprovacao': 3, 'encerramento': 4}
+    steps = [('abertura', 'Notificação criada'), ('classificacao', 'Classificação inicial'), ('execucao', 'Tratativa / execução')]
+    if requires_approval:
+        steps.append(('aprovacao', 'Aprovação superior'))
+    steps.append(('encerramento', 'Conclusão'))
+
+    completed_order = {step: idx for idx, (step, _) in enumerate(steps)}
     current_index = completed_order[current_step]
     stage_times = _extract_stage_timestamps(notification)
     timeline = []
-    for idx, (step_key, label) in enumerate(PUBLIC_TIMELINE_STEPS):
+    for idx, (step_key, label) in enumerate(steps):
         state = 'pending'
         if idx < current_index:
             state = 'done'
@@ -2200,7 +2234,7 @@ def render_public_notification_summary(notification: Dict[str, Any]):
     if classif.get('classifier_observations'):
         st.markdown("**Resumo da análise do classificador**")
         st.write(classif.get('classifier_observations'))
-    final_notes = conclusion.get('notes') or approval.get('notes') or rejection_approval.get('reason')
+    final_notes = conclusion.get('notes') or approval.get('notes') or rejection_approval.get('reason') or _safe_json_dict(notification.get('review_execution')).get('observations')
     if final_notes:
         st.markdown("**Resumo final da tratativa**")
         st.write(final_notes)
@@ -2260,29 +2294,24 @@ def show_home_page():
         <div class='home-hero'>
             <div class='home-kicker'>Portal institucional</div>
             <h1>Portal de Notificações</h1>
-            <p>Registre uma nova notificação ou acompanhe uma solicitação existente usando um protocolo público e seguro.</p>
+            <p>Escolha uma das opções abaixo para registrar ou acompanhar uma notificação.</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    _, center, _ = st.columns([0.6, 8.8, 0.6])
+    _, center, _ = st.columns([1.2, 7.6, 1.2])
     with center:
         col1, col2 = st.columns(2, gap='large')
 
         with col1:
             st.markdown("""
             <div class='choice-card choice-card-primary'>
-                <div class='choice-badge'>Ação principal</div>
-                <h3>📝 Nova notificação</h3>
-                <p>Abra o formulário completo para registrar uma nova ocorrência. Ao final, o sistema gera um protocolo seguro para acompanhamento.</p>
-                <ul>
-                    <li>Fluxo completo já existente</li>
-                    <li>Geração automática do protocolo</li>
-                    <li>Resumo final após o envio</li>
-                </ul>
+                <div class='choice-badge'>Principal</div>
+                <h3>📝 Notificar</h3>
+                <p>Abra o formulário e registre uma nova ocorrência.</p>
             </div>
             """, unsafe_allow_html=True)
-            if st.button("Abrir formulário de notificação", use_container_width=True, key='home_go_create_btn', type='primary'):
+            if st.button("Abrir formulário", use_container_width=True, key='home_go_create_btn', type='primary'):
                 st.session_state.page = 'create_notification'
                 _reset_form_state()
                 st.rerun()
@@ -2290,9 +2319,9 @@ def show_home_page():
         with col2:
             st.markdown("""
             <div class='choice-card'>
-                <div class='choice-badge secondary'>Consulta rápida</div>
-                <h3>🔎 Acompanhar notificação</h3>
-                <p>Informe o protocolo para visualizar a linha do tempo, o status atual e o resumo público da notificação.</p>
+                <div class='choice-badge secondary'>Consulta</div>
+                <h3>🔎 Acompanhar</h3>
+                <p>Digite o protocolo para ver status, linha do tempo e resumo.</p>
             </div>
             """, unsafe_allow_html=True)
             quick_code = st.text_input(
@@ -2301,7 +2330,7 @@ def show_home_page():
                 key='home_tracking_quick_code',
                 label_visibility='collapsed'
             )
-            if st.button("Ir para acompanhamento", use_container_width=True, key='home_go_tracking_btn'):
+            if st.button("Consultar protocolo", use_container_width=True, key='home_go_tracking_btn'):
                 st.session_state.tracking_code_input = quick_code
                 st.session_state.tracking_lookup_requested = bool((quick_code or '').strip())
                 st.session_state.page = 'tracking'
@@ -2309,7 +2338,7 @@ def show_home_page():
 
         st.markdown("""
         <div class='home-footnote'>
-            O protocolo público é imprevisível e separado do identificador interno da notificação.
+            O protocolo é público, seguro e diferente do identificador interno.
         </div>
         """, unsafe_allow_html=True)
 
@@ -3383,7 +3412,7 @@ def show_create_notification():
                 st.session_state.form_step = 1
                 st.session_state.page = 'tracking'
                 if protocol_display.strip():
-                    st.session_state.tracking_protocol_input = notification.get('public_tracking_code', '')
+                    st.session_state.tracking_code_input = notification.get('public_tracking_code', '')
                     st.session_state.tracking_lookup_requested = True
                 st.rerun()
         with st.expander("Resumo da notificação enviada", expanded=True):
@@ -4533,7 +4562,14 @@ def show_revisao_execucao():
                         add_history_entry(notif_id, username, "📨 Encaminhado para aprovação superior", f"Aprovador ID={selected_approver_id}")
                         st.success("Execução aprovada e encaminhada para aprovação superior.")
                     else:
-                        update_notification(notif_id, {"status": "concluida"})
+                        conclusion_payload = {
+                            "status_final": "concluida",
+                            "notes": (observacoes_revisao or "Execução aprovada sem necessidade de aprovação superior.").strip() or None,
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "concluded_by": username,
+                            "concluded_by_id": st.session_state.get("user_id"),
+                        }
+                        update_notification(notif_id, {"status": "concluida", "conclusion": conclusion_payload, "approver": None})
                         add_history_entry(notif_id, username, "✅ Execução aprovada", "Sem aprovação superior")
                         st.success("Execução aprovada e concluída (sem aprovação superior).")
 
@@ -5321,7 +5357,7 @@ def show_approval():
                             <em>{action.get('description', UI_TEXTS.text_na)}</em>
                             """, unsafe_allow_html=True)
                         if action.get('final_action_by_executor'):
-                            evidence_desc = action.get('evidence_description', '').strip()
+                            evidence_desc = (action.get('evidence_description') or '').strip()
                             evidence_atts = action.get('evidence_attachments', [])
                             if evidence_desc or evidence_atts:
                                 st.markdown(f"""<div class='evidence-section'>""", unsafe_allow_html=True)
