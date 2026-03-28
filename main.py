@@ -294,8 +294,42 @@ st.markdown(r"""
     }
 
     /* Tela inicial / acompanhamento público */
+    .home-shell {
+        max-width: 1080px;
+        margin: 8px auto 22px auto;
+    }
+    .home-hero {
+        max-width: 860px;
+        margin: 0 auto 10px auto;
+        text-align: center;
+        padding: 28px 24px 16px 24px;
+    }
+    .home-kicker {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: #e8f1fb;
+        color: #174c7d;
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: .02em;
+        margin-bottom: 12px;
+    }
+    .home-hero h1 {
+        margin: 0 0 10px 0;
+        color: #183b56;
+        font-size: 2.2rem;
+        font-weight: 800;
+    }
+    .home-hero p {
+        margin: 0 auto;
+        max-width: 720px;
+        color: #52667a;
+        font-size: 1rem;
+        line-height: 1.55;
+    }
     .home-modal-card {
-        max-width: 900px;
+        max-width: 940px;
         margin: 20px auto 10px auto;
         background: #ffffff;
         border: 1px solid #dfe7ef;
@@ -305,10 +339,54 @@ st.markdown(r"""
     }
     .choice-card {
         border: 1px solid #d9e2ec;
-        border-radius: 16px;
-        padding: 18px;
-        background: #fbfdff;
-        min-height: 170px;
+        border-radius: 20px;
+        padding: 22px;
+        background: linear-gradient(180deg, #fbfdff 0%, #f6faff 100%);
+        min-height: 230px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        margin-bottom: 12px;
+    }
+    .choice-card-primary {
+        border-color: #bfd5ea;
+        background: linear-gradient(180deg, #f9fcff 0%, #eef6ff 100%);
+    }
+    .choice-card h3 {
+        margin: 10px 0 12px 0;
+        color: #183b56;
+        font-size: 1.35rem;
+    }
+    .choice-card p {
+        color: #52667a;
+        line-height: 1.55;
+        margin-bottom: 14px;
+    }
+    .choice-card ul {
+        margin: 0;
+        padding-left: 18px;
+        color: #35516b;
+    }
+    .choice-card li {
+        margin-bottom: 6px;
+    }
+    .choice-badge {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #dbeafe;
+        color: #1d4f91;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+    .choice-badge.secondary {
+        background: #ede9fe;
+        color: #5b3db5;
+    }
+    .home-footnote {
+        max-width: 900px;
+        margin: 10px auto 0 auto;
+        text-align: center;
+        color: #6b7c8f;
+        font-size: 0.9rem;
     }
     .timeline-item {
         border-left: 4px solid #d0d7de;
@@ -1326,7 +1404,7 @@ def create_notification(data: Dict, uploaded_files: Optional[List[Any]] = None):
                 reporting_department, reporting_department_complement, notified_department,
                 notified_department_complement, event_shift, immediate_actions_taken,
                 immediate_action_description, patient_involved, patient_id, patient_outcome_obito,
-                additional_notes, status, created_at, updated_at, public_tracking_code,
+                additional_notes, status, created_at, updated_at,
                 classification, rejection_classification, review_execution, approval,
                 rejection_approval, rejection_execution_review, conclusion,
                 executors, approver
@@ -1336,7 +1414,7 @@ def create_notification(data: Dict, uploaded_files: Optional[List[Any]] = None):
                 %s,%s,%s,
                 %s,%s,%s,
                 %s,%s,%s,%s,
-                %s,%s, %s, %s,
+                %s,%s,%s,%s,
                 %s,%s,%s,%s,
                 %s,%s,%s,
                 %s,%s
@@ -2177,32 +2255,63 @@ def show_tracking_page():
     st.markdown("</div>", unsafe_allow_html=True)
 
 def show_home_page():
-    st.markdown("<h1 class='main-header'>Portal de Notificações</h1>", unsafe_allow_html=True)
-    st.markdown("<div class='home-modal-card'>", unsafe_allow_html=True)
-    st.markdown("### Escolha uma opção")
-    st.write("Use o portal para registrar uma nova notificação ou acompanhar uma notificação já enviada por meio do protocolo público.")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("<div class='choice-card'>", unsafe_allow_html=True)
-        st.markdown("#### 📝 Notificar")
-        st.write("Abre o formulário completo para registrar uma nova notificação e gerar um protocolo seguro de acompanhamento ao final.")
-        if st.button("Abrir formulário de notificação", use_container_width=True, key='home_go_create_btn'):
-            st.session_state.page = 'create_notification'
-            _reset_form_state()
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-    with col2:
-        st.markdown("<div class='choice-card'>", unsafe_allow_html=True)
-        st.markdown("#### 🔎 Acompanhar notificação")
-        st.write("Consulte a linha do tempo e o resumo da notificação usando o protocolo gerado no envio.")
-        quick_code = st.text_input("Já possui o protocolo?", placeholder="Cole aqui para consultar", key='home_tracking_quick_code')
-        if st.button("Ir para acompanhamento", use_container_width=True, key='home_go_tracking_btn'):
-            st.session_state.tracking_code_input = quick_code
-            st.session_state.tracking_lookup_requested = bool((quick_code or '').strip())
-            st.session_state.page = 'tracking'
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("""
+    <div class='home-shell'>
+        <div class='home-hero'>
+            <div class='home-kicker'>Portal institucional</div>
+            <h1>Portal de Notificações</h1>
+            <p>Registre uma nova notificação ou acompanhe uma solicitação existente usando um protocolo público e seguro.</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    _, center, _ = st.columns([0.6, 8.8, 0.6])
+    with center:
+        col1, col2 = st.columns(2, gap='large')
+
+        with col1:
+            st.markdown("""
+            <div class='choice-card choice-card-primary'>
+                <div class='choice-badge'>Ação principal</div>
+                <h3>📝 Nova notificação</h3>
+                <p>Abra o formulário completo para registrar uma nova ocorrência. Ao final, o sistema gera um protocolo seguro para acompanhamento.</p>
+                <ul>
+                    <li>Fluxo completo já existente</li>
+                    <li>Geração automática do protocolo</li>
+                    <li>Resumo final após o envio</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("Abrir formulário de notificação", use_container_width=True, key='home_go_create_btn', type='primary'):
+                st.session_state.page = 'create_notification'
+                _reset_form_state()
+                st.rerun()
+
+        with col2:
+            st.markdown("""
+            <div class='choice-card'>
+                <div class='choice-badge secondary'>Consulta rápida</div>
+                <h3>🔎 Acompanhar notificação</h3>
+                <p>Informe o protocolo para visualizar a linha do tempo, o status atual e o resumo público da notificação.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            quick_code = st.text_input(
+                "Protocolo público",
+                placeholder="Ex.: NS-AB12CD34-EF56GH78",
+                key='home_tracking_quick_code',
+                label_visibility='collapsed'
+            )
+            if st.button("Ir para acompanhamento", use_container_width=True, key='home_go_tracking_btn'):
+                st.session_state.tracking_code_input = quick_code
+                st.session_state.tracking_lookup_requested = bool((quick_code or '').strip())
+                st.session_state.page = 'tracking'
+                st.rerun()
+
+        st.markdown("""
+        <div class='home-footnote'>
+            O protocolo público é imprevisível e separado do identificador interno da notificação.
+        </div>
+        """, unsafe_allow_html=True)
 
 def _clear_execution_form_state(notification_id: int):
     """Limpa as chaves do session_state para o formulário de execução após o envio."""
