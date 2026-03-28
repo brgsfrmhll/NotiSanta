@@ -2291,52 +2291,32 @@ def show_tracking_page():
 def show_home_page():
     st.markdown("""
     <div class='home-shell'>
-        <div class='home-hero'>
+        <div class='home-hero compact'>
             <div class='home-kicker'>Portal institucional</div>
             <h1>Portal de Notificações</h1>
-            <p>Escolha uma das opções abaixo para registrar ou acompanhar uma notificação.</p>
+            <p>Escolha a ação desejada.</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    _, center, _ = st.columns([1.8, 6.4, 1.8])
+    _, center, _ = st.columns([2.8, 4.4, 2.8])
     with center:
-        st.markdown("""
-        <div class='choice-card choice-card-primary'>
-            <div class='choice-badge'>Principal</div>
-            <h3>📝 Notificar</h3>
-            <p>Abra o formulário e registre uma nova ocorrência.</p>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("Abrir formulário", use_container_width=True, key='home_go_create_btn', type='primary'):
+        st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
+        if st.button("NOTIFICAR", use_container_width=True, key='home_go_create_btn', type='primary'):
             st.session_state.page = 'create_notification'
             _reset_form_state()
             st.rerun()
 
-        st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-        st.markdown("""
-        <div class='choice-card'>
-            <div class='choice-badge secondary'>Consulta</div>
-            <h3>🔎 Acompanhar</h3>
-            <p>Digite o protocolo para ver status, linha do tempo e resumo.</p>
-        </div>
-        """, unsafe_allow_html=True)
-        quick_code = st.text_input(
-            "Protocolo público",
-            placeholder="Ex.: NS-AB12CD34-EF56GH78",
-            key='home_tracking_quick_code',
-            label_visibility='collapsed'
-        )
-        if st.button("Consultar protocolo", use_container_width=True, key='home_go_tracking_btn'):
-            st.session_state.tracking_code_input = quick_code
-            st.session_state.tracking_lookup_requested = bool((quick_code or '').strip())
+        if st.button("ACOMPANHAR NOTIFICAÇÃO", use_container_width=True, key='home_go_tracking_btn'):
+            st.session_state.tracking_lookup_requested = False
             st.session_state.page = 'tracking'
             st.rerun()
 
         st.markdown("""
-        <div class='home-footnote'>
-            O protocolo é público, seguro e diferente do identificador interno.
+        <div class='home-footnote minimal'>
+            O protocolo é informado ao final do envio.
         </div>
         """, unsafe_allow_html=True)
 
