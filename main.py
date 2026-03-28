@@ -2299,42 +2299,40 @@ def show_home_page():
     </div>
     """, unsafe_allow_html=True)
 
-    _, center, _ = st.columns([1.2, 7.6, 1.2])
+    _, center, _ = st.columns([1.8, 6.4, 1.8])
     with center:
-        col1, col2 = st.columns(2, gap='large')
+        st.markdown("""
+        <div class='choice-card choice-card-primary'>
+            <div class='choice-badge'>Principal</div>
+            <h3>📝 Notificar</h3>
+            <p>Abra o formulário e registre uma nova ocorrência.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("Abrir formulário", use_container_width=True, key='home_go_create_btn', type='primary'):
+            st.session_state.page = 'create_notification'
+            _reset_form_state()
+            st.rerun()
 
-        with col1:
-            st.markdown("""
-            <div class='choice-card choice-card-primary'>
-                <div class='choice-badge'>Principal</div>
-                <h3>📝 Notificar</h3>
-                <p>Abra o formulário e registre uma nova ocorrência.</p>
-            </div>
-            """, unsafe_allow_html=True)
-            if st.button("Abrir formulário", use_container_width=True, key='home_go_create_btn', type='primary'):
-                st.session_state.page = 'create_notification'
-                _reset_form_state()
-                st.rerun()
+        st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
 
-        with col2:
-            st.markdown("""
-            <div class='choice-card'>
-                <div class='choice-badge secondary'>Consulta</div>
-                <h3>🔎 Acompanhar</h3>
-                <p>Digite o protocolo para ver status, linha do tempo e resumo.</p>
-            </div>
-            """, unsafe_allow_html=True)
-            quick_code = st.text_input(
-                "Protocolo público",
-                placeholder="Ex.: NS-AB12CD34-EF56GH78",
-                key='home_tracking_quick_code',
-                label_visibility='collapsed'
-            )
-            if st.button("Consultar protocolo", use_container_width=True, key='home_go_tracking_btn'):
-                st.session_state.tracking_code_input = quick_code
-                st.session_state.tracking_lookup_requested = bool((quick_code or '').strip())
-                st.session_state.page = 'tracking'
-                st.rerun()
+        st.markdown("""
+        <div class='choice-card'>
+            <div class='choice-badge secondary'>Consulta</div>
+            <h3>🔎 Acompanhar</h3>
+            <p>Digite o protocolo para ver status, linha do tempo e resumo.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        quick_code = st.text_input(
+            "Protocolo público",
+            placeholder="Ex.: NS-AB12CD34-EF56GH78",
+            key='home_tracking_quick_code',
+            label_visibility='collapsed'
+        )
+        if st.button("Consultar protocolo", use_container_width=True, key='home_go_tracking_btn'):
+            st.session_state.tracking_code_input = quick_code
+            st.session_state.tracking_lookup_requested = bool((quick_code or '').strip())
+            st.session_state.page = 'tracking'
+            st.rerun()
 
         st.markdown("""
         <div class='home-footnote'>
