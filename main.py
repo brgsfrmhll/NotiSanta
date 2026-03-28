@@ -2307,6 +2307,57 @@ def show_tracking_page():
 
 def show_home_page():
     st.markdown("""
+    <style>
+    .home-actions-wrap {
+        max-width: 760px;
+        margin: 0 auto;
+    }
+    .home-action-card {
+        background: #ffffff;
+        border: 1px solid #d8e3ef;
+        border-radius: 18px;
+        padding: 22px 22px 14px 22px;
+        box-shadow: 0 10px 24px rgba(21, 59, 92, 0.08);
+        margin: 0 0 16px 0;
+    }
+    .home-action-card.primary {
+        border: 1px solid rgba(255, 77, 77, 0.22);
+        box-shadow: 0 14px 32px rgba(255, 77, 77, 0.12);
+    }
+    .home-action-card .eyebrow {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 999px;
+        margin-bottom: 12px;
+        letter-spacing: 0.02em;
+    }
+    .home-action-card.primary .eyebrow {
+        color: #c62828;
+        background: rgba(255, 77, 77, 0.12);
+    }
+    .home-action-card.secondary .eyebrow {
+        color: #3d5a80;
+        background: rgba(61, 90, 128, 0.10);
+    }
+    .home-action-card h3 {
+        margin: 0 0 8px 0;
+        font-size: 1.45rem;
+        color: #17324d;
+    }
+    .home-action-card p {
+        margin: 0 0 14px 0;
+        color: #5f7184;
+        font-size: 0.98rem;
+    }
+    .home-home-note {
+        text-align: center;
+        color: #73879a;
+        font-size: 0.9rem;
+        margin-top: 12px;
+    }
+    </style>
     <div class='home-shell'>
         <div class='home-hero compact'>
             <div class='home-kicker'>Portal institucional</div>
@@ -2316,26 +2367,40 @@ def show_home_page():
     </div>
     """, unsafe_allow_html=True)
 
-    _, center, _ = st.columns([2.8, 4.4, 2.8])
+    _, center, _ = st.columns([2.6, 4.8, 2.6])
     with center:
-        st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
-        if st.button("NOTIFICAR", use_container_width=True, key='home_go_create_btn', type='primary'):
-            st.session_state.page = 'create_notification'
-            _reset_form_state()
-            st.rerun()
+        st.markdown("<div class='home-actions-wrap'>", unsafe_allow_html=True)
+
+        with st.container():
+            st.markdown("""
+            <div class='home-action-card primary'>
+                <div class='eyebrow'>Principal</div>
+                <h3>Notificar</h3>
+                <p>Registrar uma nova ocorrência no portal.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("NOTIFICAR", use_container_width=True, key='home_go_create_btn', type='primary'):
+                st.session_state.page = 'create_notification'
+                _reset_form_state()
+                st.rerun()
 
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-        if st.button("ACOMPANHAR NOTIFICAÇÃO", use_container_width=True, key='home_go_tracking_btn'):
-            st.session_state.tracking_lookup_requested = False
-            st.session_state.page = 'tracking'
-            st.rerun()
+        with st.container():
+            st.markdown("""
+            <div class='home-action-card secondary'>
+                <div class='eyebrow'>Consulta</div>
+                <h3>Acompanhar notificação</h3>
+                <p>Consultar status, linha do tempo e resumo por protocolo.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("ACOMPANHAR NOTIFICAÇÃO", use_container_width=True, key='home_go_tracking_btn'):
+                st.session_state.tracking_lookup_requested = False
+                st.session_state.page = 'tracking'
+                st.rerun()
 
-        st.markdown("""
-        <div class='home-footnote minimal'>
-            O protocolo é informado ao final do envio.
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("<div class='home-home-note'>O protocolo é informado ao final do envio.</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
 def _clear_execution_form_state(notification_id: int):
     """Limpa as chaves do session_state para o formulário de execução após o envio."""
